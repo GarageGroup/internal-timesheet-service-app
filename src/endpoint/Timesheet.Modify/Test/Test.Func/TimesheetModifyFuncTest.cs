@@ -52,8 +52,6 @@ public static partial class TimesheetModifyFuncTest
     {
         var mock = new Mock<IDataverseApiClient>();
 
-        _ = mock.Setup(static a => a.Impersonate(It.IsAny<Guid>())).Returns(mock.Object);
-
         _ = mock
             .Setup(static a => a.CreateEntityAsync(It.IsAny<DataverseEntityCreateIn<TimesheetJson>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(result);

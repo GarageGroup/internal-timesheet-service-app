@@ -16,11 +16,9 @@ partial class BotApiTest
         var mockCacheApi = BuildMockCacheApi(SomeCacheValue);
 
         var api = new BotApiImpl(mockTelegramApi.Object, mockCacheApi.Object);
+        _ = await api.PingAsync(default, TestContext.Current.CancellationToken);
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await api.PingAsync(default, cancellationToken);
-
-        mockTelegramApi.Verify(a => a.GetMeAsync(default, cancellationToken), Times.Once);
+        mockTelegramApi.Verify(a => a.GetMeAsync(default, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]
@@ -41,7 +39,7 @@ partial class BotApiTest
 
         var api = new BotApiImpl(mockTelegramApi.Object, mockCacheApi.Object);
 
-        var actual = await api.PingAsync(default, default);
+        var actual = await api.PingAsync(default, TestContext.Current.CancellationToken);
         var expected = Failure.Create("Some failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -56,7 +54,7 @@ partial class BotApiTest
         var mockCacheApi = BuildMockCacheApi(SomeCacheValue);
 
         var api = new BotApiImpl(mockTelegramApi.Object, mockCacheApi.Object);
-        _ = await api.PingAsync(default, default);
+        _ = await api.PingAsync(default, TestContext.Current.CancellationToken);
 
         mockCacheApi.Verify(a => a.SetValue(cacheValue), Times.Once);
     }
@@ -69,7 +67,7 @@ partial class BotApiTest
 
         var api = new BotApiImpl(mockTelegramApi.Object, mockCacheApi.Object);
 
-        var actual = await api.PingAsync(default, default);
+        var actual = await api.PingAsync(default, TestContext.Current.CancellationToken);
         var expected = Result.Success<Unit>(default);
 
         Assert.StrictEqual(expected, actual);

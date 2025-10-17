@@ -18,9 +18,7 @@ partial class UserSignInFuncTest
         var mockBotApi = BuildMockBotApi(SomeBotInfo);
 
         var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, option);
-
-        var cancellationToken = new CancellationToken(false);
-        var actual = await func.InvokeAsync(input, cancellationToken);
+        var actual = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         Assert.StrictEqual(expectedFailure, actual);
     }
@@ -40,8 +38,7 @@ partial class UserSignInFuncTest
                 "language_code%22%3A%22en%22%2C%22allows_write_to_pm%22%3Atrue%7D&auth_date=1720097842&" +
                 "hash=2fa9c34a28f2a843eca1a086262000e6d0bda91db3a8ddf4002ca5bd26a5c224");
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         var expectedInput = new DataverseEntityGetIn(
             entityPluralName: "systemusers",
@@ -74,7 +71,7 @@ partial class UserSignInFuncTest
 
         var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, SomeOption);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(expectedFailureCode, "Some failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -91,7 +88,7 @@ partial class UserSignInFuncTest
         var mockBotApi = BuildMockBotApi(botInfoFailure);
         var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, SomeOption);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(UserSignInFailureCode.Unknown, "Some failure text", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -110,11 +107,9 @@ partial class UserSignInFuncTest
         var mockBotApi = BuildMockBotApi(botInfo);
 
         var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, option);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
-
-        mockDataverseApi.Verify(a => a.UpdateEntityAsync(expectedInput, cancellationToken), Times.Once);
+        mockDataverseApi.Verify(a => a.UpdateEntityAsync(expectedInput, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]
@@ -140,7 +135,7 @@ partial class UserSignInFuncTest
 
         var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, SomeOption);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(UserSignInFailureCode.Unknown, "Some failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -154,7 +149,7 @@ partial class UserSignInFuncTest
 
         var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, SomeOption);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Result.Success<Unit>(default);
 
         Assert.StrictEqual(expected, actual);

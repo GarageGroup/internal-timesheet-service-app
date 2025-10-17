@@ -3,9 +3,11 @@ using Xunit;
 
 namespace GarageGroup.Internal.Timesheet.Endpoint.Timesheet.Modify.Test;
 
+using DataverseProjectGetOut = DataverseEntityGetOut<ProjectJson>;
+
 internal static partial class TimesheetModifyFuncSource
 {
-    public static TheoryData<TimesheetUpdateIn, DataverseEntityGetOut<ProjectJson>, DataverseEntityUpdateIn<TimesheetJson>> InputUpdateProjectTestData
+    public static TheoryData<TimesheetUpdateIn, DataverseProjectGetOut, DataverseEntityUpdateIn<TimesheetJson>> InputUpdateProjectTestData
         =>
         new()
         {
