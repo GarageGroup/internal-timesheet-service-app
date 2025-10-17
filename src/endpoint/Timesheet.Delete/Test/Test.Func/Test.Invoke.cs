@@ -5,101 +5,73 @@ using GarageGroup.Infra;
 using Moq;
 using Xunit;
 
-namespace GarageGroup.Internal.Timesheet.Endpoint.Tag.GetSet.Test;
+namespace GarageGroup.Internal.Timesheet.Endpoint.Timesheet.Delete.Test;
 
-partial class TagSetGetFuncTest
+partial class TimesheetDeleteFuncTest
 {
-    [Fact]
-    public static async Task InvokeAsync_ExpectSqlApiCalledOnce()
+    [Theory]
+    [MemberData(nameof(TimesheetDeleteFuncSource.InputTestData), MemberType = typeof(TimesheetDeleteFuncSource))]
+    public static async Task InvokeAsync_ExpectDataverseDeleteCalledOnce(
+        TimesheetDeleteIn input, DataverseEntityDeleteIn expectedInput)
     {
-        var mockSqlApi = BuildMockSqlApi(SomeDbTimesheetTagSet);
+        var mockDataverseApi = BuildMockDataverseDeleteApi(Result.Success<Unit>(default));
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
 
-        var date = new DateOnly(2024, 03, 21);
-        var todayProvider = BuildTodayProvider(date);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
-        var option = new TagSetGetOption(5);
-        var func = new TagSetGetFunc(mockSqlApi.Object, todayProvider, option);
-
-        var input = new TagSetGetIn(
-            systemUserId: new("82ee3d26-17f1-4e2f-adb2-eeea5119a512"),
-            projectId: new("58482d23-ca3e-4499-8294-cc9b588cce73"));
-
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
-
-        var expectedQuery = new DbSelectQuery("gg_timesheetactivity", "t")
-        {
-            SelectedFields = new("t.gg_description AS Description"),
-            Filter = new DbCombinedFilter(DbLogicalOperator.And)
-            {
-                Filters =
-                [
-                    new DbExistsFilter(
-                        selectQuery: new DbSelectQuery("systemuser", "u")
-                        {
-                            Top = 1,
-                            SelectedFields = new("1"),
-                            Filter = new DbCombinedFilter(DbLogicalOperator.And)
-                            {
-                                Filters =
-                                [
-                                    new DbRawFilter("t.ownerid = u.systemuserid"),
-                                    new DbParameterFilter(
-                                        fieldName: "u.azureactivedirectoryobjectid",
-                                        @operator: DbFilterOperator.Equal,
-                                        fieldValue: Guid.Parse("82ee3d26-17f1-4e2f-adb2-eeea5119a512"),
-                                        parameterName: "ownerId")
-                                ]
-                            }
-                        }),
-                    new DbParameterFilter(
-                        "t.regardingobjectid", DbFilterOperator.Equal, Guid.Parse("58482d23-ca3e-4499-8294-cc9b588cce73"), "projectId"),
-                    new DbLikeFilter(
-                        "t.gg_description", "%#%", "description"),
-                    new DbParameterFilter(
-                        "t.gg_date", DbFilterOperator.GreaterOrEqual, "2024-03-16", "minDate"),
-                    new DbParameterFilter(
-                        "t.gg_date", DbFilterOperator.LessOrEqual, "2024-03-21", "maxDate")
-                ]
-            },
-            Orders =
-            [
-                new("t.gg_date", DbOrderType.Descending),
-                new("t.createdon", DbOrderType.Descending)
-            ]
-        };
-
-        mockSqlApi.Verify(a => a.QueryEntitySetOrFailureAsync<DbTag>(expectedQuery, cancellationToken), Times.Once);
+        mockDataverseApi.Verify(a => a.DeleteEntityAsync(expectedInput, It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Fact]
-    public static async Task InvokeAsync_DbResultIsFailure_ExpectFailure()
+    [Theory]
+    [InlineData(DataverseFailureCode.Unknown)]
+    [InlineData(DataverseFailureCode.Unauthorized)]
+    [InlineData(DataverseFailureCode.PicklistValueOutOfRange)]
+    [InlineData(DataverseFailureCode.UserNotEnabled)]
+    [InlineData(DataverseFailureCode.PrivilegeDenied)]
+    [InlineData(DataverseFailureCode.Throttling)]
+    [InlineData(DataverseFailureCode.SearchableEntityNotFound)]
+    [InlineData(DataverseFailureCode.DuplicateRecord)]
+    [InlineData(DataverseFailureCode.InvalidPayload)]
+    [InlineData(DataverseFailureCode.InvalidFileSize)]
+    public static async Task InvokeAsync_DataverseResultIsUnexpectedFailure_ExpectFailure(
+        DataverseFailureCode sourceFailureCode)
     {
         var sourceException = new Exception("Some error message");
-        var dbFailure = sourceException.ToFailure("Some failure text");
+        var dataverseFailure = sourceException.ToFailure(sourceFailureCode, "Some failure message");
 
-        var mockSqlApi = BuildMockSqlApi(dbFailure);
-        var todayProvider = BuildTodayProvider(SomeDate);
+        var mockDataverseApi = BuildMockDataverseDeleteApi(dataverseFailure);
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
 
-        var func = new TagSetGetFunc(mockSqlApi.Object, todayProvider, SomeOption);
-
-        var actual = await func.InvokeAsync(SomeTimesheetTagSetGetInput, default);
-        var expected = Failure.Create("Some failure text", sourceException);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
+        var expected = Failure.Create(Unit.Value, "Some failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
     }
 
-    [Theory]
-    [MemberData(nameof(TagSetGetFuncSource.OutputTestData), MemberType = typeof(TagSetGetFuncSource))]
-    internal static async Task InvokeAsync_DbResultIsSuccess_ExpectSuccess(
-        FlatArray<DbTag> dbTimesheetTags, TagSetGetOut expected)
+    [Fact]
+    public static async Task InvokeAsync_DataverseResultIsFailureRecordNotFoundFailure_ExpectSuccess()
     {
-        var mockSqlApi = BuildMockSqlApi(dbTimesheetTags);
-        var todayProvider = BuildTodayProvider(SomeDate);
+        var sourceException = new Exception("Some error message");
+        var dataverseFailure = sourceException.ToFailure(DataverseFailureCode.RecordNotFound, "Some failure message");
 
-        var func = new TagSetGetFunc(mockSqlApi.Object, todayProvider, SomeOption);
+        var mockDataverseApi = BuildMockDataverseDeleteApi(dataverseFailure);
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
 
-        var actual = await func.InvokeAsync(SomeTimesheetTagSetGetInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
+        var expected = Result.Success<Unit>(default);
+
+        Assert.StrictEqual(expected, actual);
+    }
+
+    [Fact]
+    public static async Task InvokeAsync_DataverseResultIsSuccess_ExpectSuccess()
+    {
+        var mockDataverseApi = BuildMockDataverseDeleteApi(Result.Success<Unit>(default));
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
+
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
+        var expected = Result.Success<Unit>(default);
+
         Assert.StrictEqual(expected, actual);
     }
 }

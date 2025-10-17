@@ -1,62 +1,31 @@
-﻿using GarageGroup.Infra;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using GarageGroup.Infra;
 
 namespace GarageGroup.Internal.Timesheet;
 
-partial class TagSetGetFunc
+partial class TimesheetDeleteFunc
 {
-    public ValueTask<Result<TagSetGetOut, Failure<Unit>>> InvokeAsync(
-        TagSetGetIn input, CancellationToken cancellationToken)
+    public ValueTask<Result<Unit, Failure<Unit>>> InvokeAsync(
+        TimesheetDeleteIn input, CancellationToken cancellationToken)
         =>
         AsyncPipeline.Pipe(
             input, cancellationToken)
         .Pipe(
-            BuildDbQuery)
+            static @in => TimesheetJson.BuildDataverseDeleteInput(
+                timesheetId: @in.TimesheetId,
+                callerObjectId: @in.SystemUserId))
         .PipeValue(
-            sqlApi.QueryEntitySetOrFailureAsync<DbTag>)
-        .MapSuccess(
-            static success => new TagSetGetOut
-            {
-                Tags = success.AsEnumerable().SelectMany(GetHashTags).Distinct().ToFlatArray()
-            });
+            dataverseApi.DeleteEntityAsync)
+        .Recover(
+            MapFailure);
 
-    private DbSelectQuery BuildDbQuery(TagSetGetIn input)
-    {
-        var maxDate = todayProvider.Today;
-        var minDate = maxDate.AddDays(-option.DaysPeriod);
-
-        return DbTag.QueryAll with
+    private static Result<Unit, Failure<Unit>> MapFailure(Failure<DataverseFailureCode> failure)
+        =>
+        failure.FailureCode switch
         {
-            Filter = new DbCombinedFilter(DbLogicalOperator.And)
-            {
-                Filters =
-                [
-                    DbTag.BuildOwnerFilter(input.SystemUserId),
-                    DbTag.BuildProjectFilter(input.ProjectId),
-                    DescriptionTagFilter,
-                    DbTag.BuildMinDateFilter(minDate),
-                    DbTag.BuildMaxDateFilter(maxDate)
-                ]
-            },
-            Orders = DbTag.DefaultOrders
+            DataverseFailureCode.RecordNotFound => default(Unit),
+            _ => failure.WithFailureCode<Unit>(default)
         };
-    }
-
-    private static IEnumerable<string> GetHashTags(DbTag timesheet)
-    {
-        if (string.IsNullOrWhiteSpace(timesheet.Description))
-        {
-            yield break;
-        }
-
-        foreach (var tagMatch in TagRegex.Matches(timesheet.Description).Cast<Match>())
-        {
-            yield return tagMatch.Value;
-        }
-    }
 }
