@@ -11,11 +11,14 @@ internal sealed record class TimesheetJson
         =
         "gg_timesheetactivities";
 
-    internal static DataverseEntityCreateIn<TimesheetJson> BuildDataverseCreateInput(TimesheetJson timesheet)
+    internal static DataverseEntityCreateIn<TimesheetJson> BuildDataverseCreateInput(TimesheetJson timesheet, Guid callerObjectId)
         =>
         new(
             entityPluralName: EntityPluralName,
-            entityData: timesheet);
+            entityData: timesheet)
+        {
+            CallerObjectId = callerObjectId
+        };
 
     internal static DataverseEntityUpdateIn<TimesheetJson> BuildDataverseUpdateInput(Guid timesheetId, TimesheetJson timesheet)
         =>

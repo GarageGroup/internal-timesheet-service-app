@@ -9,7 +9,7 @@ using static TimesheetModifyMetadata;
 public sealed record class TimesheetCreateIn
 {
     public TimesheetCreateIn(
-        [ClaimIn] Guid systemUserId,
+        [ClaimIn("oid")] Guid systemUserId,
         [JsonBodyIn, SwaggerDescription(In.DateDescription)] DateOnly date,
         [JsonBodyIn, SwaggerDescription(In.ProjectDescription)] TimesheetProject project,
         [JsonBodyIn, SwaggerDescription(In.DurationDescription), IntegerExample(In.DurationExample)] decimal duration,

@@ -5,5 +5,5 @@ namespace GarageGroup.Internal.Timesheet;
 
 internal interface IProjectDataverseInputBuilder
 {
-    static abstract DataverseEntityGetIn BuildDataverseEntityGetIn(Guid projectId);
+    static abstract DataverseEntityGetIn BuildDataverseEntityGetIn(Guid projectId, Guid callerObjectId);
 }

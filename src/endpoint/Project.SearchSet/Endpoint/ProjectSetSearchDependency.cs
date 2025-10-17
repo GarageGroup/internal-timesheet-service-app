@@ -11,7 +11,7 @@ public static class ProjectSetSearchDependency
 {
     public static Dependency<ProjectSetSearchEndpoint> UseProjectSetSearchEndpoint<TDataverseApi>(
         this Dependency<TDataverseApi> dependency)
-        where TDataverseApi : IDataverseImpersonateSupplier<IDataverseSearchSupplier>
+        where TDataverseApi : IDataverseSearchSupplier
     {
         ArgumentNullException.ThrowIfNull(dependency);
         return dependency.Map(CreateFunc).Map(ProjectSetSearchEndpoint.Resolve);

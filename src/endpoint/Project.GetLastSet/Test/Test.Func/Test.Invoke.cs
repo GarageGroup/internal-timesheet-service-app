@@ -18,11 +18,9 @@ partial class LastProjectSetGetFuncTest
         var mockTodayProvider = BuildTodayProvider(today);
 
         var func = new LastProjectSetGetFunc(mockSqlApi.Object, mockTodayProvider, option);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
-
-        mockSqlApi.Verify(a => a.QueryEntitySetOrFailureAsync<DbLastProject>(expectedQuery, cancellationToken), Times.Once);
+        mockSqlApi.Verify(a => a.QueryEntitySetOrFailureAsync<DbLastProject>(expectedQuery, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -36,8 +34,8 @@ partial class LastProjectSetGetFuncTest
 
         var func = new LastProjectSetGetFunc(mockSqlApi.Object, mockTodayProvider, SomeOption);
 
-        var actual = await func.InvokeAsync(SomeGetLastInput, default);
-        var expected = Failure.Create(Unit.Value ,"Some Failure message", sourceException);
+        var actual = await func.InvokeAsync(SomeGetLastInput, TestContext.Current.CancellationToken);
+        var expected = Failure.Create("Some Failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
     }
@@ -51,7 +49,7 @@ partial class LastProjectSetGetFuncTest
         var mockTodayProvider = BuildTodayProvider(SomeToday);
         var func = new LastProjectSetGetFunc(mockSqlApi.Object, mockTodayProvider, SomeOption);
 
-        var actual = await func.InvokeAsync(SomeGetLastInput, default);
+        var actual = await func.InvokeAsync(SomeGetLastInput, TestContext.Current.CancellationToken);
         Assert.StrictEqual(expected, actual);
     }
 }

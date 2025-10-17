@@ -45,9 +45,22 @@ partial record class DbLastProject
             type;
     }
 
-    internal static DbParameterFilter BuildOwnerFilter(Guid ownerId)
+    internal static DbExistsFilter BuildOwnerFilter(Guid ownerId)
         =>
-        new($"{AliasName}.ownerid", DbFilterOperator.Equal, ownerId, "ownerId");
+        new(
+            selectQuery: new("systemuser", "u")
+            {
+                Top = 1,
+                SelectedFields = new("1"),
+                Filter = new DbCombinedFilter(DbLogicalOperator.And)
+                {
+                    Filters =
+                    [
+                        new DbRawFilter($"{AliasName}.ownerid = u.systemuserid"),
+                        new DbParameterFilter("u.azureactivedirectoryobjectid", DbFilterOperator.Equal, ownerId, "ownerId")
+                    ]
+                }
+            });
 
     internal static DbParameterFilter BuildMinDateFilter(DateOnly minDate)
         =>

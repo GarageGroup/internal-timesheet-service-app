@@ -13,15 +13,16 @@ partial class ProjectSetSearchFunc
         =>
         AsyncPipeline.Pipe(
             input, cancellationToken)
-        .Pipe<DataverseSearchIn>(
-            static @in => new($"*{@in.SearchText}*")
+        .Pipe(
+            static @in => new DataverseSearchIn($"*{@in.SearchText}*")
             {
                 Top = @in.Top,
                 Entities = EntityNames,
-                Filter = IsActiveFilter
+                Filter = IsActiveFilter,
+                CallerObjectId = @in.SystemUserId
             })
         .PipeValue(
-            dataverseApi.Impersonate(input.SystemUserId).SearchAsync)
+            dataverseApi.SearchAsync)
         .Map(
             static success => new ProjectSetSearchOut
             {

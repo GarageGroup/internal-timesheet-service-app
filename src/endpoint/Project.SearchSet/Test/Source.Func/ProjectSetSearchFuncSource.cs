@@ -1,5 +1,3 @@
 ﻿namespace GarageGroup.Internal.Timesheet.Endpoint.Project.SearchSet.Test;
 
-internal static partial class ProjectSetSearchFuncSource
-{
-}
+internal static partial class ProjectSetSearchFuncSource;

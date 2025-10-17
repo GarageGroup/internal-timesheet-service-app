@@ -14,9 +14,22 @@ partial record class DbTimesheet
             fieldValues: Enum.GetValues<ProjectType>().Select(AsInt32).OrderBy(Pipeline.Pipe).Select(AsObject).ToFlatArray(),
             parameterPrefix: "projectTypeCode");
 
-    internal static DbParameterFilter BuildOwnerFilter(Guid ownerId)
+    internal static DbExistsFilter BuildOwnerFilter(Guid ownerId)
         =>
-        new($"{AliasName}.ownerid", DbFilterOperator.Equal, ownerId, "ownerId");
+        new(
+            selectQuery: new("systemuser", "u")
+            {
+                Top = 1,
+                SelectedFields = new("1"),
+                Filter = new DbCombinedFilter(DbLogicalOperator.And)
+                {
+                    Filters =
+                    [
+                        new DbRawFilter($"{AliasName}.ownerid = u.systemuserid"),
+                        new DbParameterFilter("u.azureactivedirectoryobjectid", DbFilterOperator.Equal, ownerId, "ownerId")
+                    ]
+                }
+            });
 
     internal static DbCombinedFilter BuildDateFilter(DateOnly dateFrom, DateOnly dateTo)
         =>

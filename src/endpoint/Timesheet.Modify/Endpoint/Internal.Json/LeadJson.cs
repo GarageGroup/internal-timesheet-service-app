@@ -13,12 +13,15 @@ internal sealed record class LeadJson : IProjectJson, IProjectDataverseInputBuil
 
     private const string FieldSubjectName = "subject";
 
-    public static DataverseEntityGetIn BuildDataverseEntityGetIn(Guid leadId)
+    public static DataverseEntityGetIn BuildDataverseEntityGetIn(Guid leadId, Guid callerObjectId)
         =>
         new(
             entityPluralName: EntityPluralName,
             entityKey: new DataversePrimaryKey(leadId),
-            selectFields: [FieldCompanyName, FieldSubjectName]);
+            selectFields: [FieldCompanyName, FieldSubjectName])
+        {
+            CallerObjectId = callerObjectId
+        };
 
     [JsonPropertyName("leadid")]
     public Guid Id { get; init; }

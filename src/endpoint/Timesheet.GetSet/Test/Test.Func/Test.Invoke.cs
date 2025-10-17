@@ -20,8 +20,7 @@ partial class TimesheetSetGetFuncTest
             dateFrom: new(2022, 03, 05),
             dateTo: new(2022, 02, 05));
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         var expectedQuery = new DbSelectQuery("gg_timesheetactivity", "t")
         {
@@ -49,7 +48,24 @@ partial class TimesheetSetGetFuncTest
             {
                 Filters =
                 [
-                    new DbParameterFilter("t.ownerid", DbFilterOperator.Equal, Guid.Parse("bd8b8e33-554e-e611-80dc-c4346bad0190"), "ownerId"),
+                    new DbExistsFilter(
+                        selectQuery: new DbSelectQuery("systemuser", "u")
+                        {
+                            Top = 1,
+                            SelectedFields = new("1"),
+                            Filter = new DbCombinedFilter(DbLogicalOperator.And)
+                            {
+                                Filters =
+                                [
+                                    new DbRawFilter("t.ownerid = u.systemuserid"),
+                                    new DbParameterFilter(
+                                        fieldName: "u.azureactivedirectoryobjectid",
+                                        @operator: DbFilterOperator.Equal,
+                                        fieldValue: Guid.Parse("bd8b8e33-554e-e611-80dc-c4346bad0190"),
+                                        parameterName: "ownerId")
+                                ]
+                            }
+                        }),
                     new DbCombinedFilter(DbLogicalOperator.And)
                     {
                         Filters =
@@ -72,7 +88,7 @@ partial class TimesheetSetGetFuncTest
             ]
         };
 
-        mockSqlApi.Verify(a => a.QueryEntitySetOrFailureAsync<DbTimesheet>(expectedQuery, cancellationToken), Times.Once);
+        mockSqlApi.Verify(a => a.QueryEntitySetOrFailureAsync<DbTimesheet>(expectedQuery, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -84,7 +100,7 @@ partial class TimesheetSetGetFuncTest
         var mockSqlApi = BuildMockSqlApi(dbFailure);
         var func = new TimesheetSetGetFunc(mockSqlApi.Object);
 
-        var actual = await func.InvokeAsync(SomeTimesheetSetGetInput, default);
+        var actual = await func.InvokeAsync(SomeTimesheetSetGetInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(Unit.Value, "Some failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -98,7 +114,7 @@ partial class TimesheetSetGetFuncTest
         var mockSqlApi = BuildMockSqlApi(dbTimesheets);
         var func = new TimesheetSetGetFunc(mockSqlApi.Object);
 
-        var actual = await func.InvokeAsync(SomeTimesheetSetGetInput, default);
+        var actual = await func.InvokeAsync(SomeTimesheetSetGetInput, TestContext.Current.CancellationToken);
         Assert.StrictEqual(expected, actual);
     }
 }
