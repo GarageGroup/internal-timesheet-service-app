@@ -17,10 +17,9 @@ partial class TimesheetDeleteFuncTest
         var mockDataverseApi = BuildMockDataverseDeleteApi(Result.Success<Unit>(default));
         var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
-        mockDataverseApi.Verify(a => a.DeleteEntityAsync(expectedInput, cancellationToken), Times.Once);
+        mockDataverseApi.Verify(a => a.DeleteEntityAsync(expectedInput, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]
@@ -43,7 +42,7 @@ partial class TimesheetDeleteFuncTest
         var mockDataverseApi = BuildMockDataverseDeleteApi(dataverseFailure);
         var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(Unit.Value, "Some failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -58,7 +57,7 @@ partial class TimesheetDeleteFuncTest
         var mockDataverseApi = BuildMockDataverseDeleteApi(dataverseFailure);
         var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Result.Success<Unit>(default);
 
         Assert.StrictEqual(expected, actual);
@@ -70,7 +69,7 @@ partial class TimesheetDeleteFuncTest
         var mockDataverseApi = BuildMockDataverseDeleteApi(Result.Success<Unit>(default));
         var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Result.Success<Unit>(default);
 
         Assert.StrictEqual(expected, actual);

@@ -7,6 +7,11 @@ namespace GarageGroup.Internal.Timesheet.Endpoint.Project.SetGet.Test;
 
 public static partial class ProjectSetGetFuncTest
 {
+    private static readonly ProjectSetGetIn SomeInput
+        =
+        new(
+            systemUserId: new("2e8c5f2c-b93e-4b95-a115-459cf9df6de6"));
+
     private static readonly FlatArray<DbIncident> SomeDbIncidentOutput
         =
         [

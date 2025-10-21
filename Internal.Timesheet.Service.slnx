@@ -1,0 +1,81 @@
+<Solution>
+  <Folder Name="/app/">
+    <Project Path="src/app/Application/Application.csproj" />
+  </Folder>
+  <Folder Name="/endpoint/" />
+  <Folder Name="/endpoint/Notification.Subscribe/">
+    <Project Path="src/endpoint/Notification.Subscribe/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/Notification.Subscribe/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/Notification.Subscribe/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/endpoint/Profile.Get/">
+    <Project Path="src/endpoint/Profile.Get/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/Profile.Get/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/Profile.Get/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/endpoint/Profile.Update/">
+    <Project Path="src/endpoint/Profile.Update/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/Profile.Update/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/Profile.Update/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/endpoint/Project.GetLastSet/">
+    <Project Path="src/endpoint/Project.GetLastSet/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/Project.GetLastSet/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/Project.GetLastSet/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/endpoint/Project.GetSet/">
+    <Project Path="src/endpoint/Project.GetSet/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/Project.GetSet/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/Project.GetSet/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/endpoint/Project.SearchSet/">
+    <Project Path="src/endpoint/Project.SearchSet/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/Project.SearchSet/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/Project.SearchSet/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/endpoint/Subscription.GetSet/">
+    <Project Path="src/endpoint/Subscription.GetSet/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/Subscription.GetSet/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/Subscription.GetSet/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/endpoint/Tag.GetSet/">
+    <Project Path="src/endpoint/Tag.GetSet/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/Tag.GetSet/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/Tag.GetSet/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/endpoint/Timesheet.Delete/">
+    <Project Path="src/endpoint/Timesheet.Delete/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/Timesheet.Delete/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/Timesheet.Delete/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/endpoint/Timesheet.GetSet/">
+    <Project Path="src/endpoint/Timesheet.GetSet/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/Timesheet.GetSet/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/Timesheet.GetSet/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/endpoint/Timesheet.Modify/">
+    <Project Path="src/endpoint/Timesheet.Modify/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/Timesheet.Modify/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/Timesheet.Modify/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/endpoint/User.SignIn/">
+    <Project Path="src/endpoint/User.SignIn/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/User.SignIn/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/User.SignIn/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/endpoint/User.SignOut/">
+    <Project Path="src/endpoint/User.SignOut/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/User.SignOut/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/User.SignOut/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/service/" />
+  <Folder Name="/service/BotApi/">
+    <Project Path="src/service/BotApi/Api/Api.csproj" />
+    <Project Path="src/service/BotApi/Contract/Contract.csproj" />
+    <Project Path="src/service/BotApi/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/shared/">
+    <Project Path="src/shared/ProjectType/ProjectType.csproj" />
+    <Project Path="src/shared/StateCode/StateCode.csproj" />
+  </Folder>
+</Solution>

@@ -18,7 +18,8 @@ internal static partial class ProjectSetSearchFuncSource
                 {
                     Entities = new("gg_project", "lead", "opportunity", "incident"),
                     Filter = "statecode eq 0",
-                    Top = 3
+                    Top = 3,
+                    CallerObjectId = new("4812cb4b-3049-4f84-bfb6-aac8f0425028")
                 }
             },
             {
@@ -30,7 +31,8 @@ internal static partial class ProjectSetSearchFuncSource
                 {
                     Entities = new("gg_project", "lead", "opportunity", "incident"),
                     Filter = "statecode eq 0",
-                    Top = -2
+                    Top = -2,
+                    CallerObjectId = new("32b49b76-01ca-4312-b7d5-499cf3addc22")
                 }
             },
             {
@@ -42,7 +44,8 @@ internal static partial class ProjectSetSearchFuncSource
                 {
                     Entities = new("gg_project", "lead", "opportunity", "incident"),
                     Filter = "statecode eq 0",
-                    Top = null
+                    Top = null,
+                    CallerObjectId = new("32b49b76-01ca-4312-b7d5-499cf3addc22")
                 }
             }
         };

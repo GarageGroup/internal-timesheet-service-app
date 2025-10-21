@@ -39,6 +39,9 @@ internal static partial class TimesheetModifyFuncSource
                             ["regardingobjectid_lead@odata.bind"] = "/leads(7583b4e6-23f5-eb11-94ef-00224884a588)"
                         }
                     })
+                {
+                    CallerObjectId = new("ded7a0d5-33c8-4e02-affe-61559ef4d4ca")
+                }
             },
             {
                 new(
@@ -70,6 +73,9 @@ internal static partial class TimesheetModifyFuncSource
                             ["regardingobjectid_lead@odata.bind"] = "/leads(8829deda-5249-4412-9be5-ef5728fb928d)"
                         }
                     })
+                {
+                    CallerObjectId = new("cede85e3-d0db-44d3-8728-ce42549eb4d0")
+                }
             },
             {
                 new(
@@ -101,6 +107,9 @@ internal static partial class TimesheetModifyFuncSource
                             ["regardingobjectid_lead@odata.bind"] = "/leads(8829deda-5249-4412-9be5-ef5728fb928d)"
                         }
                     })
+                {
+                    CallerObjectId = new("cede85e3-d0db-44d3-8728-ce42549eb4d0")
+                }
             }
         };
 }

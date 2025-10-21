@@ -20,7 +20,7 @@ partial class UserSignOutFuncTest
         var mockBotApi = BuildMockBotApi(botInfoFailure);
         var func = new UserSignOutFunc(mockDataverseApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create("Some error message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -35,11 +35,9 @@ partial class UserSignOutFuncTest
         var mockBotApi = BuildMockBotApi(botInfo);
 
         var func = new UserSignOutFunc(mockDataverseApi.Object, mockBotApi.Object);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
-
-        mockDataverseApi.Verify(a => a.UpdateEntityAsync(expectedInput, cancellationToken), Times.Once);
+        mockDataverseApi.Verify(a => a.UpdateEntityAsync(expectedInput, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]
@@ -64,7 +62,7 @@ partial class UserSignOutFuncTest
 
         var func = new UserSignOutFunc(mockDataverseApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create("Some failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -81,7 +79,7 @@ partial class UserSignOutFuncTest
 
         var func = new UserSignOutFunc(mockDataverseApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Result.Success<Unit>(default);
 
         Assert.StrictEqual(expected, actual);
@@ -95,7 +93,7 @@ partial class UserSignOutFuncTest
 
         var func = new UserSignOutFunc(mockDataverseApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Result.Success<Unit>(default);
 
         Assert.StrictEqual(expected, actual);

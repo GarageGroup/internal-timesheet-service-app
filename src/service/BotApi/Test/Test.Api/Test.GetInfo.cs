@@ -16,7 +16,7 @@ partial class BotApiTest
         var mockCacheApi = BuildMockCacheApi(SomeCacheValue);
 
         var api = new BotApiImpl(mockTelegramApi.Object, mockCacheApi.Object);
-        _ = await api.GetBotInfoAsync(default, default);
+        _ = await api.GetBotInfoAsync(default, TestContext.Current.CancellationToken);
 
         mockTelegramApi.Verify(static a => a.GetMeAsync(It.IsAny<Unit>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -30,7 +30,7 @@ partial class BotApiTest
         var mockCacheApi = BuildMockCacheApi(cacheValue);
 
         var api = new BotApiImpl(mockTelegramApi.Object, mockCacheApi.Object);
-        var actual = await api.GetBotInfoAsync(default, default);
+        var actual = await api.GetBotInfoAsync(default, TestContext.Current.CancellationToken);
 
         Assert.StrictEqual(expected, actual);
     }
@@ -42,11 +42,9 @@ partial class BotApiTest
         var mockCacheApi = BuildMockCacheApi(null);
 
         var api = new BotApiImpl(mockTelegramApi.Object, mockCacheApi.Object);
+        _ = await api.GetBotInfoAsync(default, TestContext.Current.CancellationToken);
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await api.GetBotInfoAsync(default, cancellationToken);
-
-        mockTelegramApi.Verify(a => a.GetMeAsync(default, cancellationToken), Times.Once);
+        mockTelegramApi.Verify(a => a.GetMeAsync(default, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]
@@ -67,7 +65,7 @@ partial class BotApiTest
 
         var api = new BotApiImpl(mockTelegramApi.Object, mockCacheApi.Object);
 
-        var actual = await api.GetBotInfoAsync(default, default);
+        var actual = await api.GetBotInfoAsync(default, TestContext.Current.CancellationToken);
         var expected = Failure.Create("Some failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -82,7 +80,7 @@ partial class BotApiTest
         var mockCacheApi = BuildMockCacheApi(null);
 
         var api = new BotApiImpl(mockTelegramApi.Object, mockCacheApi.Object);
-        _ = await api.GetBotInfoAsync(default, default);
+        _ = await api.GetBotInfoAsync(default, TestContext.Current.CancellationToken);
 
         mockCacheApi.Verify(a => a.SetValue(cacheValue), Times.Once);
     }
@@ -96,7 +94,7 @@ partial class BotApiTest
         var mockCacheApi = BuildMockCacheApi(null);
 
         var api = new BotApiImpl(mockTelegramApi.Object, mockCacheApi.Object);
-        var actual = await api.GetBotInfoAsync(default, default);
+        var actual = await api.GetBotInfoAsync(default, TestContext.Current.CancellationToken);
 
         Assert.StrictEqual(expected, actual);
     }

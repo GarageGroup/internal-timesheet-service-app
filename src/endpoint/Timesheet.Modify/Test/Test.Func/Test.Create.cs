@@ -18,17 +18,16 @@ partial class TimesheetModifyFuncTest
         var mockDataverseApi = BuildMockDataverseApi<ProjectJson>(Result.Success<Unit>(default), SomeProjectJsonOut);
         var func = new TimesheetModifyFunc(mockDataverseApi.Object);
 
-        var cancellationToken = new CancellationToken(false);
         var input = new TimesheetCreateIn(
             systemUserId: new("a3fc6a92-4e7c-4fea-a8c5-3aa432a4e766"),
             date: new(2024, 06, 07),
-            project: new TimesheetProject(
+            project: new(
                 id: new("190fd90c-64be-4d6e-8764-44c567b40ef9"),
                 type: ProjectType.Project),
             duration: 2,
             description: description);
 
-        var actual = await func.InvokeAsync(input, cancellationToken);
+        var actual = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
         var expected = Failure.Create(TimesheetCreateFailureCode.EmptyDescription, "Description is empty");
 
         Assert.StrictEqual(expected, actual);
@@ -40,24 +39,26 @@ partial class TimesheetModifyFuncTest
         var mockDataverseApi = BuildMockDataverseApi<ProjectJson>(Result.Success<Unit>(default), SomeProjectJsonOut);
         var func = new TimesheetModifyFunc(mockDataverseApi.Object);
 
-        var cancellationToken = new CancellationToken(false);
         var input = new TimesheetCreateIn(
             systemUserId: new("a3fc6a92-4e7c-4fea-a8c5-3aa432a4e766"),
             date: new(2024, 06, 07),
-            project: new TimesheetProject(
+            project: new(
                 id: new("190fd90c-64be-4d6e-8764-44c567b40ef9"),
                 type: ProjectType.Project),
             duration: 2,
             description: "Some description");
 
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         var expectInput = new DataverseEntityGetIn(
             entityPluralName: "gg_projects",
             entityKey: new DataversePrimaryKey(new("190fd90c-64be-4d6e-8764-44c567b40ef9")),
-            selectFields: ["gg_name"]);
+            selectFields: ["gg_name"])
+        {
+            CallerObjectId = new("a3fc6a92-4e7c-4fea-a8c5-3aa432a4e766")
+        };
 
-        mockDataverseApi.Verify(a => a.GetEntityAsync<ProjectJson>(expectInput, cancellationToken), Times.Once);
+        mockDataverseApi.Verify(a => a.GetEntityAsync<ProjectJson>(expectInput, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -66,24 +67,26 @@ partial class TimesheetModifyFuncTest
         var mockDataverseApi = BuildMockDataverseApi<IncidentJson>(Result.Success<Unit>(default), SomeIncidentJsonOut);
         var func = new TimesheetModifyFunc(mockDataverseApi.Object);
 
-        var cancellationToken = new CancellationToken(false);
         var input = new TimesheetCreateIn(
             systemUserId: new("a3fc6a92-4e7c-4fea-a8c5-3aa432a4e766"),
             date: new(2024, 06, 07),
-            project: new TimesheetProject(
+            project: new(
                 id: new("190fd90c-64be-4d6e-8764-44c567b40ef9"),
                 type: ProjectType.Incident),
             duration: 2,
             description: "Some description");
 
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         var expectInput = new DataverseEntityGetIn(
             entityPluralName: "incidents",
             entityKey: new DataversePrimaryKey(new("190fd90c-64be-4d6e-8764-44c567b40ef9")),
-            selectFields: ["title"]);
+            selectFields: ["title"])
+        {
+            CallerObjectId = new("a3fc6a92-4e7c-4fea-a8c5-3aa432a4e766")
+        };
 
-        mockDataverseApi.Verify(a => a.GetEntityAsync<IncidentJson>(expectInput, cancellationToken), Times.Once);
+        mockDataverseApi.Verify(a => a.GetEntityAsync<IncidentJson>(expectInput, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -92,24 +95,26 @@ partial class TimesheetModifyFuncTest
         var mockDataverseApi = BuildMockDataverseApi<OpportunityJson>(Result.Success<Unit>(default), SomeOpportunityJsonOut);
         var func = new TimesheetModifyFunc(mockDataverseApi.Object);
 
-        var cancellationToken = new CancellationToken(false);
         var input = new TimesheetCreateIn(
             systemUserId: new("a3fc6a92-4e7c-4fea-a8c5-3aa432a4e766"),
             date: new(2024, 06, 07),
-            project: new TimesheetProject(
+            project: new(
                 id: new("190fd90c-64be-4d6e-8764-44c567b40ef9"),
                 type: ProjectType.Opportunity),
             duration: 2,
             description: "Some description");
 
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         var expectInput = new DataverseEntityGetIn(
             entityPluralName: "opportunities",
             entityKey: new DataversePrimaryKey(new("190fd90c-64be-4d6e-8764-44c567b40ef9")),
-            selectFields: ["name"]);
+            selectFields: ["name"])
+        {
+            CallerObjectId = new("a3fc6a92-4e7c-4fea-a8c5-3aa432a4e766")
+        };
 
-        mockDataverseApi.Verify(a => a.GetEntityAsync<OpportunityJson>(expectInput, cancellationToken), Times.Once);
+        mockDataverseApi.Verify(a => a.GetEntityAsync<OpportunityJson>(expectInput, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -118,24 +123,26 @@ partial class TimesheetModifyFuncTest
         var mockDataverseApi = BuildMockDataverseApi<LeadJson>(Result.Success<Unit>(default), SomeLeadJsonOut);
         var func = new TimesheetModifyFunc(mockDataverseApi.Object);
 
-        var cancellationToken = new CancellationToken(false);
         var input = new TimesheetCreateIn(
             systemUserId: new("a3fc6a92-4e7c-4fea-a8c5-3aa432a4e766"),
             date: new(2024, 06, 07),
-            project: new TimesheetProject(
+            project: new(
                 id: new("190fd90c-64be-4d6e-8764-44c567b40ef9"),
                 type: ProjectType.Lead),
             duration: 2,
             description: "Some description");
 
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         var expectInput = new DataverseEntityGetIn(
             entityPluralName: "leads",
             entityKey: new DataversePrimaryKey(new("190fd90c-64be-4d6e-8764-44c567b40ef9")),
-            selectFields: ["companyname", "subject"]);
+            selectFields: ["companyname", "subject"])
+        {
+            CallerObjectId = new("a3fc6a92-4e7c-4fea-a8c5-3aa432a4e766")
+        };
 
-        mockDataverseApi.Verify(a => a.GetEntityAsync<LeadJson>(expectInput, cancellationToken), Times.Once);
+        mockDataverseApi.Verify(a => a.GetEntityAsync<LeadJson>(expectInput, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -144,7 +151,7 @@ partial class TimesheetModifyFuncTest
         var input = new TimesheetCreateIn(
             systemUserId: new("a3fc6a92-4e7c-4fea-a8c5-3aa432a4e766"),
             date: new(2024, 06, 07),
-            project: new TimesheetProject(
+            project: new(
                 id: new("190fd90c-64be-4d6e-8764-44c567b40ef9"),
                 type: (ProjectType)(-5)),
             duration: 2,
@@ -154,7 +161,7 @@ partial class TimesheetModifyFuncTest
 
         var func = new TimesheetModifyFunc(mockDataverseApi.Object);
 
-        var actual = await func.InvokeAsync(input, default);
+        var actual = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
         var expected = Failure.Create(TimesheetCreateFailureCode.UnexpectedProjectType, "An unexpected project type: -5");
 
         Assert.StrictEqual(expected, actual);
@@ -172,37 +179,16 @@ partial class TimesheetModifyFuncTest
         var input = new TimesheetCreateIn(
             systemUserId: new("a3fc6a92-4e7c-4fea-a8c5-3aa432a4e766"),
             date: new(2024, 06, 07),
-            project: new TimesheetProject(
+            project: new(
                 id: new("190fd90c-64be-4d6e-8764-44c567b40ef9"),
                 type: ProjectType.Project),
             duration: 2,
             description: "Some description");
 
-        var actual = await func.InvokeAsync(input, default);
+        var actual = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
         var expected = Failure.Create(TimesheetCreateFailureCode.ProjectNotFound, "Some failure text", sourceException);
 
         Assert.StrictEqual(expected, actual);
-    }
-
-    [Fact]
-    public static async Task InvokeAsync_Create_InputIsValid_ExpectDataverseImpersonateCalledOnce()
-    {
-        var mockDataverseApi = BuildMockDataverseApi<LeadJson>(Result.Success<Unit>(default), SomeLeadJsonOut);
-        var func = new TimesheetModifyFunc(mockDataverseApi.Object);
-
-        var input = new TimesheetCreateIn(
-            systemUserId: new("4698fc58-770b-4a53-adcd-592eaded6f87"),
-            date: new(2023, 05, 21),
-            project: new(
-                id: new("5cef9828-c94b-4ca0-bab5-28c1a45d95ef"),
-                type: ProjectType.Lead),
-            duration: 3,
-            description: "Some description text");
-
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
-
-        mockDataverseApi.Verify(static a => a.Impersonate(new("4698fc58-770b-4a53-adcd-592eaded6f87")), Times.Once);
     }
 
     [Theory]
@@ -213,11 +199,11 @@ partial class TimesheetModifyFuncTest
         var mockDataverseApi = BuildMockDataverseApi<ProjectJson>(Result.Success<Unit>(default), dataverseOut);
         var func = new TimesheetModifyFunc(mockDataverseApi.Object);
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         mockDataverseApi.Verify(
-            a => a.CreateEntityAsync(It.Is<DataverseEntityCreateIn<TimesheetJson>>(@in => AreEqual(expected, @in)), cancellationToken),
+            a => a.CreateEntityAsync(
+                It.Is<DataverseEntityCreateIn<TimesheetJson>>(@in => AreEqual(expected, @in)), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -229,11 +215,11 @@ partial class TimesheetModifyFuncTest
         var mockDataverseApi = BuildMockDataverseApi<IncidentJson>(Result.Success<Unit>(default), dataverseOut);
         var func = new TimesheetModifyFunc(mockDataverseApi.Object);
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         mockDataverseApi.Verify(
-            a => a.CreateEntityAsync(It.Is<DataverseEntityCreateIn<TimesheetJson>>(@in => AreEqual(expected, @in)), cancellationToken),
+            a => a.CreateEntityAsync(
+                It.Is<DataverseEntityCreateIn<TimesheetJson>>(@in => AreEqual(expected, @in)), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -245,11 +231,11 @@ partial class TimesheetModifyFuncTest
         var mockDataverseApi = BuildMockDataverseApi<OpportunityJson>(Result.Success<Unit>(default), dataverseOut);
         var func = new TimesheetModifyFunc(mockDataverseApi.Object);
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         mockDataverseApi.Verify(
-            a => a.CreateEntityAsync(It.Is<DataverseEntityCreateIn<TimesheetJson>>(@in => AreEqual(expected, @in)), cancellationToken),
+            a => a.CreateEntityAsync(
+                It.Is<DataverseEntityCreateIn<TimesheetJson>>(@in => AreEqual(expected, @in)), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -261,11 +247,11 @@ partial class TimesheetModifyFuncTest
         var mockDataverseApi = BuildMockDataverseApi<LeadJson>(Result.Success<Unit>(default), dataverseOut);
         var func = new TimesheetModifyFunc(mockDataverseApi.Object);
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         mockDataverseApi.Verify(
-            a => a.CreateEntityAsync(It.Is<DataverseEntityCreateIn<TimesheetJson>>(@in => AreEqual(expected, @in)), cancellationToken),
+            a => a.CreateEntityAsync(
+                It.Is<DataverseEntityCreateIn<TimesheetJson>>(@in => AreEqual(expected, @in)), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -294,13 +280,13 @@ partial class TimesheetModifyFuncTest
         var input = new TimesheetCreateIn(
             systemUserId: new("a3fc6a92-4e7c-4fea-a8c5-3aa432a4e766"),
             date: new(2024, 06, 07),
-            project: new TimesheetProject(
+            project: new(
                 id: new("190fd90c-64be-4d6e-8764-44c567b40ef9"),
                 type: ProjectType.Lead),
             duration: 2,
             description: "Some description");
 
-        var actual = await func.InvokeAsync(input, default);
+        var actual = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
         var expected = Failure.Create(expectedFailureCode, "Some failure text", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -315,13 +301,13 @@ partial class TimesheetModifyFuncTest
         var input = new TimesheetCreateIn(
             systemUserId: new("a3fc6a92-4e7c-4fea-a8c5-3aa432a4e766"),
             date: new(2024, 06, 07),
-            project: new TimesheetProject(
+            project: new(
                 id: new("190fd90c-64be-4d6e-8764-44c567b40ef9"),
                 type: ProjectType.Opportunity),
             duration: 2,
             description: "Some description");
 
-        var actual = await func.InvokeAsync(input, default);
+        var actual = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
         var expected = Result.Success<Unit>(default);
 
         Assert.StrictEqual(expected, actual);

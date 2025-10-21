@@ -11,9 +11,11 @@ partial class TimesheetDeleteFunc
         TimesheetDeleteIn input, CancellationToken cancellationToken)
         =>
         AsyncPipeline.Pipe(
-            input.TimesheetId, cancellationToken)
+            input, cancellationToken)
         .Pipe(
-            TimesheetJson.BuildDataverseDeleteInput)
+            static @in => TimesheetJson.BuildDataverseDeleteInput(
+                timesheetId: @in.TimesheetId,
+                callerObjectId: @in.SystemUserId))
         .PipeValue(
             dataverseApi.DeleteEntityAsync)
         .Recover(

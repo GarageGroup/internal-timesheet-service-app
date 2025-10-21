@@ -9,7 +9,7 @@ using static ProjectSetSearchMetadata;
 public sealed record class ProjectSetSearchIn
 {
     public ProjectSetSearchIn(
-        [ClaimIn] Guid systemUserId,
+        [ClaimIn("oid")] Guid systemUserId,
         [JsonBodyIn, SwaggerDescription(In.SearchTextDescription), StringExample(In.SearchTextExample)] [AllowNull] string searchText,
         [JsonBodyIn, SwaggerDescription(In.TopDescription), IntegerExample(In.TopExample)] int? top)
     {

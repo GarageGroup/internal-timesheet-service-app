@@ -10,25 +10,23 @@ internal sealed partial class TimesheetModifyFunc(IDataverseApiClient dataverseA
     private const int TelegramChannelCode = 140120000;
 
     private ValueTask<Result<IProjectJson, Failure<ProjectNameFailureCode>>> GetProjectAsync(
-        TimesheetProject input, CancellationToken cancellationToken)
+        TimesheetProject input, Guid systemUserId, CancellationToken cancellationToken)
         =>
         input.Type switch
         {
-            ProjectType.Project => InnerGetProjectAsync<ProjectJson>(input.Id, cancellationToken),
-            ProjectType.Incident => InnerGetProjectAsync<IncidentJson>(input.Id, cancellationToken),
-            ProjectType.Opportunity => InnerGetProjectAsync<OpportunityJson>(input.Id, cancellationToken),
-            ProjectType.Lead => InnerGetProjectAsync<LeadJson>(input.Id, cancellationToken),
+            ProjectType.Project => InnerGetProjectAsync<ProjectJson>(input.Id, systemUserId, cancellationToken),
+            ProjectType.Incident => InnerGetProjectAsync<IncidentJson>(input.Id, systemUserId, cancellationToken),
+            ProjectType.Opportunity => InnerGetProjectAsync<OpportunityJson>(input.Id, systemUserId, cancellationToken),
+            ProjectType.Lead => InnerGetProjectAsync<LeadJson>(input.Id, systemUserId, cancellationToken),
             _ => new(Failure.Create(ProjectNameFailureCode.InvalidProject, $"An unexpected project type: {input.Type}"))
         };
 
     private ValueTask<Result<IProjectJson, Failure<ProjectNameFailureCode>>> InnerGetProjectAsync<TProjectJson>(
-        Guid projectId, CancellationToken cancellationToken)
+        Guid projectId, Guid systemUserId, CancellationToken cancellationToken)
         where TProjectJson : IProjectJson, IProjectDataverseInputBuilder, new()
         =>
         AsyncPipeline.Pipe(
-            projectId, cancellationToken)
-        .Pipe(
-            TProjectJson.BuildDataverseEntityGetIn)
+            TProjectJson.BuildDataverseEntityGetIn(projectId, systemUserId), cancellationToken)
         .PipeValue(
             dataverseApi.GetEntityAsync<TProjectJson>)
         .Map(

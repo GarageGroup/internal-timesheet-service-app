@@ -24,8 +24,7 @@ partial class TagSetGetFuncTest
             systemUserId: new("82ee3d26-17f1-4e2f-adb2-eeea5119a512"),
             projectId: new("58482d23-ca3e-4499-8294-cc9b588cce73"));
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         var expectedQuery = new DbSelectQuery("gg_timesheetactivity", "t")
         {
@@ -53,7 +52,7 @@ partial class TagSetGetFuncTest
             ]
         };
 
-        mockSqlApi.Verify(a => a.QueryEntitySetOrFailureAsync<DbTag>(expectedQuery, cancellationToken), Times.Once);
+        mockSqlApi.Verify(a => a.QueryEntitySetOrFailureAsync<DbTag>(expectedQuery, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -67,7 +66,7 @@ partial class TagSetGetFuncTest
 
         var func = new TagSetGetFunc(mockSqlApi.Object, todayProvider, SomeOption);
 
-        var actual = await func.InvokeAsync(SomeTimesheetTagSetGetInput, default);
+        var actual = await func.InvokeAsync(SomeTimesheetTagSetGetInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create("Some failure text", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -83,7 +82,7 @@ partial class TagSetGetFuncTest
 
         var func = new TagSetGetFunc(mockSqlApi.Object, todayProvider, SomeOption);
 
-        var actual = await func.InvokeAsync(SomeTimesheetTagSetGetInput, default);
+        var actual = await func.InvokeAsync(SomeTimesheetTagSetGetInput, TestContext.Current.CancellationToken);
         Assert.StrictEqual(expected, actual);
     }
 }

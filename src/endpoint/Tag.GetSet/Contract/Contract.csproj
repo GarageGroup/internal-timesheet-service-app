@@ -10,7 +10,7 @@
     <RootNamespace>GarageGroup.Internal.Timesheet</RootNamespace>
     <AssemblyName>GarageGroup.Internal.Timesheet.Endpoint.Tag.GetSet.Contract</AssemblyName>
   </PropertyGroup>
-	
+
   <ItemGroup>
     <PackageReference Include="GarageGroup.Infra.Endpoint.Core" Version="0.17.0" />
     <PackageReference Include="PrimeFuncPack.Core.FlatArray" Version="1.5.1" />

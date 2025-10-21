@@ -8,7 +8,7 @@ using static TimesheetSetGetMetadata;
 public sealed record class TimesheetSetGetIn
 {
     public TimesheetSetGetIn(
-        [ClaimIn] Guid systemUserId,
+        [ClaimIn("oid")] Guid systemUserId,
         [JsonBodyIn, SwaggerDescription(In.DateFromDescription)] DateOnly dateFrom,
         [JsonBodyIn, SwaggerDescription(In.DateToDescription)] DateOnly dateTo)
     {

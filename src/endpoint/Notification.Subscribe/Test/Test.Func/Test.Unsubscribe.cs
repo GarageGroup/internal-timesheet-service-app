@@ -22,7 +22,7 @@ partial class NotificationSubscribeFuncTest
 
         var func = new NotificationSubscribeFunc(mockDataverseApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeUnsubscribeInput, default);
+        var actual = await func.InvokeAsync(SomeUnsubscribeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(NotificationUnsubscribeFailureCode.Unknown, "Some failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -42,7 +42,7 @@ partial class NotificationSubscribeFuncTest
             NotificationType.DailyNotification);
 
         var func = new NotificationSubscribeFunc(mockDataverseApi.Object, mockBotApi.Object);
-        _ = await func.InvokeAsync(input, default);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         var expected = new DataverseEntityGetIn(
             entityPluralName: "gg_telegram_bot_users",
@@ -80,7 +80,7 @@ partial class NotificationSubscribeFuncTest
         var mockBotApi = BuildMockBotApi(SomeBotInfo);
         var func = new NotificationSubscribeFunc(mockDataverseApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeUnsubscribeInput, default);
+        var actual = await func.InvokeAsync(SomeUnsubscribeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(expectedFailureCode, "Some failure text", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -102,7 +102,7 @@ partial class NotificationSubscribeFuncTest
             Guid.Parse("8235b18a-04e8-4092-985b-c280b5810ff0"),
             notificationType);
 
-        _ = await func.InvokeAsync(input, default);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
     
         var expected = new DataverseEntityGetIn(
             entityPluralName: "gg_bot_notification_types",
@@ -136,7 +136,7 @@ partial class NotificationSubscribeFuncTest
         var mockBotApi = BuildMockBotApi(SomeBotInfo);
         var func = new NotificationSubscribeFunc(mockDataverseApi.Object, mockBotApi.Object);
     
-        var actual = await func.InvokeAsync(SomeUnsubscribeInput, default);
+        var actual = await func.InvokeAsync(SomeUnsubscribeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(expectedFailureCode, "Some failure text", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -169,7 +169,7 @@ partial class NotificationSubscribeFuncTest
             Guid.Parse("1c89a21f-533f-41db-9855-9839e5685bad"),
             type);
 
-        _ = await func.InvokeAsync(input, default);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         var expectedSubscriptionJson = new NotificationSubscriptionJson
         {
@@ -214,7 +214,7 @@ partial class NotificationSubscribeFuncTest
         var mockBotApi = BuildMockBotApi(SomeBotInfo);
         var func = new NotificationSubscribeFunc(mockDataverseApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeUnsubscribeInput, default);
+        var actual = await func.InvokeAsync(SomeUnsubscribeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(NotificationUnsubscribeFailureCode.Unknown, "Some failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -232,7 +232,7 @@ partial class NotificationSubscribeFuncTest
         var mockBotApi = BuildMockBotApi(SomeBotInfo);
         var func = new NotificationSubscribeFunc(mockDataverseApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeUnsubscribeInput, default);
+        var actual = await func.InvokeAsync(SomeUnsubscribeInput, TestContext.Current.CancellationToken);
 
         Assert.StrictEqual(Unit.Value, actual);
     }
@@ -246,7 +246,7 @@ partial class NotificationSubscribeFuncTest
         var mockBotApi = BuildMockBotApi(SomeBotInfo);
         var func = new NotificationSubscribeFunc(mockDataverseApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeUnsubscribeInput, default);
+        var actual = await func.InvokeAsync(SomeUnsubscribeInput, TestContext.Current.CancellationToken);
         var expected = Result.Success<Unit>(default);
 
         Assert.StrictEqual(expected, actual);

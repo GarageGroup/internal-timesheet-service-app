@@ -20,7 +20,7 @@ partial class ProfileGetFuncTest
         var mockBotApi = BuildMockBotApi(botInfoFailure);
         var func = new ProfileGetFunc(mockSqlApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(ProfileGetFailureCode.Unknown, "Some Failure", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -40,8 +40,7 @@ partial class ProfileGetFuncTest
         var input = new ProfileGetIn(
             systemUserId: new("bef33be0-99f5-4018-ba80-3366ec9ec1fd"));
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         var expectedQuery = new DbSelectQuery("gg_telegram_bot_user", "p")
         {
@@ -55,11 +54,24 @@ partial class ProfileGetFuncTest
             {
                 Filters =
                 [
-                    new DbParameterFilter(
-                        fieldName: "p.gg_systemuser_id",
-                        @operator: DbFilterOperator.Equal,
-                        fieldValue: Guid.Parse("bef33be0-99f5-4018-ba80-3366ec9ec1fd"),
-                        parameterName: "systemUserId"),
+                    new DbExistsFilter(
+                        selectQuery: new DbSelectQuery("systemuser", "u")
+                        {
+                            Top = 1,
+                            SelectedFields = new("1"),
+                            Filter = new DbCombinedFilter(DbLogicalOperator.And)
+                            {
+                                Filters =
+                                [
+                                    new DbRawFilter("p.gg_systemuser_id = u.systemuserid"),
+                                    new DbParameterFilter(
+                                        fieldName: "u.azureactivedirectoryobjectid",
+                                        @operator: DbFilterOperator.Equal,
+                                        fieldValue: Guid.Parse("bef33be0-99f5-4018-ba80-3366ec9ec1fd"),
+                                        parameterName: "systemUserId")
+                                ]
+                            }
+                        }),
                     new DbParameterFilter(
                         fieldName: "p.gg_bot_id",
                         @operator: DbFilterOperator.Equal,
@@ -69,7 +81,7 @@ partial class ProfileGetFuncTest
             }
         };
 
-        mockSqlApi.Verify(a => a.QueryEntityOrFailureAsync<DbProfile>(expectedQuery, cancellationToken), Times.Once);
+        mockSqlApi.Verify(a => a.QueryEntityOrFailureAsync<DbProfile>(expectedQuery, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]
@@ -86,7 +98,7 @@ partial class ProfileGetFuncTest
 
         var func = new ProfileGetFunc(mockSqlApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(expectedFailureCode, "Some failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -106,7 +118,7 @@ partial class ProfileGetFuncTest
 
         var func = new ProfileGetFunc(mockSqlApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
 
         var expected = new ProfileGetOut(
             userName: "test",

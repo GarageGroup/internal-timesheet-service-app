@@ -8,7 +8,7 @@ using static TagSetGetMetadata;
 public sealed record class TagSetGetIn
 {
     public TagSetGetIn(
-        [ClaimIn] Guid systemUserId,
+        [ClaimIn("oid")] Guid systemUserId,
         [JsonBodyIn, SwaggerDescription(In.ProjectIdDescription), StringExample(In.ProjectIdExample)] Guid projectId)
     {
         SystemUserId = systemUserId;
