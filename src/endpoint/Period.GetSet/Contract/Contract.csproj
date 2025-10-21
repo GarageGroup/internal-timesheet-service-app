@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<InvariantGlobalization>false</InvariantGlobalization>
+		<NoWarn>$(NoWarn);IDE0130;CA1859</NoWarn>
+		<RootNamespace>GarageGroup.Internal.Timesheet</RootNamespace>
+		<AssemblyName>GarageGroup.Internal.Timesheet.Endpoint.Period.SetGet.Contract</AssemblyName>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="GarageGroup.Infra.Endpoint.Core" Version="0.17.0" />
+		<PackageReference Include="PrimeFuncPack.Core.FlatArray" Version="1.5.1" />
+		<PackageReference Include="PrimeFuncPack.Primitives.Strings" Version="3.0.0" />
+	</ItemGroup>
+
+</Project>
