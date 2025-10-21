@@ -12,9 +12,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\endpoint\Period.GetSet\Endpoint\Endpoint.csproj" />
     <ProjectReference Include="..\..\service\BotApi\Api\Api.csproj" />
     <ProjectReference Include="..\..\endpoint\Notification.Subscribe\Endpoint\Endpoint.csproj" />
+    <ProjectReference Include="..\..\endpoint\Period.GetSet\Endpoint\Endpoint.csproj" />
     <ProjectReference Include="..\..\endpoint\Profile.Get\Endpoint\Endpoint.csproj" />
     <ProjectReference Include="..\..\endpoint\Profile.Update\Endpoint\Endpoint.csproj" />
     <ProjectReference Include="..\..\endpoint\Project.GetLastSet\Endpoint\Endpoint.csproj" />
@@ -44,5 +44,6 @@
     <PackageReference Include="GarageGroup.Infra.Swagger.UI" Version="2.9.0" />
     <PackageReference Include="GarageGroup.Infra.Telegram.Bot.Api" Version="0.2.0" />
   </ItemGroup>
+
 
 </Project>
