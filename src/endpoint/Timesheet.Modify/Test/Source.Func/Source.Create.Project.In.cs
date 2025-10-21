@@ -40,6 +40,9 @@ internal static partial class TimesheetModifyFuncSource
                             ["regardingobjectid_gg_project@odata.bind"] = "/gg_projects(7583b4e6-23f5-eb11-94ef-00224884a588)"
                         }
                     })
+                {
+                    CallerObjectId = new("ded7a0d5-33c8-4e02-affe-61559ef4d4ca")
+                }
             },
             {
                 new(
@@ -70,6 +73,9 @@ internal static partial class TimesheetModifyFuncSource
                             ["regardingobjectid_gg_project@odata.bind"] = "/gg_projects(8829deda-5249-4412-9be5-ef5728fb928d)"
                         }
                     })
+                {
+                    CallerObjectId = new("cede85e3-d0db-44d3-8728-ce42549eb4d0")
+                }
             },
             {
                 new(
@@ -100,6 +106,9 @@ internal static partial class TimesheetModifyFuncSource
                             ["regardingobjectid_gg_project@odata.bind"] = "/gg_projects(13f0cb5c-b251-494c-9cae-1b0708471c10)"
                         }
                     })
+                {
+                    CallerObjectId = new("ce3e2f48-8eec-40f0-bb8b-60b8861a61cd")
+                }
             },
             {
                 new(
@@ -130,6 +139,9 @@ internal static partial class TimesheetModifyFuncSource
                             ["regardingobjectid_gg_project@odata.bind"] = "/gg_projects(ca012870-a0f9-4945-a314-a14ebf690574)"
                         }
                     })
+                {
+                    CallerObjectId = new("c59436f5-709c-45aa-8469-5e79412f5108")
+                }
             }
         };
 }

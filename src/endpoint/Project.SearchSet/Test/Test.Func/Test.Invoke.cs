@@ -9,39 +9,17 @@ namespace GarageGroup.Internal.Timesheet.Endpoint.Project.SearchSet.Test;
 
 partial class ProjectSetSearchFuncTest
 {
-    [Fact]
-    public static async Task InvokeAsync_ExpectDataverseImpersonateCalledOnce()
-    {
-        var mockDataverseSearchApi = BuildMockDataverseSearchApi(SomeDataverseOutput);
-        var mockDataverseApi = BuildMockDataverseApi(mockDataverseSearchApi.Object);
-
-        var func = new ProjectSetSearchFunc(mockDataverseApi.Object);
-
-        var input = new ProjectSetSearchIn(
-            systemUserId: new("3589bc60-227f-4aa6-a5c3-4248304a1b49"),
-            searchText: "Some search text",
-            top: 3);
-
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
-
-        mockDataverseApi.Verify(static a => a.Impersonate(new("3589bc60-227f-4aa6-a5c3-4248304a1b49")), Times.Once);
-    }
-
     [Theory]
     [MemberData(nameof(ProjectSetSearchFuncSource.InputTestData), MemberType = typeof(ProjectSetSearchFuncSource))]
     public static async Task InvokeAsync_ExpectDataverseSearchCalledOnce(
         ProjectSetSearchIn input, DataverseSearchIn expectedInput)
     {
-        var mockDataverseSearchApi = BuildMockDataverseSearchApi(SomeDataverseOutput);
-        var mockDataverseApi = BuildMockDataverseApi(mockDataverseSearchApi.Object);
-
+        var mockDataverseApi = BuildMockDataverseApi(SomeDataverseOutput);
         var func = new ProjectSetSearchFunc(mockDataverseApi.Object);
 
-        var cancellationToken = new CancellationToken(false);
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
-        mockDataverseSearchApi.Verify(a => a.SearchAsync(expectedInput, cancellationToken), Times.Once);
+        mockDataverseApi.Verify(a => a.SearchAsync(expectedInput, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]
@@ -62,12 +40,10 @@ partial class ProjectSetSearchFuncTest
         var sourceException = new Exception("Some exception message");
         var dataverseFailure = sourceException.ToFailure(sourceFailureCode, "Some failure text");
 
-        var mockDataverseSearchApi = BuildMockDataverseSearchApi(dataverseFailure);
-        var mockDataverseApi = BuildMockDataverseApi(mockDataverseSearchApi.Object);
-
+        var mockDataverseApi = BuildMockDataverseApi(dataverseFailure);
         var func = new ProjectSetSearchFunc(mockDataverseApi.Object);
 
-        var actual = await func.InvokeAsync(SomeSearchInput, default);
+        var actual = await func.InvokeAsync(SomeSearchInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(expectedFailureCode, "Some failure text", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -78,11 +54,10 @@ partial class ProjectSetSearchFuncTest
     public static async Task InvokeAsync_DataverseResultIsSuccess_ExpectSuccess(
         DataverseSearchOut dataverseOutput, ProjectSetSearchOut expected)
     {
-        var mockDataverseSearchApi = BuildMockDataverseSearchApi(dataverseOutput);
-        var mockDataverseApi = BuildMockDataverseApi(mockDataverseSearchApi.Object);
+        var mockDataverseApi = BuildMockDataverseApi(dataverseOutput);
 
         var func = new ProjectSetSearchFunc(mockDataverseApi.Object);
-        var actual = await func.InvokeAsync(SomeSearchInput, default);
+        var actual = await func.InvokeAsync(SomeSearchInput, TestContext.Current.CancellationToken);
 
         Assert.StrictEqual(expected, actual);
     }

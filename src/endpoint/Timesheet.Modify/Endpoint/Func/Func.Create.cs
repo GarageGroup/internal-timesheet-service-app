@@ -14,23 +14,21 @@ partial class TimesheetModifyFunc
             input, cancellationToken)
         .Pipe(
             ValidateDescription)
-        .MapSuccess(
-            static @in => @in.Project)
         .ForwardValue(
-            GetProjectAsync,
+            (@in, token) => GetProjectAsync(@in.Project, @in.SystemUserId, token),
             static failure => failure.MapFailureCode(ToTimesheetCreateFailureCode))
         .MapSuccess(
-            project => new TimesheetJson(project)
-            {
-                Date = input.Date,
-                Description = input.Description.OrNullIfEmpty(),
-                Duration = input.Duration,
-                ChannelCode = TelegramChannelCode
-            })
-        .MapSuccess(
-            TimesheetJson.BuildDataverseCreateInput)
+            project => TimesheetJson.BuildDataverseCreateInput(
+                timesheet: new(project)
+                {
+                    Date = input.Date,
+                    Description = input.Description.OrNullIfEmpty(),
+                    Duration = input.Duration,
+                    ChannelCode = TelegramChannelCode
+                },
+                callerObjectId: input.SystemUserId))
         .ForwardValue(
-            dataverseApi.Impersonate(input.SystemUserId).CreateEntityAsync,
+            dataverseApi.CreateEntityAsync,
             static failure => failure.MapFailureCode(ToTimesheetCreateFailureCode));
 
     private static Result<TimesheetCreateIn, Failure<TimesheetCreateFailureCode>> ValidateDescription(TimesheetCreateIn input)

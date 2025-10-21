@@ -37,7 +37,7 @@ public static partial class ProjectSetSearchFuncTest
                     ])
             ]);
 
-    private static Mock<IDataverseSearchSupplier> BuildMockDataverseSearchApi(
+    private static Mock<IDataverseSearchSupplier> BuildMockDataverseApi(
         in Result<DataverseSearchOut, Failure<DataverseFailureCode>> result)
     {
         var mock = new Mock<IDataverseSearchSupplier>();
@@ -45,16 +45,6 @@ public static partial class ProjectSetSearchFuncTest
         _ = mock
             .Setup(static a => a.SearchAsync(It.IsAny<DataverseSearchIn>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(result);
-
-        return mock;
-    }
-
-    private static Mock<IDataverseImpersonateSupplier<IDataverseSearchSupplier>> BuildMockDataverseApi(
-        IDataverseSearchSupplier dataverseSearchSupplier)
-    {
-        var mock = new Mock<IDataverseImpersonateSupplier<IDataverseSearchSupplier>>();
-
-        _ = mock.Setup(static a => a.Impersonate(It.IsAny<Guid>())).Returns(dataverseSearchSupplier);
 
         return mock;
     }

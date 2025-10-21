@@ -19,7 +19,20 @@ partial record class DbProject
                     {
                         Filters =
                         [
-                            new DbParameterFilter("t.ownerid", DbFilterOperator.Equal, userId, "userId"),
+                            new DbExistsFilter(
+                                selectQuery: new("systemuser", "u")
+                                {
+                                    Top = 1,
+                                    SelectedFields = new("1"),
+                                    Filter = new DbCombinedFilter(DbLogicalOperator.And)
+                                    {
+                                        Filters =
+                                        [
+                                            new DbRawFilter("t.ownerid = u.systemuserid"),
+                                            new DbParameterFilter("u.azureactivedirectoryobjectid", DbFilterOperator.Equal, userId, "userId")
+                                        ]
+                                    }
+                                }),
                             new DbParameterFilter("t.gg_date", DbFilterOperator.GreaterOrEqual, minDate.ToString("yyyy-MM-dd"), "minDate"),
                             new DbRawFilter("p.gg_projectid = t.regardingobjectid"),
                             new DbRawFilter($"t.regardingobjecttypecode = {ProjectType.Project:D}"),
@@ -42,7 +55,20 @@ partial record class DbProject
                     {
                         Filters =
                         [
-                            new DbParameterFilter("t1.ownerid", DbFilterOperator.Inequal, userId, "userId"),
+                            new DbExistsFilter(
+                                selectQuery: new("systemuser", "u")
+                                {
+                                    Top = 1,
+                                    SelectedFields = new("1"),
+                                    Filter = new DbCombinedFilter(DbLogicalOperator.And)
+                                    {
+                                        Filters =
+                                        [
+                                            new DbRawFilter("t1.ownerid = u.systemuserid"),
+                                            new DbParameterFilter("u.azureactivedirectoryobjectid", DbFilterOperator.Equal, userId, "userId")
+                                        ]
+                                    }
+                                }),
                             new DbParameterFilter("t1.gg_date", DbFilterOperator.GreaterOrEqual, minDate.ToString("yyyy-MM-dd"), "minDate"),
                             new DbRawFilter("p.gg_projectid = t1.regardingobjectid"),
                             new DbRawFilter($"t1.regardingobjecttypecode = {ProjectType.Project:D}"),

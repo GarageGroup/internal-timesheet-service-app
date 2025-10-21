@@ -5,7 +5,7 @@ namespace GarageGroup.Internal.Timesheet;
 
 public readonly record struct ProfileGetIn
 {
-    public ProfileGetIn([ClaimIn] Guid systemUserId)
+    public ProfileGetIn([ClaimIn("oid")] Guid systemUserId)
         =>
         SystemUserId = systemUserId;
 

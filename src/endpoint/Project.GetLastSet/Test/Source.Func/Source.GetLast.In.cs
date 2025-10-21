@@ -44,11 +44,24 @@ partial class LastProjectSetGetFuncSource
                     {
                         Filters =
                         [
-                            new DbParameterFilter(
-                                fieldName: "t.ownerid",
-                                @operator: DbFilterOperator.Equal,
-                                fieldValue: Guid.Parse("bef33be0-99f5-4018-ba80-3366ec9ec1fd"),
-                                parameterName: "ownerId"),
+                            new DbExistsFilter(
+                                selectQuery: new DbSelectQuery("systemuser", "u")
+                                {
+                                    Top = 1,
+                                    SelectedFields = new("1"),
+                                    Filter = new DbCombinedFilter(DbLogicalOperator.And)
+                                    {
+                                        Filters =
+                                        [
+                                            new DbRawFilter("t.ownerid = u.systemuserid"),
+                                            new DbParameterFilter(
+                                                fieldName: "u.azureactivedirectoryobjectid",
+                                                @operator: DbFilterOperator.Equal,
+                                                fieldValue: Guid.Parse("bef33be0-99f5-4018-ba80-3366ec9ec1fd"),
+                                                parameterName: "ownerId")
+                                        ]
+                                    }
+                                }),
                             new DbParameterFilter(
                                 fieldName: "t.gg_date",
                                 @operator: DbFilterOperator.GreaterOrEqual,

@@ -20,7 +20,7 @@ partial class SubscriptionSetGetFuncTest
         var mockBotApi = BuildMockBotApi(botInfoFailure);
         var func = new SubscriptionSetGetFunc(mockDataverseApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(SubscriptionSetGetFailureCode.Unknown, "Some failure", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -39,9 +39,7 @@ partial class SubscriptionSetGetFuncTest
         var input = new SubscriptionSetGetIn(
             systemUserId: new("5a0aa34a-b64a-4258-bed3-5e62946db8b4"));
 
-        var cancellationToken = new CancellationToken(canceled: false);
-
-        _ = await func.InvokeAsync(input, cancellationToken);
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         var expectedInput = new DataverseEntitySetGetIn(
             entityPluralName: "gg_bot_user_subscriptions",
@@ -50,8 +48,8 @@ partial class SubscriptionSetGetFuncTest
             filter:
                 "(gg_bot_user_id%2f_gg_systemuser_id_value eq '5a0aa34a-b64a-4258-bed3-5e62946db8b4'" +
                 " and gg_bot_user_id%2fgg_bot_id eq '5674427344' and gg_is_disabled ne true)");
-        
-        mockDataverseApi.Verify(x => x.GetEntitySetAsync<SubscriptionJson>(expectedInput, cancellationToken), Times.Once);
+
+        mockDataverseApi.Verify(x => x.GetEntitySetAsync<SubscriptionJson>(expectedInput, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]
@@ -77,7 +75,7 @@ partial class SubscriptionSetGetFuncTest
 
         var func = new SubscriptionSetGetFunc(mockDataverseApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(SubscriptionSetGetFailureCode.Unknown, "Some failure text", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -99,7 +97,7 @@ partial class SubscriptionSetGetFuncTest
 
         async Task TestAsync()
             =>
-            await func.InvokeAsync(SomeInput, default);
+            await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -113,7 +111,7 @@ partial class SubscriptionSetGetFuncTest
         var mockBotApi = BuildMockBotApi(SomeBotInfo);
         var func = new SubscriptionSetGetFunc(mockDataverseApi.Object, mockBotApi.Object);
 
-        var actual = await func.InvokeAsync(SomeInput, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
 
         Assert.StrictEqual(expected, actual);
     }

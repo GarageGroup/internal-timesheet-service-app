@@ -10,12 +10,15 @@ internal sealed record class OpportunityJson : IProjectJson, IProjectDataverseIn
 
     private const string FieldProjectName = "name";
 
-    public static DataverseEntityGetIn BuildDataverseEntityGetIn(Guid opportunityId)
+    public static DataverseEntityGetIn BuildDataverseEntityGetIn(Guid opportunityId, Guid callerObjectId)
         =>
         new(
             entityPluralName: EntityPluralName,
             entityKey: new DataversePrimaryKey(opportunityId),
-            selectFields: [FieldProjectName]);
+            selectFields: [FieldProjectName])
+        {
+            CallerObjectId = callerObjectId
+        };
 
     [JsonPropertyName("opportunityid")]
     public Guid Id { get; init; }

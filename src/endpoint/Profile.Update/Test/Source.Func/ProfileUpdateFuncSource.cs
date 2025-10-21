@@ -1,5 +1,3 @@
 ﻿namespace GarageGroup.Internal.Timesheet.Endpoint.Profile.Update.Test;
 
-internal static partial class ProfileUpdateFuncSource
-{
-}
+internal static partial class ProfileUpdateFuncSource;

@@ -16,8 +16,10 @@ partial class ProjectSetGetFuncTest
         var mockTodayProvider = BuildTodayProvider(new(2024, 05, 30));
         var func = new ProjectSetGetFunc(mockSqlApi.Object, mockTodayProvider);
 
-        var input = new ProjectSetGetIn(Guid.Parse("fea3adc6-699e-4847-a3f9-7b93bd45c14f"));
-        _ = await func.InvokeAsync(input, default);
+        var input = new ProjectSetGetIn(
+            systemUserId: new("fea3adc6-699e-4847-a3f9-7b93bd45c14f"));
+
+        _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         var expectedProjectQuery = new DbSelectQuery("gg_project", "p")
         {
@@ -43,8 +45,24 @@ partial class ProjectSetGetFuncTest
                     {
                         Filters =
                         [
-                            new DbParameterFilter(
-                                "t.ownerid", DbFilterOperator.Equal, Guid.Parse("fea3adc6-699e-4847-a3f9-7b93bd45c14f"), "userId"),
+                            new DbExistsFilter(
+                                selectQuery: new DbSelectQuery("systemuser", "u")
+                                {
+                                    Top = 1,
+                                    SelectedFields = new("1"),
+                                    Filter = new DbCombinedFilter(DbLogicalOperator.And)
+                                    {
+                                        Filters =
+                                        [
+                                            new DbRawFilter("t.ownerid = u.systemuserid"),
+                                            new DbParameterFilter(
+                                                fieldName: "u.azureactivedirectoryobjectid",
+                                                @operator: DbFilterOperator.Equal,
+                                                fieldValue: Guid.Parse("fea3adc6-699e-4847-a3f9-7b93bd45c14f"),
+                                                parameterName: "userId")
+                                        ]
+                                    }
+                                }),
                             new DbParameterFilter(
                                 "t.gg_date", DbFilterOperator.GreaterOrEqual, "2024-04-30", "minDate"),
                             new DbRawFilter(
@@ -71,8 +89,24 @@ partial class ProjectSetGetFuncTest
                     {
                         Filters =
                         [
-                            new DbParameterFilter(
-                                "t1.ownerid", DbFilterOperator.Inequal, Guid.Parse("fea3adc6-699e-4847-a3f9-7b93bd45c14f"), "userId"),
+                            new DbExistsFilter(
+                                selectQuery: new DbSelectQuery("systemuser", "u")
+                                {
+                                    Top = 1,
+                                    SelectedFields = new("1"),
+                                    Filter = new DbCombinedFilter(DbLogicalOperator.And)
+                                    {
+                                        Filters =
+                                        [
+                                            new DbRawFilter("t1.ownerid = u.systemuserid"),
+                                            new DbParameterFilter(
+                                                fieldName: "u.azureactivedirectoryobjectid",
+                                                @operator: DbFilterOperator.Equal,
+                                                fieldValue: Guid.Parse("fea3adc6-699e-4847-a3f9-7b93bd45c14f"),
+                                                parameterName: "userId")
+                                        ]
+                                    }
+                                }),
                             new DbParameterFilter(
                                 "t1.gg_date", DbFilterOperator.GreaterOrEqual, "2024-04-30", "minDate"),
                             new DbRawFilter(
@@ -105,7 +139,7 @@ partial class ProjectSetGetFuncTest
         var mockTodayProvider = BuildTodayProvider(SomeToday);
         var func = new ProjectSetGetFunc(mockSqlApi.Object, mockTodayProvider);
 
-        var actual = await func.InvokeAsync(default, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create("Some Failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -118,7 +152,7 @@ partial class ProjectSetGetFuncTest
         var mockTodayProvider = BuildTodayProvider(SomeToday);
         var func = new ProjectSetGetFunc(mockSqlApi.Object, mockTodayProvider);
 
-        _ = await func.InvokeAsync(default, default);
+        _ = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
 
         var expectedOpportunityQuery = new DbSelectQuery("opportunity", "o")
         {
@@ -144,7 +178,7 @@ partial class ProjectSetGetFuncTest
         var mockTodayProvider = BuildTodayProvider(SomeToday);
         var func = new ProjectSetGetFunc(mockSqlApi.Object, mockTodayProvider);
 
-        var actual = await func.InvokeAsync(default, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create("Some Failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -157,7 +191,7 @@ partial class ProjectSetGetFuncTest
         var mockTodayProvider = BuildTodayProvider(SomeToday);
         var func = new ProjectSetGetFunc(mockSqlApi.Object, mockTodayProvider);
 
-        _ = await func.InvokeAsync(default, default);
+        _ = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
 
         var expectedLeadQuery = new DbSelectQuery("lead", "l")
         {
@@ -184,7 +218,7 @@ partial class ProjectSetGetFuncTest
         var mockTodayProvider = BuildTodayProvider(SomeToday);
         var func = new ProjectSetGetFunc(mockSqlApi.Object, mockTodayProvider);
 
-        var actual = await func.InvokeAsync(default, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create("Some Failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -197,7 +231,7 @@ partial class ProjectSetGetFuncTest
         var mockTodayProvider = BuildTodayProvider(SomeToday);
         var func = new ProjectSetGetFunc(mockSqlApi.Object, mockTodayProvider);
 
-        _ = await func.InvokeAsync(default, default);
+        _ = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
 
         var expectedIncidentQuery = new DbSelectQuery("incident", "i")
         {
@@ -223,7 +257,7 @@ partial class ProjectSetGetFuncTest
         var mockTodayProvider = BuildTodayProvider(SomeToday);
         var func = new ProjectSetGetFunc(mockSqlApi.Object, mockTodayProvider);
 
-        var actual = await func.InvokeAsync(default, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create("Some Failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
@@ -242,7 +276,7 @@ partial class ProjectSetGetFuncTest
         var mockTodayProvider = BuildTodayProvider(SomeToday);
         var func = new ProjectSetGetFunc(mockSqlApi.Object, mockTodayProvider);
 
-        var actual = await func.InvokeAsync(default, default);
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         Assert.StrictEqual(expected, actual);
     }
 }

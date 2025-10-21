@@ -5,7 +5,7 @@ using GarageGroup.Infra;
 
 namespace GarageGroup.Internal.Timesheet;
 
-internal sealed partial class ProjectSetSearchFunc(IDataverseImpersonateSupplier<IDataverseSearchSupplier> dataverseApi) : IProjectSetSearchFunc
+internal sealed partial class ProjectSetSearchFunc(IDataverseSearchSupplier dataverseApi) : IProjectSetSearchFunc
 {
     private const string ProjectEntityName = "gg_project";
 

@@ -33,7 +33,7 @@ partial class TimesheetModifyFunc
             };
         }
 
-        var projectName = await GetProjectAsync(input.Project, cancellationToken).ConfigureAwait(false);
+        var projectName = await GetProjectAsync(input.Project, input.SystemUserId, cancellationToken).ConfigureAwait(false);
         return projectName.Map(MapTimesheetJson, MapFailure);
 
         TimesheetJson MapTimesheetJson(IProjectJson project)
