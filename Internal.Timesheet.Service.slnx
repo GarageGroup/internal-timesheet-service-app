@@ -8,6 +8,11 @@
     <Project Path="src/endpoint/Notification.Subscribe/Endpoint/Endpoint.csproj" />
     <Project Path="src/endpoint/Notification.Subscribe/Test/Test.csproj" />
   </Folder>
+  <Folder Name="/endpoint/Period.GetSet/">
+    <Project Path="src/endpoint/Period.GetSet/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/Period.GetSet/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/Period.GetSet/Test/Test.csproj" />
+  </Folder>
   <Folder Name="/endpoint/Profile.Get/">
     <Project Path="src/endpoint/Profile.Get/Contract/Contract.csproj" />
     <Project Path="src/endpoint/Profile.Get/Endpoint/Endpoint.csproj" />
