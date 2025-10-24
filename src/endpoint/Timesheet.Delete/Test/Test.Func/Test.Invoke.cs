@@ -33,6 +33,8 @@ partial class TimesheetDeleteFuncTest
     [InlineData(DataverseFailureCode.DuplicateRecord)]
     [InlineData(DataverseFailureCode.InvalidPayload)]
     [InlineData(DataverseFailureCode.InvalidFileSize)]
+    [InlineData(DataverseFailureCode.CannotUpdateBecauseItIsReadOnly)]
+    [InlineData(DataverseFailureCode.IsvAborted)]
     public static async Task InvokeAsync_DataverseResultIsUnexpectedFailure_ExpectFailure(
         DataverseFailureCode sourceFailureCode)
     {

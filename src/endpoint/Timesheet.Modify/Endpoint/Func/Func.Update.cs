@@ -55,6 +55,8 @@ partial class TimesheetModifyFunc
         failureCode switch
         {
             DataverseFailureCode.RecordNotFound => TimesheetUpdateFailureCode.TimesheetNotFound,
+            DataverseFailureCode.CannotUpdateBecauseItIsReadOnly => TimesheetUpdateFailureCode.BadRequest,
+            DataverseFailureCode.IsvAborted => TimesheetUpdateFailureCode.BadRequest,
             _ => default
         };
 

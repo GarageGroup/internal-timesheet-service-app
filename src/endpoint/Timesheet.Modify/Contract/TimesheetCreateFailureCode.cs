@@ -8,6 +8,9 @@ public enum TimesheetCreateFailureCode
 {
     Unknown,
 
+    [Problem(FailureStatusCode.BadRequest, true)]
+    BadRequest,
+
     [Problem(FailureStatusCode.BadRequest, FailureCode.UnexpectedProjectTypeMessage)]
     UnexpectedProjectType,
 

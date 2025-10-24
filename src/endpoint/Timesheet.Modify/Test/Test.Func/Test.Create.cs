@@ -267,6 +267,8 @@ partial class TimesheetModifyFuncTest
     [InlineData(DataverseFailureCode.DuplicateRecord, TimesheetCreateFailureCode.Unknown)]
     [InlineData(DataverseFailureCode.InvalidPayload, TimesheetCreateFailureCode.Unknown)]
     [InlineData(DataverseFailureCode.InvalidFileSize, TimesheetCreateFailureCode.Unknown)]
+    [InlineData(DataverseFailureCode.CannotUpdateBecauseItIsReadOnly, TimesheetCreateFailureCode.BadRequest)]
+    [InlineData(DataverseFailureCode.IsvAborted, TimesheetCreateFailureCode.BadRequest)]
     public static async Task InvokeAsync_Create_DataverseResultIsFailure_ExpectFailure(
         DataverseFailureCode sourceFailureCode, TimesheetCreateFailureCode expectedFailureCode)
     {
