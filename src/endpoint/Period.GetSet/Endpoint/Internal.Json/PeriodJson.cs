@@ -19,7 +19,7 @@ internal sealed record class PeriodJson
         new(
             entityPluralName: EntityPluralName,
             selectFields: [NameFieldName, FromDateFieldName, ToDateFieldName],
-            filter: "statecode eq 0",
+            filter: $"statecode eq 0 and {FromDateFieldName} lt {DateTime.UtcNow:O}",
             orderBy:
             [
                 new(ToDateFieldName, DataverseOrderDirection.Descending)
