@@ -26,6 +26,10 @@ public static partial class PeriodSetGetFuncTest
                 }
             ]);
 
+    private static readonly DateTime SomeToday
+        =
+        new(2024, 05, 30, 12, 0, 0);
+
     private static Mock<IDataverseEntitySetGetSupplier> BuildMockDataverseApi(
         in Result<DataverseEntitySetGetOut<PeriodJson>, Failure<DataverseFailureCode>> result)
     {
@@ -37,4 +41,8 @@ public static partial class PeriodSetGetFuncTest
 
         return mock;
     }
+
+    private static ITodayProvider BuildTodayProvider(DateTime dateTime)
+        =>
+        Mock.Of<ITodayProvider>(t => t.Today == dateTime);
 }

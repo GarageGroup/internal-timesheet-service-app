@@ -14,12 +14,12 @@ internal sealed record class PeriodJson
 
     private const string ToDateFieldName = "gg_to_date";
 
-    internal static readonly DataverseEntitySetGetIn DataverseSetGetInput
-        =
+    internal static DataverseEntitySetGetIn DataverseSetGetInput(DateTime dateTime)
+        =>
         new(
             entityPluralName: EntityPluralName,
             selectFields: [NameFieldName, FromDateFieldName, ToDateFieldName],
-            filter: "statecode eq 0",
+            filter: $"statecode eq 0 and {FromDateFieldName} lt {dateTime:O}",
             orderBy:
             [
                 new(ToDateFieldName, DataverseOrderDirection.Descending)
