@@ -47,6 +47,8 @@ partial class TimesheetModifyFunc
         {
             DataverseFailureCode.UserNotEnabled => TimesheetCreateFailureCode.Forbidden,
             DataverseFailureCode.PrivilegeDenied => TimesheetCreateFailureCode.Forbidden,
+            DataverseFailureCode.CannotUpdateBecauseItIsReadOnly => TimesheetCreateFailureCode.BadRequest,
+            DataverseFailureCode.IsvAborted => TimesheetCreateFailureCode.BadRequest,
             _ => default
         };
 

@@ -87,7 +87,7 @@ partial class TimesheetSetGetFuncSource
                             projectName : "SomeFirstProjectName",
                             description : "Some description",
                             id: Guid.Parse("c19387fa-7bbd-45ae-bc5f-8b2003c764af"),
-                            timesheetStateCode: 0,
+                            isActive: true,
                             date: new(2024, 02, 01))
                         {
                             ProjectComment = "Some comment"
@@ -99,7 +99,7 @@ partial class TimesheetSetGetFuncSource
                             projectName : "Some Lead Name",
                             description : string.Empty,
                             id: Guid.Parse("64aa110f-258a-4771-8a6b-21e8fb9fed5d"),
-                            timesheetStateCode: StateCode.Active,
+                            isActive: true,
                             date: new(2024, 12, 21)),
                         new(
                             duration : 2.5m,
@@ -108,7 +108,7 @@ partial class TimesheetSetGetFuncSource
                             projectName : "\n\r",
                             description : string.Empty,
                             id: Guid.Parse("a4db6d8e-a632-4f9c-ad8c-1c49261b6d85"),
-                            timesheetStateCode: StateCode.Canceled,
+                            isActive: false,
                             date: new(2024, 03, 02)),
                         new(
                             duration : 7,
@@ -117,7 +117,7 @@ partial class TimesheetSetGetFuncSource
                             projectName : "Third company",
                             description : "Some lead description",
                             id: Guid.Parse("6f565e16-024a-4012-ad9d-150e32216125"),
-                            timesheetStateCode: StateCode.Canceled,
+                            isActive: false,
                             date: new(2024, 05, 22)),
                         new(
                             duration : 0,
@@ -126,7 +126,7 @@ partial class TimesheetSetGetFuncSource
                             projectName : null,
                             description : string.Empty,
                             id: Guid.Parse("36d5fda9-fa30-45cb-bbb5-53df2d4e4d72"),
-                            timesheetStateCode: StateCode.Active,
+                            isActive: true,
                             date: new(2024, 11, 2))
                     ]
                 }

@@ -78,11 +78,9 @@ internal static class TimesheetSetGetMetadata
             =
             "#Task8137_NewApiMethod. Implement new API method";
 
-        public const string TimesheetStateCodeDescription
+        public const string TimesheetIsActiveDescription
             =
-            "State code of the timesheet.";
-
-        public const string TimesheetStateCodeExample = nameof(StateCode.Active);
+            "Flag indicating whether the timesheet is active.";
 
         public const string DateDescription
             =

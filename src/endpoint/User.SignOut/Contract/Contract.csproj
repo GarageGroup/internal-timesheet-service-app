@@ -16,7 +16,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="GarageGroup.Infra.Dataverse.Api.Abstractions.EntityUpdate" Version="3.15.0" />
+    <PackageReference Include="GarageGroup.Infra.Dataverse.Api.Abstractions.EntityUpdate" Version="3.15.1" />
     <PackageReference Include="GarageGroup.Infra.Endpoint.Core" Version="0.17.0" />
   </ItemGroup>
 

@@ -43,7 +43,7 @@ partial class TimesheetSetGetFunc
             projectName: dbTimesheet.Subject.OrNullIfEmpty() ?? dbTimesheet.ProjectName,
             description: dbTimesheet.Description,
             id: dbTimesheet.Id,
-            timesheetStateCode: dbTimesheet.TimesheetStateCode,
+            isActive: dbTimesheet.TimesheetStateCode is StateCode.Active,
             date: DateOnly.FromDateTime(dbTimesheet.Date))
         {
             ProjectComment = dbTimesheet.ProjectComment.OrNullIfWhiteSpace()

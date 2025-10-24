@@ -15,7 +15,7 @@ public sealed record class TimesheetSetGetItem
         [AllowNull] string projectName,
         decimal duration,
         [AllowNull] string description,
-        StateCode timesheetStateCode,
+        bool isActive,
         DateOnly date)
     { 
         Id = id;
@@ -24,7 +24,7 @@ public sealed record class TimesheetSetGetItem
         ProjectName = projectName.OrEmpty();
         Duration = duration;
         Description = description.OrEmpty();
-        TimesheetStateCode = timesheetStateCode;
+        IsActive = isActive;
         Date = date;
     }
 
@@ -56,9 +56,8 @@ public sealed record class TimesheetSetGetItem
     [StringExample(Out.DescriptionExample)]
     public string Description { get; }
 
-    [SwaggerDescription(Out.TimesheetStateCodeDescription)]
-    [StringExample(Out.TimesheetStateCodeExample)]
-    public StateCode TimesheetStateCode { get; }
+    [SwaggerDescription(Out.TimesheetIsActiveDescription)]
+    public bool IsActive { get; }
 
     [SwaggerDescription(Out.DateDescription)]
     public DateOnly Date { get; }

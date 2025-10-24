@@ -11,6 +11,6 @@ using static TimesheetDeleteMetadata;
 [EndpointTag(Func.Tag)]
 public interface ITimesheetDeleteFunc
 {
-    ValueTask<Result<Unit, Failure<Unit>>> InvokeAsync(
+    ValueTask<Result<Unit, Failure<TimesheetDeleteFailureCode>>> InvokeAsync(
         TimesheetDeleteIn input, CancellationToken cancellationToken);
 }
