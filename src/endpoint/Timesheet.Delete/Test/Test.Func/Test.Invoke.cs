@@ -23,20 +23,20 @@ partial class TimesheetDeleteFuncTest
     }
 
     [Theory]
-    [InlineData(DataverseFailureCode.Unknown)]
-    [InlineData(DataverseFailureCode.Unauthorized)]
-    [InlineData(DataverseFailureCode.PicklistValueOutOfRange)]
-    [InlineData(DataverseFailureCode.UserNotEnabled)]
-    [InlineData(DataverseFailureCode.PrivilegeDenied)]
-    [InlineData(DataverseFailureCode.Throttling)]
-    [InlineData(DataverseFailureCode.SearchableEntityNotFound)]
-    [InlineData(DataverseFailureCode.DuplicateRecord)]
-    [InlineData(DataverseFailureCode.InvalidPayload)]
-    [InlineData(DataverseFailureCode.InvalidFileSize)]
-    [InlineData(DataverseFailureCode.CannotUpdateBecauseItIsReadOnly)]
-    [InlineData(DataverseFailureCode.IsvAborted)]
+    [InlineData(DataverseFailureCode.Unknown, TimesheetDeleteFailureCode.Unknown)]
+    [InlineData(DataverseFailureCode.Unauthorized, TimesheetDeleteFailureCode.Unknown)]
+    [InlineData(DataverseFailureCode.PicklistValueOutOfRange, TimesheetDeleteFailureCode.Unknown)]
+    [InlineData(DataverseFailureCode.UserNotEnabled, TimesheetDeleteFailureCode.Unknown)]
+    [InlineData(DataverseFailureCode.PrivilegeDenied, TimesheetDeleteFailureCode.Unknown)]
+    [InlineData(DataverseFailureCode.Throttling, TimesheetDeleteFailureCode.Unknown)]
+    [InlineData(DataverseFailureCode.SearchableEntityNotFound, TimesheetDeleteFailureCode.Unknown)]
+    [InlineData(DataverseFailureCode.DuplicateRecord, TimesheetDeleteFailureCode.Unknown)]
+    [InlineData(DataverseFailureCode.InvalidPayload, TimesheetDeleteFailureCode.Unknown)]
+    [InlineData(DataverseFailureCode.InvalidFileSize, TimesheetDeleteFailureCode.Unknown)]
+    [InlineData(DataverseFailureCode.CannotUpdateBecauseItIsReadOnly, TimesheetDeleteFailureCode.BadRequest)]
+    [InlineData(DataverseFailureCode.IsvAborted, TimesheetDeleteFailureCode.BadRequest)]
     public static async Task InvokeAsync_DataverseResultIsUnexpectedFailure_ExpectFailure(
-        DataverseFailureCode sourceFailureCode)
+        DataverseFailureCode sourceFailureCode, TimesheetDeleteFailureCode expectFailureCode)
     {
         var sourceException = new Exception("Some error message");
         var dataverseFailure = sourceException.ToFailure(sourceFailureCode, "Some failure message");
@@ -45,7 +45,7 @@ partial class TimesheetDeleteFuncTest
         var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
 
         var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
-        var expected = Failure.Create(Unit.Value, "Some failure message", sourceException);
+        var expected = Failure.Create(expectFailureCode, "Some failure message", sourceException);
 
         Assert.StrictEqual(expected, actual);
     }

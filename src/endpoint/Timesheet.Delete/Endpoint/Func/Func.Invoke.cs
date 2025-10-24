@@ -7,7 +7,7 @@ namespace GarageGroup.Internal.Timesheet;
 
 partial class TimesheetDeleteFunc
 {
-    public ValueTask<Result<Unit, Failure<Unit>>> InvokeAsync(
+    public ValueTask<Result<Unit, Failure<TimesheetDeleteFailureCode>>> InvokeAsync(
         TimesheetDeleteIn input, CancellationToken cancellationToken)
         =>
         AsyncPipeline.Pipe(
@@ -21,11 +21,13 @@ partial class TimesheetDeleteFunc
         .Recover(
             MapFailure);
 
-    private static Result<Unit, Failure<Unit>> MapFailure(Failure<DataverseFailureCode> failure)
+    private static Result<Unit, Failure<TimesheetDeleteFailureCode>> MapFailure(Failure<DataverseFailureCode> failure)
         =>
         failure.FailureCode switch
         {
             DataverseFailureCode.RecordNotFound => default(Unit),
-            _ => failure.WithFailureCode<Unit>(default)
+            DataverseFailureCode.CannotUpdateBecauseItIsReadOnly => failure.WithFailureCode(TimesheetDeleteFailureCode.BadRequest),
+            DataverseFailureCode.IsvAborted => failure.WithFailureCode(TimesheetDeleteFailureCode.BadRequest),
+            _ => failure.WithFailureCode(TimesheetDeleteFailureCode.Unknown)
         };
 }
