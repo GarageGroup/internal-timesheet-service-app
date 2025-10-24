@@ -1,11 +1,12 @@
 ﻿using GarageGroup.Infra;
+using System;
 using Xunit;
 
 namespace GarageGroup.Internal.Timesheet.Cost.Endpoint.CostPeriod.GetSet.Test;
 
 internal static partial class PeriodSetGetFuncSource
 {
-    public static TheoryData<DataverseEntitySetGetOut<PeriodJson>, PeriodSetGetOut> OutputTestData
+    public static TheoryData<DataverseEntitySetGetOut<PeriodJson>, DateTime, PeriodSetGetOut> OutputTestData
         =>
         new()
         {
@@ -26,6 +27,7 @@ internal static partial class PeriodSetGetFuncSource
                             To = new(2024, 5, 15, 12, 22, 3)
                         }
                     ]),
+                new(2024, 6, 10, 12, 0, 0),
                 new()
                 {
                     Periods =
@@ -33,7 +35,7 @@ internal static partial class PeriodSetGetFuncSource
                         new(
                             name: "Some first name",
                             dateFrom: new(2024, 6, 1),
-                            dateTo: new(2024, 6, 30)),
+                            dateTo: new(2024, 6, 10)),
                         new(
                             name: "Some second name",
                             dateFrom: new(2024, 5, 10),

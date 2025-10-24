@@ -61,10 +61,10 @@ partial class PeriodSetGetFuncTest
     [Theory]
     [MemberData(nameof(PeriodSetGetFuncSource.OutputTestData), MemberType = typeof(PeriodSetGetFuncSource))]
     internal static async Task InvokeAsync_DataverseResultIsSuccess_ExpectSuccess(
-        DataverseEntitySetGetOut<PeriodJson> dataverseOut, PeriodSetGetOut expected)
+        DataverseEntitySetGetOut<PeriodJson> dataverseOut, DateTime today, PeriodSetGetOut expected)
     {
         var mockDataverseApi = BuildMockDataverseApi(dataverseOut);
-        var mockTodayProvider = BuildTodayProvider(SomeToday);
+        var mockTodayProvider = BuildTodayProvider(today);
         var func = new PeriodSetGetFunc(mockDataverseApi.Object, mockTodayProvider);
 
         var actual = await func.InvokeAsync(default, TestContext.Current.CancellationToken);

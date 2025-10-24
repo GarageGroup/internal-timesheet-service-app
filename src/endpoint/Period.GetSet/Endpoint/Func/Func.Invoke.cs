@@ -14,16 +14,16 @@ partial class PeriodSetGetFunc
         .PipeValue(
             dataverseApi.GetEntitySetAsync<PeriodJson>)
         .Map(
-            static @out => new PeriodSetGetOut
+            @out => new PeriodSetGetOut
             {
                 Periods = @out.Value.Map(MapPeriod)
             },
             static failure => failure.WithFailureCode<Unit>(default));
 
-    private static PeriodItem MapPeriod(PeriodJson period)
+    private PeriodItem MapPeriod(PeriodJson period)
         =>
         new(
             name: period.Name,
             dateFrom: DateOnly.FromDateTime(period.From.ToLocalTime()),
-            dateTo: DateOnly.FromDateTime(period.To.ToLocalTime()));
+            dateTo: DateOnly.FromDateTime(todayProvider.Today < period.To ? todayProvider.Today.ToLocalTime() : period.To.ToLocalTime()));
 }
