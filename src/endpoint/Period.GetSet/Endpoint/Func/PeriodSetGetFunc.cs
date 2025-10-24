@@ -2,6 +2,6 @@
 
 namespace GarageGroup.Internal.Timesheet;
 
-internal sealed partial class PeriodSetGetFunc(IDataverseEntitySetGetSupplier dataverseApi) : IPeriodSetGetFunc
+internal sealed partial class PeriodSetGetFunc(IDataverseEntitySetGetSupplier dataverseApi, ITodayProvider todayProvider) : IPeriodSetGetFunc
 {
 }

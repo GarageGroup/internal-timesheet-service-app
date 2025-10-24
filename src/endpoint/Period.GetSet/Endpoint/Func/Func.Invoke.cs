@@ -1,5 +1,4 @@
-﻿using GarageGroup.Infra;
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,7 +10,7 @@ partial class PeriodSetGetFunc
         Unit input, CancellationToken cancellationToken)
         =>
         AsyncPipeline.Pipe(
-            PeriodJson.DataverseSetGetInput, cancellationToken)
+            PeriodJson.DataverseSetGetInput(todayProvider.Today), cancellationToken)
         .PipeValue(
             dataverseApi.GetEntitySetAsync<PeriodJson>)
         .Map(

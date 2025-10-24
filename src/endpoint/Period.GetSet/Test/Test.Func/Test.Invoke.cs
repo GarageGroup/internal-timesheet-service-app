@@ -13,14 +13,15 @@ partial class PeriodSetGetFuncTest
     public static async Task InvokeAsync_ExpectDataverseSetGetCalledOnce()
     {
         var mockDataverseApi = BuildMockDataverseApi(SomePeriodJsonOut);
-        var func = new PeriodSetGetFunc(mockDataverseApi.Object);
+        var mockTodayProvider = BuildTodayProvider(new(2025, 11, 12, 12, 0, 0));
+        var func = new PeriodSetGetFunc(mockDataverseApi.Object, mockTodayProvider);
 
         _ = await func.InvokeAsync(default, TestContext.Current.CancellationToken);
 
         var expectedInput = new DataverseEntitySetGetIn(
             entityPluralName: "gg_employee_cost_periods",
             selectFields: ["gg_name", "gg_from_date", "gg_to_date"],
-            filter: "statecode eq 0",
+            filter: "statecode eq 0 and gg_from_date lt 2025-11-12T12:00:00.0000000",
             orderBy:
             [
                 new("gg_to_date", DataverseOrderDirection.Descending)
@@ -48,7 +49,8 @@ partial class PeriodSetGetFuncTest
         var dataverseFailure = sourceException.ToFailure(sourceFailureCode, "Some failure message");
 
         var mockDataverseApi = BuildMockDataverseApi(dataverseFailure);
-        var func = new PeriodSetGetFunc(mockDataverseApi.Object);
+        var mockTodayProvider = BuildTodayProvider(SomeToday);
+        var func = new PeriodSetGetFunc(mockDataverseApi.Object, mockTodayProvider);
 
         var actual = await func.InvokeAsync(default, TestContext.Current.CancellationToken);
         var expected = Failure.Create("Some failure message", sourceException);
@@ -62,7 +64,8 @@ partial class PeriodSetGetFuncTest
         DataverseEntitySetGetOut<PeriodJson> dataverseOut, PeriodSetGetOut expected)
     {
         var mockDataverseApi = BuildMockDataverseApi(dataverseOut);
-        var func = new PeriodSetGetFunc(mockDataverseApi.Object);
+        var mockTodayProvider = BuildTodayProvider(SomeToday);
+        var func = new PeriodSetGetFunc(mockDataverseApi.Object, mockTodayProvider);
 
         var actual = await func.InvokeAsync(default, TestContext.Current.CancellationToken);
 
