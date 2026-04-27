@@ -126,10 +126,11 @@ jobs:
         run: echo "version=$(echo $GITHUB_REF | cut -d / -f 3)" >> $GITHUB_OUTPUT
 
       - name: Ping Health Check URL
-        uses: GarageGroup/platform-ping-app@v0.0.3
+        uses: GarageGroup/platform-ping-app@v0.1.0
         with:
           health_check_url: https://${{ vars.TEST_APIM_DNS }}/health/${{ vars.APIM_HEALTH_NAME }}?subscription-key=${{ secrets.TEST_APIM_SUBKEY }}
           contains: ${{ steps.get_version.outputs.version }}
+          is_end_of_line_match: true
           retry_delay_in_seconds: 15
           max_attempts: 30
 

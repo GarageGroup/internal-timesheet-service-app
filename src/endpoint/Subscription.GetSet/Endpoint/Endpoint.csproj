@@ -21,7 +21,7 @@
     <PackageReference Include="GarageGroup.Infra.Dataverse.Api.Abstractions.EntitySetGet" Version="3.13.2" />
     <PackageReference Include="GarageGroup.Infra.Dataverse.Api.Filter" Version="1.0.0" />
     <PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="5.3.0" PrivateAssets="all" />
-    <PackageReference Include="PrimeFuncPack.Dependency.Core" Version="2.2.0-preview.1" />
+    <PackageReference Include="PrimeFuncPack.Dependency.Core" Version="2.2.0-rc.1" />
   </ItemGroup>
 
 </Project>
