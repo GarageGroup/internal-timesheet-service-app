@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -12,8 +12,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GarageGroup.Infra.Endpoint.Core" Version="0.17.0" />
-    <PackageReference Include="GarageGroup.Infra.Endpoint.SchemaProvider" Version="0.2.10" />
+    <PackageReference Include="GarageGroup.Infra.Endpoint.Core" Version="1.0.0" />
+    <PackageReference Include="GarageGroup.Infra.Endpoint.SchemaProvider" Version="1.0.0" />
+    <PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="5.3.0" PrivateAssets="all" />
     <PackageReference Include="PrimeFuncPack.Core.FlatArray" Version="1.5.1" />
     <PackageReference Include="PrimeFuncPack.Primitives.Strings" Version="3.0.0" />
   </ItemGroup>

@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Nodes;
 using GarageGroup.Infra;
-using Microsoft.OpenApi.Any;
 
 namespace GarageGroup.Internal.Timesheet;
 
@@ -9,17 +9,17 @@ using static SubscriptionSetGetMetadata;
 
 public sealed record class WeeklyNotificationUserPreference : INotificationUserPreference
 {
-    internal static OpenApiObject Example { get; }
+    internal static JsonObject Example { get; }
         =
         new()
         {
-            [NamingPolicy.ConvertName(nameof(WorkedHours))] = new OpenApiInteger(In.WeeklyNotificationWorkedHoursExample),
-            [NamingPolicy.ConvertName(nameof(NotificationTime))] = new OpenApiString(In.NotificationTimeExample),
-            [NamingPolicy.ConvertName(nameof(Weekday))] = new OpenApiArray
+            [NamingPolicy.ConvertName(nameof(WorkedHours))] = In.WeeklyNotificationWorkedHoursExample,
+            [NamingPolicy.ConvertName(nameof(NotificationTime))] = In.NotificationTimeExample,
+            [NamingPolicy.ConvertName(nameof(Weekday))] = new JsonArray
             {
-                new OpenApiString(Timesheet.Weekday.Friday.ToString()),
-                new OpenApiString(Timesheet.Weekday.Saturday.ToString()),
-                new OpenApiString(Timesheet.Weekday.Sunday.ToString())
+                Timesheet.Weekday.Friday.ToString(),
+                Timesheet.Weekday.Saturday.ToString(),
+                Timesheet.Weekday.Sunday.ToString()
             }
         };
 

@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Threading;
-using DeepEqual.Syntax;
 using GarageGroup.Infra;
 using Moq;
+using Xunit;
 
 namespace GarageGroup.Internal.Timesheet.Endpoint.Timesheet.Modify.Test;
 
@@ -69,13 +69,13 @@ public static partial class TimesheetModifyFuncTest
 
     private static bool AreEqual(DataverseEntityCreateIn<TimesheetJson> expected, DataverseEntityCreateIn<TimesheetJson> actual)
     {
-        expected.ShouldDeepEqual(actual);
+        Assert.Equivalent(expected, actual);
         return true;
     }
 
     private static bool AreEqual(DataverseEntityUpdateIn<TimesheetJson> expected, DataverseEntityUpdateIn<TimesheetJson> actual)
     {
-        expected.ShouldDeepEqual(actual);
+        Assert.Equivalent(expected, actual);
         return true;
     }
 }

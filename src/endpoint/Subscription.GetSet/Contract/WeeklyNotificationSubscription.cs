@@ -1,5 +1,5 @@
-﻿using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+﻿using System.Text.Json.Nodes;
+using Microsoft.OpenApi;
 
 namespace GarageGroup.Internal.Timesheet;
 
@@ -13,9 +13,9 @@ public sealed record class WeeklyNotificationSubscription : SubscriptionBase
         {
             Title = "Weekly notification subscription",
             Description = "Weekly notification subscription",
-            Example = new OpenApiObject
+            Example = new JsonObject
             {
-                [NamingPolicy.ConvertName(nameof(NotificationType))] = new OpenApiString(nameof(NotificationType.WeeklyNotification)),
+                [NamingPolicy.ConvertName(nameof(NotificationType))] = nameof(NotificationType.WeeklyNotification),
                 [NamingPolicy.ConvertName(nameof(UserPreference))] = WeeklyNotificationUserPreference.Example
             }
         };

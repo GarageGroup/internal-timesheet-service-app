@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using GarageGroup.Infra;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 namespace GarageGroup.Internal.Timesheet;
 
@@ -22,20 +22,19 @@ public sealed record class NotificationTime : IOpenApiSchemaProvider
 
     public static NotificationTime Msk21 { get; }
 
-    public static OpenApiSchema GetSchema(bool nullable, IOpenApiAny? example = null, string? description = null)
+    public static OpenApiSchema GetSchema(bool nullable, JsonNode? example = null, string? description = null)
     {
         return new()
         {
-            Type = "string",
+            Type = JsonSchemaType.String,
             Enum = NotificationTimes.Select(ToOpenApiString).ToArray(),
-            Nullable = nullable,
-            Example = example ?? new OpenApiString(Msk18.DisplayText),
+            Example = example ?? JsonValue.Create(Msk18.DisplayText),
             Description = description
         };
 
-        static OpenApiString ToOpenApiString(KeyValuePair<string, NotificationTime> pair)
+        static JsonValue ToOpenApiString(KeyValuePair<string, NotificationTime> pair)
             =>
-            new(pair.Key);
+            JsonValue.Create(pair.Key);
     }
 
     static NotificationTime()

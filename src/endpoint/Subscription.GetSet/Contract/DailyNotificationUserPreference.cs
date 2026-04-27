@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Nodes;
 using GarageGroup.Infra;
-using Microsoft.OpenApi.Any;
 
 namespace GarageGroup.Internal.Timesheet;
 
@@ -9,12 +9,12 @@ using static SubscriptionSetGetMetadata;
 
 public sealed record class DailyNotificationUserPreference : INotificationUserPreference
 {
-    internal static OpenApiObject Example { get; }
+    internal static JsonObject Example { get; }
         =
         new()
         {
-            [NamingPolicy.ConvertName(nameof(WorkedHours))] = new OpenApiInteger(In.DailyNotificationWorkedHoursExample),
-            [NamingPolicy.ConvertName(nameof(NotificationTime))] = new OpenApiString(In.NotificationTimeExample)
+            [NamingPolicy.ConvertName(nameof(WorkedHours))] = In.DailyNotificationWorkedHoursExample,
+            [NamingPolicy.ConvertName(nameof(NotificationTime))] = In.NotificationTimeExample
         };
 
     public DailyNotificationUserPreference(decimal workedHours, [AllowNull] string notificationTime)

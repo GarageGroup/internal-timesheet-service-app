@@ -1,10 +1,10 @@
 ﻿using GarageGroup.Infra;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace GarageGroup.Internal.Timesheet;
@@ -18,20 +18,19 @@ public sealed record class ProfileLanguage : IOpenApiSchemaProvider
 
     public static ProfileLanguage Russian { get; }
 
-    public static OpenApiSchema GetSchema(bool nullable, IOpenApiAny? example = null, string? description = null)
+    public static OpenApiSchema GetSchema(bool nullable, JsonNode? example = null, string? description = null)
     {
         return new()
         {
-            Type = "string",
+            Type = JsonSchemaType.String,
             Enum = ProfileLanguages.Select(ToOpenApiString).ToArray(),
-            Nullable = nullable,
-            Example = example ?? new OpenApiString(English.Code),
+            Example = example ?? JsonValue.Create(English.Code),
             Description = description
         };
 
-        static OpenApiString ToOpenApiString(KeyValuePair<string, ProfileLanguage> pair)
+        static JsonValue ToOpenApiString(KeyValuePair<string, ProfileLanguage> pair)
             =>
-            new(pair.Key);
+            JsonValue.Create(pair.Key);
     }
 
     static ProfileLanguage()

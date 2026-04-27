@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.OpenApi;
 
 namespace GarageGroup.Internal.Timesheet;
 
@@ -29,13 +30,13 @@ internal static partial class IsSuccessMiddleware
     private const string Json = "json";
 
     private static OpenApiSchema CreateIsSuccessSchema(bool value)
-        =>
-        new()
-        {
-            Type = "boolean",
-            Example = new OpenApiBoolean(value),
-            Description = "Indicates whether the operation was successful."
-        };
+    =>
+    new()
+    {
+        Type = JsonSchemaType.Boolean,
+        Example = JsonValue.Create(value),
+        Description = "Indicates whether the operation was successful."
+    };
 
     private static readonly JsonSerializerOptions SerializerOptions
         =
@@ -50,32 +51,22 @@ internal static partial class IsSuccessMiddleware
 
         foreach (var path in paths)
         {
+            if (path.Operations?.Count is not > 0)
+            {
+                continue;
+            }
+
             foreach (var operation in path.Operations.Values)
             {
-                var changesToMake = new List<KeyValuePair<string, OpenApiResponse>>();
-                var keysToRemove = new List<string>();
+                var changesToMake = new HashSet<KeyValuePair<string, IOpenApiResponse>>();
+                var keysToRemove = new HashSet<string>();
 
-                foreach (var response in operation.Responses)
+                foreach (var response in operation.Responses ?? [])
                 {
                     var responseKey = response.GetResponseKey();
-
-                    var contents = response.Value.Content;
-                    if (contents.Count is 0)
+                    if (response.Value.Content?.Count > 0)
                     {
-                        contents.Add(ContentType, new()
-                        {
-                            Schema = new()
-                            {
-                                Properties = new Dictionary<string, OpenApiSchema>
-                                {
-                                    [IsSuccessField] = CreateIsSuccessSchema(responseKey?.IsSuccessStatusKey() is true)
-                                }
-                            }
-                        });
-                    }
-                    else
-                    {
-                        foreach (var content in contents)
+                        foreach (var content in response.Value.Content)
                         {
                             if (content.Key.Contains(Json, StringComparison.InvariantCultureIgnoreCase) is false)
                             {
@@ -83,56 +74,98 @@ internal static partial class IsSuccessMiddleware
                             }
 
                             var successSchema = CreateIsSuccessSchema(true);
-                            content.Value.Schema.Properties = content.Value.Schema.Properties.InsertPropertySchema(IsSuccessField, successSchema);
+                            content.Value?.Schema?.Properties?.InsertPropertySchema(IsSuccessField, successSchema);
                         }
+
+                        continue;
                     }
+
+                    var responseValue = new OpenApiResponse
+                    {
+                        Description = response.Value.Description,
+                        Headers = response.Value.Headers,
+                        Content = new Dictionary<string, IOpenApiMediaType>
+                        {
+                            [ContentType] = new OpenApiMediaType
+                            {
+                                Schema = new OpenApiSchema
+                                {
+                                    Properties = new Dictionary<string, IOpenApiSchema>
+                                    {
+                                        [IsSuccessField] = CreateIsSuccessSchema(responseKey?.IsSuccessStatusKey() is true)
+                                    }
+                                }
+                            }
+                        }
+                    };
+
+                    keysToRemove.Add(response.Key);
 
                     if (responseKey is NoContentStatusCode)
                     {
-                        response.Value.Description = "Success";
-
-                        changesToMake.Add(new(SuccessStatusCode.ToString(), response.Value));
-                        keysToRemove.Add(response.Key);
+                        responseValue.Description = "Success";
+                        changesToMake.Add(new(SuccessStatusCode.ToString(), responseValue));
+                    }
+                    else
+                    {
+                        changesToMake.Add(new(response.Key, responseValue));
                     }
                 }
 
-                foreach (var change in changesToMake)
+                if (operation.Responses is null)
                 {
-                    operation.Responses.Add(change.Key, change.Value);
+                    continue;
                 }
 
                 foreach (var key in keysToRemove)
                 {
                     operation.Responses.Remove(key);
                 }
+
+                foreach (var change in changesToMake)
+                {
+                    operation.Responses[change.Key] = change.Value;
+                }
+
+                operation.Responses.OrderByKeys();
             }
         }
 
-        if (openApiDocument.Components.Schemas.TryGetValue(ProblemDetailsSchemaName, out var problemDetails))
+        if (openApiDocument.Components?.Schemas?.TryGetValue(ProblemDetailsSchemaName, out var problemDetails) is true)
         {
-            problemDetails.Properties = problemDetails.Properties.InsertPropertySchema(IsSuccessField, CreateIsSuccessSchema(false));
+            problemDetails.Properties?.InsertPropertySchema(IsSuccessField, CreateIsSuccessSchema(false));
         }
     }
 
-    private static IDictionary<string, OpenApiSchema> InsertPropertySchema(
-        this IDictionary<string, OpenApiSchema> properties, string name, OpenApiSchema schema) 
+    private static void InsertPropertySchema(
+        this IDictionary<string, IOpenApiSchema> properties, string name, OpenApiSchema schema) 
     {
-        var result = new Dictionary<string, OpenApiSchema>(properties.Count + 1)
-        {
-            { name, schema }
-        };
+        var existing = properties.ToArray();
 
-        foreach (var property in properties)
+        properties.Clear();
+        properties[name] = schema;
+
+        foreach (var property in existing)
         {
             if (property.Key.Equals(name, StringComparison.InvariantCultureIgnoreCase))
             {
                 continue;
             }
 
-            result.Add(property.Key, property.Value);
+            properties[property.Key] = property.Value;
         }
+    }
 
-        return result;
+    private static void OrderByKeys(this OpenApiResponses responses)
+    {
+        var sorted = responses.OrderBy(static kv => kv.Key).ToArray();
+
+        responses.Clear();
+
+        foreach (var kv in sorted)
+        {
+            responses[kv.Key] = kv.Value;
+        }
     }
 
     private static async Task AddIsSuccessFieldInResponseBodyAsync(HttpContext context, RequestDelegate next)
@@ -187,7 +220,7 @@ internal static partial class IsSuccessMiddleware
         return response.WriteAsync(modifiedResponse, cancellationToken);
     }
 
-    private static int? GetResponseKey(this KeyValuePair<string, OpenApiResponse> response)
+    private static int? GetResponseKey(this KeyValuePair<string, IOpenApiResponse> response)
         =>
         int.TryParse(response.Key, out var value) ? value : null;
 
