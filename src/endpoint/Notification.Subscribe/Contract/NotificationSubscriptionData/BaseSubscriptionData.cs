@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using GarageGroup.Infra;
 using GarageGroup.Infra.Endpoint;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 namespace GarageGroup.Internal.Timesheet;
 
@@ -20,7 +20,7 @@ public abstract record class BaseSubscriptionData : IEndpointBodyParser<BaseSubs
         =>
         new()
         {
-            Content = new Dictionary<string, OpenApiMediaType>
+            Content = new Dictionary<string, IOpenApiMediaType>
             {
                 [$"{MediaTypeNames.Application.Json}?type={nameof(NotificationType.DailyNotification)}"] = DailyNotificationMetadata.MediaType,
                 [$"{MediaTypeNames.Application.Json}?type={nameof(NotificationType.WeeklyNotification)}"] = WeeklyNotificationMetadata.MediaType

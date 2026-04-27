@@ -9,7 +9,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Get version
       id: get_version
@@ -40,7 +40,7 @@ jobs:
         package: ./publish/${{ vars.AZURE_ARTIFACT_NAME }}-${{ steps.get_version.outputs.version }}.zip
 
     - name: Azure Logout
-      uses: azure/CLI@v1
+      uses: azure/cli@v2
       with:
         inlineScript: az logout
 
@@ -85,6 +85,6 @@ jobs:
         AZURE_CREDENTIALS: ${{ secrets.TEST_AZURE_CREDENTIALS }}
 
     - name: Azure Logout
-      uses: azure/CLI@v1
+      uses: azure/cli@v2
       with:
         inlineScript: az logout

@@ -1,4 +1,11 @@
 <Solution>
+  <Folder Name="/.github/">
+    <File Path=".github/workflows/build.yml" />
+    <File Path=".github/workflows/delete.yml" />
+    <File Path=".github/workflows/publish-release.yml" />
+    <File Path=".github/workflows/web-deploy-prod.yml" />
+    <File Path=".github/workflows/web-deploy-test.yml" />
+  </Folder>
   <Folder Name="/app/">
     <Project Path="src/app/Application/Application.csproj" />
   </Folder>

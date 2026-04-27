@@ -12,19 +12,12 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: 9.0.x
-
-    - name: Add Garage Group NuGet Source
-      run: >
-        dotnet nuget add source ${{ vars.GG_NUGET_SOURCE_URL }}
-        -n garage -u ${{ secrets.GG_NUGET_SOURCE_USER_NAME }}
-        -p ${{ secrets.GG_NUGET_SOURCE_USER_PASSWORD }}
-        --store-password-in-clear-text
+        dotnet-version: 10.0.x
 
     - name: Restore
       run: dotnet restore
@@ -65,9 +58,9 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS_ARTIFACT }}
 
     - name: Upload to Azure Blob Storage
-      uses: azure/CLI@v1
+      uses: azure/cli@v2
       with:
-        azcliversion: 2.30.0
+        azcliversion: latest
         inlineScript: |
           az storage blob upload \
             --container-name ${{ vars.AZURE_ARTIFACT_CONTAINER_NAME }} \
@@ -78,7 +71,7 @@ jobs:
         AZURE_STORAGE_ACCOUNT: ${{ vars.AZURE_ARTIFACT_ACCOUNT_NAME }}
 
     - name: Azure Logout
-      uses: azure/CLI@v1
+      uses: azure/cli@v2
       with:
         inlineScript: az logout
 
@@ -88,7 +81,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Get version
       id: get_version
@@ -119,7 +112,7 @@ jobs:
         package: ./publish/${{ vars.AZURE_ARTIFACT_NAME }}-${{ steps.get_version.outputs.version }}.zip
 
     - name: Azure Logout
-      uses: azure/CLI@v1
+      uses: azure/cli@v2
       with:
         inlineScript: az logout
 
@@ -164,6 +157,6 @@ jobs:
         AZURE_CREDENTIALS: ${{ secrets.TEST_AZURE_CREDENTIALS }}
 
     - name: Azure Logout
-      uses: azure/CLI@v1
+      uses: azure/cli@v2
       with:
         inlineScript: az logout

@@ -1,7 +1,7 @@
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using GarageGroup.Infra;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 namespace GarageGroup.Internal.Timesheet;
 
@@ -11,7 +11,7 @@ using static SubscriptionSetGetMetadata;
 [JsonDerivedType(typeof(WeeklyNotificationSubscription))]
 public abstract record class SubscriptionBase : IOpenApiSchemaProvider
 {
-    public static OpenApiSchema GetSchema(bool nullable, IOpenApiAny? example = null, string? description = null)
+    public static OpenApiSchema GetSchema(bool nullable, JsonNode? example = null, string? description = null)
         =>
         new()
         {
