@@ -21,7 +21,7 @@ partial class TagSetGetFuncTest
         var func = new TagSetGetFunc(mockSqlApi.Object, todayProvider, option);
 
         var input = new TagSetGetIn(
-            systemUserId: new("82ee3d26-17f1-4e2f-adb2-eeea5119a512"),
+            azureUserId: new("82ee3d26-17f1-4e2f-adb2-eeea5119a512"),
             projectId: new("58482d23-ca3e-4499-8294-cc9b588cce73"));
 
         _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
@@ -29,12 +29,30 @@ partial class TagSetGetFuncTest
         var expectedQuery = new DbSelectQuery("gg_timesheetactivity", "t")
         {
             SelectedFields = new("t.gg_description AS Description"),
+            JoinedTables =
+            [
+                new(
+                    type: DbJoinType.Inner,
+                    tableName: "systemuser",
+                    tableAlias: "u",
+                    filter: new DbCombinedFilter(DbLogicalOperator.And)
+                    {
+                        Filters =
+                        [
+                            new DbRawFilter(
+                                "u.systemuserid = t.ownerid"),
+                            new DbParameterFilter(
+                                fieldName: "u.azureactivedirectoryobjectid",
+                                @operator: DbFilterOperator.Equal,
+                                fieldValue: Guid.Parse("82ee3d26-17f1-4e2f-adb2-eeea5119a512"),
+                                parameterName: "ownerId")
+                        ]
+                    })
+            ],
             Filter = new DbCombinedFilter(DbLogicalOperator.And)
             {
                 Filters =
                 [
-                    new DbParameterFilter(
-                        "t.ownerid", DbFilterOperator.Equal, Guid.Parse("82ee3d26-17f1-4e2f-adb2-eeea5119a512"), "ownerId"),
                     new DbParameterFilter(
                         "t.regardingobjectid", DbFilterOperator.Equal, Guid.Parse("58482d23-ca3e-4499-8294-cc9b588cce73"), "projectId"),
                     new DbLikeFilter(

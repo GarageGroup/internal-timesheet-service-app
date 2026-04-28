@@ -9,6 +9,8 @@ internal sealed partial record class DbTag : IDbEntity<DbTag>
 
     private const string AliasName = "t";
 
+    private const string AliasUser = "u";
+
     private const string DescriptionFieldName = $"{AliasName}.gg_description";
 
     private const string DateFieldName = $"{AliasName}.gg_date";
