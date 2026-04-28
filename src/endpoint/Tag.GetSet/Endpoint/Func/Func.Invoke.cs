@@ -32,11 +32,14 @@ partial class TagSetGetFunc
 
         return DbTag.QueryAll with
         {
+            JoinedTables =
+            [
+                DbTag.BuildOwnerJoinedTable(input.AzureUserId)
+            ],
             Filter = new DbCombinedFilter(DbLogicalOperator.And)
             {
                 Filters =
                 [
-                    DbTag.BuildOwnerFilter(input.SystemUserId),
                     DbTag.BuildProjectFilter(input.ProjectId),
                     DescriptionTagFilter,
                     DbTag.BuildMinDateFilter(minDate),

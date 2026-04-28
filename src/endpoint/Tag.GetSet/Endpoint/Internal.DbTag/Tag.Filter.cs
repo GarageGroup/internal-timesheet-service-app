@@ -5,9 +5,13 @@ namespace GarageGroup.Internal.Timesheet;
 
 partial record class DbTag
 {
-    internal static DbParameterFilter BuildOwnerFilter(Guid ownerId)
+    private static readonly DbRawFilter OwnerJoinedFilter
+        =
+        new($"{AliasUser}.systemuserid = {AliasName}.ownerid");
+
+    private static DbParameterFilter BuildOwnerFilter(Guid ownerAzureUserId)
         =>
-        new($"{AliasName}.ownerid", DbFilterOperator.Equal, ownerId, "ownerId");
+        new($"{AliasUser}.azureactivedirectoryobjectid", DbFilterOperator.Equal, ownerAzureUserId, "ownerId");
 
     internal static DbParameterFilter BuildProjectFilter(Guid projectId)
         =>

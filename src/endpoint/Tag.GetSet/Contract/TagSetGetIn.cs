@@ -8,14 +8,14 @@ using static TagSetGetMetadata;
 public sealed record class TagSetGetIn
 {
     public TagSetGetIn(
-        [ClaimIn("oid")] Guid systemUserId,
+        [ClaimIn("oid")] Guid azureUserId,
         [JsonBodyIn, SwaggerDescription(In.ProjectIdDescription), StringExample(In.ProjectIdExample)] Guid projectId)
     {
-        SystemUserId = systemUserId;
+        AzureUserId = azureUserId;
         ProjectId = projectId;
     }
 
-    public Guid SystemUserId { get; }
+    public Guid AzureUserId { get; }
 
     public Guid ProjectId { get; }
 }
