@@ -30,7 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="GarageGroup.Infra.AspNetCore.AzureApplication" Version="5.0.0" />
+    <PackageReference Include="GarageGroup.Infra.AspNetCore.AzureApplication" Version="5.0.1" />
     <PackageReference Include="GarageGroup.Infra.Dataverse.Api" Version="3.21.0" />
     <PackageReference Include="GarageGroup.Infra.Endpoint.AspNetCore" Version="1.0.0" />
     <PackageReference Include="GarageGroup.Infra.Handler.AspNetCore" Version="0.2.1" />
