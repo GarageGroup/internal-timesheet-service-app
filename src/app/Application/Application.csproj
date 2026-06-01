@@ -43,7 +43,6 @@
     <PackageReference Include="GarageGroup.Infra.Swagger.Builder" Version="4.0.0" />
     <PackageReference Include="GarageGroup.Infra.Swagger.UI" Version="3.0.0" />
     <PackageReference Include="GarageGroup.Infra.Telegram.Bot.Api" Version="0.3.0" />
-    <PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="5.3.0" PrivateAssets="all" />
   </ItemGroup>
 
 </Project>
