@@ -7,7 +7,7 @@ namespace GarageGroup.Internal.Timesheet;
 
 using static TimesheetSetGetMetadata;
 
-[Endpoint(EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
+[Endpoint("GetTimesheets", EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
 [EndpointTag(Func.Tag)]
 public interface ITimesheetSetGetFunc
 {

@@ -7,7 +7,7 @@ namespace GarageGroup.Internal.Timesheet;
 
 using static ProfileGetMetadata;
 
-[Endpoint(EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
+[Endpoint("GetProfile", EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
 [EndpointTag(Func.Tag)]
 public interface IProfileGetFunc
 {

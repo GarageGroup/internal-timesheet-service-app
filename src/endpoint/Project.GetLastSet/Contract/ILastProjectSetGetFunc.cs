@@ -7,7 +7,7 @@ namespace GarageGroup.Internal.Timesheet;
 
 using static LastProjectSetGetMetadata;
 
-[Endpoint(EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
+[Endpoint("GetLastProjects", EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
 [EndpointTag(Func.Tag)]
 public interface ILastProjectSetGetFunc
 {

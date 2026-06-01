@@ -7,7 +7,7 @@ namespace GarageGroup.Internal.Timesheet;
 
 using static UserSignOutMetadata;
 
-[Endpoint(EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
+[Endpoint("SignOutUser", EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
 [EndpointTag(Func.Tag)]
 public interface IUserSignOutFunc
 {

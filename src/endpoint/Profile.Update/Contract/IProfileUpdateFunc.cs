@@ -7,7 +7,7 @@ namespace GarageGroup.Internal.Timesheet;
 
 using static ProfileUpdateMetadata;
 
-[Endpoint(EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
+[Endpoint("UpdateProfile", EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
 [EndpointTag(Func.Tag)]
 public interface IProfileUpdateFunc
 {

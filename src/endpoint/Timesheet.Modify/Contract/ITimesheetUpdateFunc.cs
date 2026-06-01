@@ -7,10 +7,10 @@ namespace GarageGroup.Internal.Timesheet;
 
 using static TimesheetModifyMetadata;
 
-[Endpoint(EndpointMethod.Post, Func.RouteUpdate, Summary = Func.SummaryUpdate, Description = Func.DescriptionUpdate)]
+[Endpoint("UpdateTimesheet", EndpointMethod.Post, Func.RouteUpdate, Summary = Func.SummaryUpdate, Description = Func.DescriptionUpdate)]
 [EndpointTag(Func.Tag)]
 public interface ITimesheetUpdateFunc
 {
-    ValueTask<Result<Unit, Failure<TimesheetUpdateFailureCode>>> InvokeAsync(
+    ValueTask<Result<Unit, Failure<TimesheetUpdateFailureCode>>> UpdateAsync(
         TimesheetUpdateIn input, CancellationToken cancellationToken);
 }
