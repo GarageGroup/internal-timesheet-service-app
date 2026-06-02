@@ -31,17 +31,19 @@ jobs:
             --container-name ${{ vars.AZURE_ARTIFACT_CONTAINER_NAME }} \
             --account-name ${{ vars.AZURE_ARTIFACT_ACCOUNT_NAME }} \
             --account-key ${{ secrets.AZURE_ACCOUNT_KEY_ARTIFACT }} \
-            --auth-mode login --output tsv --query exists)
+            --output tsv --query exists \
+            --only-show-errors)
 
-          if [ $blob_exists = true ]
-          then
+          if [ $blob_exists = true ] then
             az storage blob delete \
               --name ${{ vars.AZURE_ARTIFACT_NAME }}-${{ steps.get_version.outputs.version }}.zip \
               --container-name ${{ vars.AZURE_ARTIFACT_CONTAINER_NAME }} \
               --account-name ${{ vars.AZURE_ARTIFACT_ACCOUNT_NAME }} \
               --account-key ${{ secrets.AZURE_ACCOUNT_KEY_ARTIFACT }} \
-              --auth-mode login
-            fi
+              --only-show-errors
+          else
+            echo "Blob not found, skipping"
+          fi
 
     - name: Delete tag from repository
       env:
