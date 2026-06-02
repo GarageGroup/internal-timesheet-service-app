@@ -7,7 +7,7 @@ namespace GarageGroup.Internal.Timesheet;
 
 using static PeriodSetGetMetadata;
 
-[Endpoint(EndpointMethod.Get, Func.Route, Summary = Func.Summary, Description = Func.Description)]
+[Endpoint("GetPeriods", EndpointMethod.Get, Func.Route, Summary = Func.Summary, Description = Func.Description)]
 [EndpointTag(Func.Tag)]
 public interface IPeriodSetGetFunc
 {

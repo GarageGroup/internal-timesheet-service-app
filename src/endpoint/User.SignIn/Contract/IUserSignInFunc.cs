@@ -7,7 +7,7 @@ namespace GarageGroup.Internal.Timesheet;
 
 using static UserSignInMetadata;
 
-[Endpoint(EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
+[Endpoint("SignInUser", EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
 [EndpointTag(Func.Tag)]
 public interface IUserSignInFunc
 {

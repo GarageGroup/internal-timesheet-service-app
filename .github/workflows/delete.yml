@@ -20,11 +20,6 @@ jobs:
     - name: Get version
       id: get_version
       run: echo "version=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
-
-    - name: Azure Login
-      uses: azure/login@v3
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS_ARTIFACT }}
         
     - name: Delete from Azure Blob Storage
       uses: azure/CLI@v3
@@ -35,6 +30,7 @@ jobs:
             --name ${{ vars.AZURE_ARTIFACT_NAME }}-${{ steps.get_version.outputs.version }}.zip \
             --container-name ${{ vars.AZURE_ARTIFACT_CONTAINER_NAME }} \
             --account-name ${{ vars.AZURE_ARTIFACT_ACCOUNT_NAME }} \
+            --account-key ${{ secrets.AZURE_ACCOUNT_KEY_ARTIFACT }} \
             --auth-mode login --output tsv --query exists)
 
           if [ $blob_exists = true ]
@@ -43,13 +39,9 @@ jobs:
               --name ${{ vars.AZURE_ARTIFACT_NAME }}-${{ steps.get_version.outputs.version }}.zip \
               --container-name ${{ vars.AZURE_ARTIFACT_CONTAINER_NAME }} \
               --account-name ${{ vars.AZURE_ARTIFACT_ACCOUNT_NAME }} \
+              --account-key ${{ secrets.AZURE_ACCOUNT_KEY_ARTIFACT }} \
               --auth-mode login
             fi
-
-    - name: Azure Logout
-      uses: azure/CLI@v3
-      with:
-        inlineScript: az logout
 
     - name: Delete tag from repository
       env:

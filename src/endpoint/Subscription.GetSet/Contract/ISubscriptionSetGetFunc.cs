@@ -7,7 +7,7 @@ namespace GarageGroup.Internal.Timesheet;
 
 using static SubscriptionSetGetMetadata;
 
-[Endpoint(EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
+[Endpoint("GetSubscriptions", EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
 [EndpointTag(Func.Tag)]
 public interface ISubscriptionSetGetFunc
 {

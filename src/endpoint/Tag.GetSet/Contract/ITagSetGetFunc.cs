@@ -7,7 +7,7 @@ namespace GarageGroup.Internal.Timesheet;
 
 using static TagSetGetMetadata;
 
-[Endpoint(EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
+[Endpoint("GetTags", EndpointMethod.Post, Func.Route, Summary = Func.Summary, Description = Func.Description)]
 [EndpointTag(Func.Tag)]
 public interface ITagSetGetFunc
 {

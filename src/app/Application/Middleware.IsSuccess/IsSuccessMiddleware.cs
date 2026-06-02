@@ -30,13 +30,13 @@ internal static partial class IsSuccessMiddleware
     private const string Json = "json";
 
     private static OpenApiSchema CreateIsSuccessSchema(bool value)
-    =>
-    new()
-    {
-        Type = JsonSchemaType.Boolean,
-        Example = JsonValue.Create(value),
-        Description = "Indicates whether the operation was successful."
-    };
+        =>
+        new()
+        {
+            Type = JsonSchemaType.Boolean,
+            Example = JsonValue.Create(value),
+            Description = "Indicates whether the operation was successful."
+        };
 
     private static readonly JsonSerializerOptions SerializerOptions
         =
@@ -64,6 +64,8 @@ internal static partial class IsSuccessMiddleware
                 foreach (var response in operation.Responses ?? [])
                 {
                     var responseKey = response.GetResponseKey();
+                    var isSuccessStatusKey = responseKey?.IsSuccessStatusKey() is true;
+
                     if (response.Value.Content?.Count > 0)
                     {
                         foreach (var content in response.Value.Content)
@@ -73,7 +75,7 @@ internal static partial class IsSuccessMiddleware
                                 continue;
                             }
 
-                            var successSchema = CreateIsSuccessSchema(true);
+                            var successSchema = CreateIsSuccessSchema(isSuccessStatusKey);
                             content.Value?.Schema?.Properties?.InsertPropertySchema(IsSuccessField, successSchema);
                         }
 
@@ -92,7 +94,7 @@ internal static partial class IsSuccessMiddleware
                                 {
                                     Properties = new Dictionary<string, IOpenApiSchema>
                                     {
-                                        [IsSuccessField] = CreateIsSuccessSchema(responseKey?.IsSuccessStatusKey() is true)
+                                        [IsSuccessField] = CreateIsSuccessSchema(isSuccessStatusKey)
                                     }
                                 }
                             }

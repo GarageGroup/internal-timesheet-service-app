@@ -15,11 +15,6 @@ jobs:
       id: get_version
       run: echo "version=$(echo $GITHUB_REF | cut -d / -f 3)" >> $GITHUB_OUTPUT
 
-    - name: Azure Login
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS_ARTIFACT }}
-
     - name: Ensure Publish Directory Exists
       run: mkdir -p ./publish
 
@@ -38,11 +33,6 @@ jobs:
         app-name: ${{ vars.PROD_WEBAPP_NAME }}
         publish-profile: ${{ secrets.PROD_WEBAPP_PUBLISHPROFILE }}
         package: ./publish/${{ vars.AZURE_ARTIFACT_NAME }}-${{ steps.get_version.outputs.version }}.zip
-
-    - name: Azure Logout
-      uses: azure/cli@v2
-      with:
-        inlineScript: az logout
 
   ping-prod:
     runs-on: ubuntu-latest
