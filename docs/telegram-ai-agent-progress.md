@@ -129,6 +129,23 @@ Resolver выполняет следующие проверки:
 - локальный запрос `POST /internal/agent/profile` при выключенном feature flag — HTTP 404;
 - реальные Entra-токены ещё не проверялись, так как отдельная идентичность и app role пока не созданы.
 
+### 25.09.2026 — первый внутренний read-only endpoint
+
+- Добавлен endpoint `POST /internal/agent/profile`.
+- В JSON принимаются только `TelegramUserId` и `TelegramChatId`; `BotId` поступает из доверенного claim `timesheet_bot_id`, сформированного после app-only аутентификации.
+- `AgentUserContextResolver` подключён к приложению и разрешает Telegram-пользователя в серверный контекст.
+- Профиль запрашивается через общую реализацию `IProfileGetFunc` с разрешённым `EntraObjectId`; бизнес-логика `Profile.Get` не дублируется.
+- Ошибки разделены на invalid identity, отсутствующую привязку, недоступную привязку, отсутствующий профиль и неизвестную инфраструктурную ошибку.
+- Legacy `UseJwtReader()` теперь применяется только к старым маршрутам. Маршруты `/internal/agent/*` проходят исключительно через новый Entra JWT Bearer контур.
+- Добавлено 12 unit-тестов для всех вариантов resolver, передачи доверенного Entra ID, ошибок профиля и успешного результата.
+
+Проверки:
+
+- `dotnet build Internal.Timesheet.Service.slnx --no-restore` — успешно, без предупреждений;
+- `dotnet test Internal.Timesheet.Service.slnx --no-build --no-restore` — успешно, 399 тестов;
+- зарегистрированный `POST /internal/agent/profile` при `Agent:Enabled = false` возвращает HTTP 404;
+- вызов с настоящим app-only токеном будет проверен после создания Azure identity и app role.
+
 ## Принятые решения
 
 | Решение | Причина |
@@ -160,13 +177,14 @@ Resolver выполняет следующие проверки:
 
 ## Следующий инкремент
 
-Создать первый внутренний read-only endpoint поверх подготовленного закрытого контура:
+Подготовить и после отдельного подтверждения применить Azure-конфигурацию тестовой среды:
 
-1. Определить контракт запроса только с `TelegramUserId` и `TelegramChatId`.
-2. Передать доверенный `BotId` из результата app authentication, не из payload.
-3. Разрешить пользователя через `AgentUserContextResolver` и вызвать общую реализацию `Profile.Get` с `EntraObjectId`.
-4. Добавить тесты отсутствующей/чужой привязки и успешного профиля.
-5. Отдельным инфраструктурным инкрементом создать идентичность бота, app role и проверить реальный Entra-токен.
+1. Включить system-assigned managed identity у Function App Telegram-бота, не удаляя существующую user-assigned identity.
+2. Создать или выбрать App Registration, представляющую Timesheet API, и добавить application role `Timesheet.Agent.Invoke`.
+3. Назначить роль system-assigned identity бота.
+4. Заполнить `Agent:Authentication` у App Service API и только после этого включить `Agent:Enabled`.
+5. Получить токен от identity бота и проверить сценарии 401, 403 и успешный вызов endpoint.
+6. Решить, будет ли внутренний маршрут опубликован через существующий APIM либо бот будет обращаться к App Service напрямую.
 
 ## Открытые вопросы
 
