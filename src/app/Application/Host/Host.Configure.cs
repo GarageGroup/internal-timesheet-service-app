@@ -39,6 +39,11 @@ partial class ApplicationHost
         options.TokenValidationParameters = new()
         {
             ValidateIssuer = true,
+            ValidIssuers =
+            [
+                $"https://sts.windows.net/{tenantId}/",
+                $"https://login.microsoftonline.com/{tenantId}/v2.0"
+            ],
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
