@@ -47,9 +47,12 @@ internal static class AgentAccessMiddleware
         }
 
         var clientId = principal.FindFirstValue("azp") ?? principal.FindFirstValue("appid");
-        var botIdText = string.IsNullOrWhiteSpace(clientId)
+        var client = string.IsNullOrWhiteSpace(clientId)
             ? null
-            : configuration[$"Agent:Authentication:Clients:{clientId}:BotId"];
+            : configuration.GetSection("Agent:Authentication:Clients").GetChildren().FirstOrDefault(
+                section => string.Equals(section["ClientId"], clientId, StringComparison.OrdinalIgnoreCase));
+
+        var botIdText = client?["BotId"];
 
         if (long.TryParse(botIdText, out var botId) is false || botId <= 0)
         {

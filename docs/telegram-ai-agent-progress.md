@@ -146,6 +146,18 @@ Resolver выполняет следующие проверки:
 - зарегистрированный `POST /internal/agent/profile` при `Agent:Enabled = false` возвращает HTTP 404;
 - вызов с настоящим app-only токеном будет проверен после создания Azure identity и app role.
 
+### 25.09.2026 — подготовка Entra для agent API
+
+- У Function App `func-internal-gtimesheet-test` включена system-assigned managed identity.
+- Существующая user-assigned identity сохранена; тип identity теперь `SystemAssigned, UserAssigned`.
+- Создана App Registration `api-timesheet-agent-test` и соответствующий service principal.
+- Для API настроен identifier URI и application role `Timesheet.Agent.Invoke` с типом участника `Application`.
+- Роль назначена system-assigned identity Telegram-бота.
+- В `app-garage-timesheet-service-test` записаны tenant, audience, required role и сопоставление identity бота с Telegram `BotId`.
+- `Agent__Enabled` оставлен равным `false`; существующая версия приложения не открывает agent endpoint.
+- Allowlist клиентов переведён с dictionary-ключа, содержащего GUID, на массив объектов `ClientId`/`BotId`, потому что App Service отклонил имя настройки с GUID-сегментом.
+- Секреты и Telegram token в журнал не записывались.
+
 ## Принятые решения
 
 | Решение | Причина |
@@ -177,14 +189,15 @@ Resolver выполняет следующие проверки:
 
 ## Следующий инкремент
 
-Подготовить и после отдельного подтверждения применить Azure-конфигурацию тестовой среды:
+Подключить Telegram-бот к agent API, пока только для диагностического read-only вызова:
 
-1. Включить system-assigned managed identity у Function App Telegram-бота, не удаляя существующую user-assigned identity.
-2. Создать или выбрать App Registration, представляющую Timesheet API, и добавить application role `Timesheet.Agent.Invoke`.
-3. Назначить роль system-assigned identity бота.
-4. Заполнить `Agent:Authentication` у App Service API и только после этого включить `Agent:Enabled`.
-5. Получить токен от identity бота и проверить сценарии 401, 403 и успешный вызов endpoint.
-6. Решить, будет ли внутренний маршрут опубликован через существующий APIM либо бот будет обращаться к App Service напрямую.
+1. Добавить явную конфигурацию base URL, audience и client ID system-assigned identity.
+2. Получать app-only access token через `ManagedIdentityCredential` с явным выбором system-assigned identity.
+3. Добавить typed HTTP client для `POST /internal/agent/profile`.
+4. Не подключать Semantic Kernel и обработку пользовательских сообщений до проверки identity-цепочки.
+5. Развернуть согласованные версии API и бота в тестовую среду, затем включить `Agent__Enabled`.
+6. Проверить 401 без токена, 403 с неподходящим приложением и успешный вызов от identity бота.
+7. После проверки решить, направлять вызов через APIM или напрямую в App Service.
 
 ## Открытые вопросы
 
@@ -192,7 +205,7 @@ Resolver выполняет следующие проверки:
 - Должен ли один CRM-пользователь иметь возможность привязать несколько Telegram-аккаунтов к одному боту?
 - Нужно ли разрешать осознанную перепривязку Telegram-пользователя к другой корпоративной учётной записи, и каким подтверждением её защищать?
 - Есть ли в CRM существующие дубли по `(BotId, TelegramUserId)`?
-- Выбрать отдельную идентичность для agent-вызовов бота: system-assigned identity существующего Function App либо новая выделенная user-assigned identity.
+- Определить сетевой маршрут agent-вызовов: через общий APIM либо напрямую в App Service с дополнительными сетевыми ограничениями.
 - Локальный `launchSettings.json` содержит Telegram bot token, но файл исключён через `.gitignore` и Git его не отслеживает. Ротация из-за одного только локального хранения не требуется; секрет всё равно не следует выводить в логи или пересылать.
 
 ## Правила ведения журнала
