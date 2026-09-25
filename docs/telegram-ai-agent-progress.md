@@ -158,6 +158,23 @@ Resolver выполняет следующие проверки:
 - Allowlist клиентов переведён с dictionary-ключа, содержащего GUID, на массив объектов `ClientId`/`BotId`, потому что App Service отклонил имя настройки с GUID-сегментом.
 - Секреты и Telegram token в журнал не записывались.
 
+### 25.09.2026 — Managed Identity клиент в Telegram-боте
+
+- В `internal-timesheet-bot-app` добавлен typed HTTP client для `POST /internal/agent/profile`.
+- Access token запрашивается через `ManagedIdentityCredential(ManagedIdentityId.SystemAssigned)`, поэтому общая user-assigned identity не может быть случайно выбрана для agent-вызова.
+- Scope формируется как `<AgentApi:Audience>/.default`, токен передаётся в стандартном заголовке Bearer.
+- Добавлена диагностическая команда `/profile`; она передаёт Telegram chat ID как user/chat ID и выводит только имя и язык найденного профиля.
+- Ошибка `404` предлагает пользователю выполнить вход через Mini App, остальные ошибки логируются без токена и возвращают нейтральное сообщение.
+- В Function App записаны `AgentApi__BaseAddress` и `AgentApi__Audience`; приложение осталось в состоянии `Running`.
+- Добавлен тестовый проект с тремя тестами scope/Bearer, HTTP-контракта и ошибочного статуса.
+- Коммит бота: `a376719 Add managed identity agent profile client`.
+
+Проверки:
+
+- `dotnet build Internal.Timesheet.Bot.sln --no-restore` — успешно, без предупреждений;
+- `dotnet test Internal.Timesheet.Bot.sln --no-restore` — успешно, 3 теста;
+- версии API и бота ещё не развёрнуты, `Agent__Enabled` остаётся выключенным.
+
 ## Принятые решения
 
 | Решение | Причина |
@@ -189,15 +206,14 @@ Resolver выполняет следующие проверки:
 
 ## Следующий инкремент
 
-Подключить Telegram-бот к agent API, пока только для диагностического read-only вызова:
+После отдельного подтверждения развернуть диагностический вертикальный срез в test:
 
-1. Добавить явную конфигурацию base URL, audience и client ID system-assigned identity.
-2. Получать app-only access token через `ManagedIdentityCredential` с явным выбором system-assigned identity.
-3. Добавить typed HTTP client для `POST /internal/agent/profile`.
-4. Не подключать Semantic Kernel и обработку пользовательских сообщений до проверки identity-цепочки.
-5. Развернуть согласованные версии API и бота в тестовую среду, затем включить `Agent__Enabled`.
-6. Проверить 401 без токена, 403 с неподходящим приложением и успешный вызов от identity бота.
-7. После проверки решить, направлять вызов через APIM или напрямую в App Service.
+1. Опубликовать текущую ветку API в `app-garage-timesheet-service-test`.
+2. Проверить, что при выключенном флаге внутренний endpoint возвращает 404, а старые маршруты работают.
+3. Опубликовать текущую ветку бота в `func-internal-gtimesheet-test`.
+4. Включить `Agent__Enabled=true` и проверить 401 без токена и 403 с неподходящим приложением.
+5. Выполнить `/profile` из Telegram для уже привязанного тестового пользователя.
+6. При любой проблеме снова установить `Agent__Enabled=false`; существующий Mini App flow не отключать.
 
 ## Открытые вопросы
 
