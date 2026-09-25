@@ -9,13 +9,13 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class ProfileGetDependency
 {
-    public static Dependency<ProfileGetEndpoint> UseProfileGetEndpoint<TSqlApi, TBotApi>(
+    public static Dependency<IProfileGetFunc> UseProfileGetFunc<TSqlApi, TBotApi>(
         this Dependency<TSqlApi, TBotApi> dependency)
         where TSqlApi : ISqlQueryEntitySupplier
         where TBotApi : IBotInfoGetSupplier
     {
         ArgumentNullException.ThrowIfNull(dependency);
-        return dependency.Fold(CreateFunc).Map(ProfileGetEndpoint.Resolve);
+        return dependency.Fold<IProfileGetFunc>(CreateFunc);
 
         static ProfileGetFunc CreateFunc(TSqlApi dataverseApi, TBotApi botApi)
         {
@@ -24,5 +24,14 @@ public static class ProfileGetDependency
 
             return new(dataverseApi, botApi);
         }
+    }
+
+    public static Dependency<ProfileGetEndpoint> UseProfileGetEndpoint<TSqlApi, TBotApi>(
+        this Dependency<TSqlApi, TBotApi> dependency)
+        where TSqlApi : ISqlQueryEntitySupplier
+        where TBotApi : IBotInfoGetSupplier
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+        return dependency.UseProfileGetFunc().Map(ProfileGetEndpoint.Resolve);
     }
 }

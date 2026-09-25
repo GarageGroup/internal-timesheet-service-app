@@ -7,11 +7,12 @@ static class Program
 {
     static Task Main(string[] args)
         =>
-        AzureApplication.Create(args)
+        AzureApplication.Create(args, ApplicationHost.Configure)
         .UseHealthCheck()
         .UseSwagger()
         .UseStandardSwaggerUI()
         .UseIsSuccessMiddleware()
+        .UseAgentAuthentication()
         .UseJwtReader()
         .UseProjectSetSearchEndpoint()
         .UseProjectSetGetEndpoint()
