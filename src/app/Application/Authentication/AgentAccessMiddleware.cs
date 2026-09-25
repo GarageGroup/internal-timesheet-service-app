@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace GarageGroup.Internal.Timesheet;
 
@@ -22,6 +23,7 @@ internal static class AgentAccessMiddleware
         }
 
         var configuration = context.RequestServices.GetRequiredService<IConfiguration>();
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(AgentAccessMiddleware));
 
         if (configuration.GetValue<bool>("Agent:Enabled") is false)
         {
@@ -33,6 +35,11 @@ internal static class AgentAccessMiddleware
 
         if (authentication.Succeeded is false || authentication.Principal is null)
         {
+            logger.LogWarning(
+                authentication.Failure,
+                "Agent authentication failed for {Path}: {FailureMessage}",
+                context.Request.Path,
+                authentication.Failure?.Message);
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }
@@ -42,6 +49,12 @@ internal static class AgentAccessMiddleware
 
         if (principal.Claims.Any(c => IsRoleClaim(c) && string.Equals(c.Value, requiredRole, StringComparison.Ordinal)) is false)
         {
+            var roles = principal.Claims.Where(IsRoleClaim).Select(static claim => claim.Value).ToArray();
+            logger.LogWarning(
+                "Agent authorization rejected client {ClientId}: required role {RequiredRole} was not found. Token roles: {Roles}",
+                principal.FindFirstValue("azp") ?? principal.FindFirstValue("appid"),
+                requiredRole,
+                roles);
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             return;
         }
@@ -56,6 +69,7 @@ internal static class AgentAccessMiddleware
 
         if (long.TryParse(botIdText, out var botId) is false || botId <= 0)
         {
+            logger.LogWarning("Agent authorization rejected unconfigured client {ClientId}", clientId);
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             return;
         }
