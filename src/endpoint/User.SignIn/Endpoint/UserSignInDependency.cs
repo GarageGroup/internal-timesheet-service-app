@@ -4,6 +4,7 @@ using GarageGroup.Infra;
 using PrimeFuncPack;
 
 [assembly: InternalsVisibleTo("GarageGroup.Internal.Timesheet.Endpoint.User.SignIn.Test")]
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 
 namespace GarageGroup.Internal.Timesheet;
 
@@ -22,7 +23,7 @@ public static class UserSignInDependency
             ArgumentNullException.ThrowIfNull(botApi);
             ArgumentNullException.ThrowIfNull(option);
 
-            return new(dataverseApi, botApi, option);
+            return new(dataverseApi, botApi, new TelegramWebAppDataValidator(option, TimeProvider.System));
         }
     }
 }

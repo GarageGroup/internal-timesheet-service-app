@@ -26,5 +26,9 @@ internal static class UserSignInMetadata
         public const string InvalidTelegramDataMessage
             =
             "Telegram data is invalid";
+
+        public const string TelegramUserAlreadyLinkedMessage
+            =
+            "Telegram user is already linked to another system user";
     }
 }

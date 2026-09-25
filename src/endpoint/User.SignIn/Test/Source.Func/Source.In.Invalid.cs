@@ -5,21 +5,17 @@ namespace GarageGroup.Internal.Timesheet.Endpoint.User.SignIn.Test;
 
 partial class UserSignInFuncSource
 {
-    public static TheoryData<UserSignInOption, UserSignInIn, Failure<UserSignInFailureCode>> InputInvalidTestData
+    public static TheoryData<UserSignInIn, Failure<UserSignInFailureCode>> InputInvalidTestData
         =>
         new()
         {
             {
-                new(
-                    botToken: "Some token"),
                 new(
                     systemUserId: new("bdcef53b-609b-475b-9758-58b06d46fdcf"),
                     telegramData: "Invalid data"),
                 new(UserSignInFailureCode.InvalidTelegramData, "Invalid telegram data")
             },
             {
-                new(
-                    botToken: "1234567890:QWG2gaQTcv14ttw1wqrEgqw1wQqTQx5QWeR"),
                 new(
                     systemUserId: new("c22c378d-7913-4316-8e61-5a5c35987355"),
                     telegramData: "query_id=CAAmGqACACAACKYaoCKgUTfQ&user=%7B%22id%22%3A123123%2C%22" +
@@ -29,8 +25,6 @@ partial class UserSignInFuncSource
                 new(UserSignInFailureCode.InvalidTelegramData, "Invalid hash")
             },
             {
-                new(
-                    botToken: "1234567890:QWG2gaQTcv14ttw1wqrEgqw1wQqTQx5QWeR"),
                 new(
                     systemUserId: new("c22c378d-7913-4316-8e61-5a5c35987355"),
                     telegramData: "query_id=AAGmGqACAASCAKYaoAKgWTfQ&user=%7B%22id%22%3As%2C%22" +

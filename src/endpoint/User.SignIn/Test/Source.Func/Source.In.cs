@@ -8,13 +8,11 @@ using DataverseUserIn = DataverseEntityUpdateIn<UserJson>;
 
 partial class UserSignInFuncSource
 {
-    public static TheoryData<UserSignInOption, BotInfoGetOut, UserSignInIn, DataverseUserOut, DataverseUserIn> InputTestData
+    public static TheoryData<BotInfoGetOut, UserSignInIn, DataverseUserOut, DataverseUserIn> InputTestData
         =>
         new()
         {
             {
-                new(
-                    botToken: "1234567890:QWG2gaQTcv14ttw1wqrEgqw1wQqTQx5QWeR"),
                 new(
                     id: 111222,
                     username: "Some bot name"),

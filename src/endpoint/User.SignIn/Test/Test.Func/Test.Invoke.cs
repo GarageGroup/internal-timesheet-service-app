@@ -12,12 +12,13 @@ partial class UserSignInFuncTest
     [Theory]
     [MemberData(nameof(UserSignInFuncSource.InputInvalidTestData), MemberType = typeof(UserSignInFuncSource))]
     internal static async Task InvokeAsync_InvalidTelegramData_ExpectFailure(
-        UserSignInOption option, UserSignInIn input, Failure<UserSignInFailureCode> expectedFailure)
+        UserSignInIn input, Failure<UserSignInFailureCode> expectedFailure)
     {
         var mockDataverseApi = BuildMockDataverseApi(SomeSystemUserResult, Result.Success<Unit>(default));
         var mockBotApi = BuildMockBotApi(SomeBotInfo);
+        var mockValidator = BuildMockTelegramDataValidator(expectedFailure);
 
-        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, option);
+        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, mockValidator.Object);
         var actual = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         Assert.StrictEqual(expectedFailure, actual);
@@ -28,8 +29,9 @@ partial class UserSignInFuncTest
     {
         var mockDataverseApi = BuildMockDataverseApi(SomeSystemUserResult, Result.Success<Unit>(default));
         var mockBotApi = BuildMockBotApi(SomeBotInfo);
+        var mockValidator = BuildMockTelegramDataValidator(123123L);
 
-        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, SomeOption);
+        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, mockValidator.Object);
 
         var input = new UserSignInIn(
             systemUserId: new("3f414904-3128-4f27-af56-d5f45bf31dd5"),
@@ -68,8 +70,9 @@ partial class UserSignInFuncTest
 
         var mockDataverseApi = BuildMockDataverseApi(dataverseFailure, Result.Success<Unit>(default));
         var mockBotApi = BuildMockBotApi(SomeBotInfo);
+        var mockValidator = BuildMockTelegramDataValidator(123123L);
 
-        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, SomeOption);
+        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, mockValidator.Object);
 
         var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(expectedFailureCode, "Some failure message", sourceException);
@@ -86,7 +89,8 @@ partial class UserSignInFuncTest
         var botInfoFailure = sourceException.ToFailure("Some failure text");
 
         var mockBotApi = BuildMockBotApi(botInfoFailure);
-        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, SomeOption);
+        var mockValidator = BuildMockTelegramDataValidator(123123L);
+        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, mockValidator.Object);
 
         var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(UserSignInFailureCode.Unknown, "Some failure text", sourceException);
@@ -94,10 +98,114 @@ partial class UserSignInFuncTest
         Assert.StrictEqual(expected, actual);
     }
 
+    [Fact]
+    public static async Task InvokeAsync_UserIsValid_ExpectBindingQueryCalledOnce()
+    {
+        var mockDataverseApi = BuildMockDataverseApi(SomeSystemUserResult, Result.Success<Unit>(default));
+        var mockBotApi = BuildMockBotApi(SomeBotInfo);
+        var mockValidator = BuildMockTelegramDataValidator(123123L);
+        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, mockValidator.Object);
+
+        _ = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
+
+        var expected = new DataverseEntitySetGetIn(
+            entityPluralName: "gg_telegram_bot_users",
+            selectFields: ["_gg_systemuser_id_value"],
+            filter: "(gg_bot_id eq '79237382' and gg_chat_id eq '123123' and statecode eq 0)");
+
+        mockDataverseApi.Verify(
+            a => a.GetEntitySetAsync<UserBindingJson>(expected, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public static async Task InvokeAsync_TelegramUserLinkedToAnotherUser_ExpectConflictAndNoUpdate()
+    {
+        var mockDataverseApi = BuildMockDataverseApi(SomeSystemUserResult, Result.Success<Unit>(default));
+        SetupBindings(
+            mockDataverseApi,
+            new DataverseEntitySetGetOut<UserBindingJson>(
+                [new() { CrmSystemUserId = Guid.Parse("4d414737-c120-46dd-b7d4-14db80112553") }]));
+
+        var mockBotApi = BuildMockBotApi(SomeBotInfo);
+        var mockValidator = BuildMockTelegramDataValidator(123123L);
+        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, mockValidator.Object);
+
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
+
+        var expected = Failure.Create(
+            UserSignInFailureCode.TelegramUserAlreadyLinked,
+            "Telegram user is already linked to another system user");
+
+        Assert.StrictEqual(expected, actual);
+        mockDataverseApi.Verify(
+            static a => a.UpdateEntityAsync(It.IsAny<DataverseEntityUpdateIn<UserJson>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public static async Task InvokeAsync_TelegramUserLinkedToSameUser_ExpectSuccess()
+    {
+        var mockDataverseApi = BuildMockDataverseApi(SomeSystemUserResult, Result.Success<Unit>(default));
+        SetupBindings(
+            mockDataverseApi,
+            new DataverseEntitySetGetOut<UserBindingJson>(
+                [new() { CrmSystemUserId = SomeInput.SystemUserId }]));
+
+        var mockBotApi = BuildMockBotApi(SomeBotInfo);
+        var mockValidator = BuildMockTelegramDataValidator(123123L);
+        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, mockValidator.Object);
+
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
+
+        Assert.True(actual.IsSuccess);
+    }
+
+    [Fact]
+    public static async Task InvokeAsync_SeveralTelegramBindings_ExpectConflict()
+    {
+        var mockDataverseApi = BuildMockDataverseApi(SomeSystemUserResult, Result.Success<Unit>(default));
+        SetupBindings(
+            mockDataverseApi,
+            new DataverseEntitySetGetOut<UserBindingJson>(
+                [
+                    new() { CrmSystemUserId = SomeInput.SystemUserId },
+                    new() { CrmSystemUserId = SomeInput.SystemUserId }
+                ]));
+
+        var mockBotApi = BuildMockBotApi(SomeBotInfo);
+        var mockValidator = BuildMockTelegramDataValidator(123123L);
+        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, mockValidator.Object);
+
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
+
+        var expected = Failure.Create(
+            UserSignInFailureCode.TelegramUserAlreadyLinked,
+            "Several active Telegram user bindings were found");
+
+        Assert.StrictEqual(expected, actual);
+    }
+
+    [Fact]
+    public static async Task InvokeAsync_BindingQueryFailed_ExpectUnknownFailure()
+    {
+        var mockDataverseApi = BuildMockDataverseApi(SomeSystemUserResult, Result.Success<Unit>(default));
+        var sourceException = new Exception("Dataverse is unavailable");
+        SetupBindings(mockDataverseApi, sourceException.ToFailure(DataverseFailureCode.Throttling, "Query failed"));
+
+        var mockBotApi = BuildMockBotApi(SomeBotInfo);
+        var mockValidator = BuildMockTelegramDataValidator(123123L);
+        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, mockValidator.Object);
+
+        var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
+
+        var expected = Failure.Create(UserSignInFailureCode.Unknown, "Query failed", sourceException);
+        Assert.StrictEqual(expected, actual);
+    }
+
     [Theory]
     [MemberData(nameof(UserSignInFuncSource.InputTestData), MemberType = typeof(UserSignInFuncSource))]
     internal static async Task InvokeAsync_DataverseGetResultIsSuccess_ExpectUpdateDataverseUpdateCalledOnce(
-        UserSignInOption option,
         BotInfoGetOut botInfo,
         UserSignInIn input,
         DataverseEntityGetOut<SystemUserJson> systemUserResult,
@@ -105,8 +213,9 @@ partial class UserSignInFuncTest
     {
         var mockDataverseApi = BuildMockDataverseApi(systemUserResult, Result.Success<Unit>(default));
         var mockBotApi = BuildMockBotApi(botInfo);
+        var mockValidator = BuildMockTelegramDataValidator(123123L);
 
-        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, option);
+        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, mockValidator.Object);
         _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
         mockDataverseApi.Verify(a => a.UpdateEntityAsync(expectedInput, It.IsAny<CancellationToken>()), Times.Once);
@@ -132,8 +241,9 @@ partial class UserSignInFuncTest
 
         var mockDataverseApi = BuildMockDataverseApi(SomeSystemUserResult, dataverseFailure);
         var mockBotApi = BuildMockBotApi(SomeBotInfo);
+        var mockValidator = BuildMockTelegramDataValidator(123123L);
 
-        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, SomeOption);
+        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, mockValidator.Object);
 
         var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(UserSignInFailureCode.Unknown, "Some failure message", sourceException);
@@ -146,8 +256,9 @@ partial class UserSignInFuncTest
     {
         var mockDataverseApi = BuildMockDataverseApi(SomeSystemUserResult, Result.Success<Unit>(default));
         var mockBotApi = BuildMockBotApi(SomeBotInfo);
+        var mockValidator = BuildMockTelegramDataValidator(123123L);
 
-        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, SomeOption);
+        var func = new UserSignInFunc(mockDataverseApi.Object, mockBotApi.Object, mockValidator.Object);
 
         var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Result.Success<Unit>(default);
