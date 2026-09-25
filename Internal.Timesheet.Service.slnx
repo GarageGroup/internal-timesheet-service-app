@@ -81,6 +81,11 @@
     <Project Path="src/endpoint/User.SignOut/Test/Test.csproj" />
   </Folder>
   <Folder Name="/service/" />
+  <Folder Name="/service/Agent.Identity/">
+    <Project Path="src/service/Agent.Identity/Contract/Contract.csproj" />
+    <Project Path="src/service/Agent.Identity/Core/Core.csproj" />
+    <Project Path="src/service/Agent.Identity/Test/Test.csproj" />
+  </Folder>
   <Folder Name="/service/BotApi/">
     <Project Path="src/service/BotApi/Api/Api.csproj" />
     <Project Path="src/service/BotApi/Contract/Contract.csproj" />
