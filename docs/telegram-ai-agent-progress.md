@@ -6,6 +6,8 @@
 
 Изменения тестовой инфраструктуры фиксируются отдельно в [журнале изменений Azure](telegram-ai-agent-azure-change-log.md).
 
+Разрешённые будущему агенту операции и выявленные ограничения собраны в [каталоге операций](telegram-ai-agent-operation-catalog.md).
+
 ## Текущее состояние
 
 Проект находится на **этапе 1 — Identity и привязка пользователя без LLM**.
@@ -220,6 +222,17 @@ Resolver выполняет следующие проверки:
 - `Agent.Profile.Get` не удалён и продолжает оставаться демонстрационным вертикальным срезом.
 
 Проверка: `dotnet test Internal.Timesheet.Service.slnx --no-restore` — успешно, все 399 тестов прошли.
+
+### 28.09.2026 — инвентаризация операций API
+
+- Проанализированы все существующие endpoint и их внутренние business-функции.
+- Операции разделены на read candidates, write blocked, system only и diagnostic.
+- Для первой read-only итерации предложены профиль, периоды, последние/поисковые проекты, списания и теги.
+- Зафиксировано требование отдельных agent adapters: модель не должна получать `SystemUserId`, `CallerObjectId`, `BotId`, Telegram ID или Entra Object ID как аргументы.
+- Выявлен блокирующий риск `Timesheet.Update`: update input не устанавливает `CallerObjectId`, поэтому операцию нельзя подключать до аудита impersonation и ownership.
+- Для `Project.GetSet` требуется проверить видимость Incident/Opportunity/Lead; для `Tag.GetSet` — происхождение Project ID; для всех списков — серверные лимиты.
+- Код приложения, Azure и deployment в этом инкременте не изменялись.
+- Создан `docs/telegram-ai-agent-operation-catalog.md`.
 
 ## Что ещё не сделано на текущем этапе
 
