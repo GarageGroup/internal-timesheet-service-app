@@ -89,6 +89,8 @@ Adapter обязан:
 
 `TimesheetJson.BuildDataverseUpdateInput` сейчас не устанавливает `CallerObjectId`, тогда как create/delete и чтение проекта используют пользовательскую impersonation. До подключения update необходимо доказать ownership/permission check либо добавить эквивалентный доверенный caller context. Особенно опасен сценарий обновления без смены проекта: в нём нет предварительного Dataverse-чтения проекта с caller identity.
 
+Перед началом реализации write-инструментов обязательно напомнить владельцу проекта уточнить у руководства: отсутствие `CallerObjectId` является осознанной частью текущей CRM-авторизации или недоработкой, которую следует исправить передачей caller identity. До ответа `Timesheet.Update` остаётся заблокированным для агента.
+
 ### `Project.GetSet`
 
 Пользовательский ID применяется к истории списаний проектов, но запросы Incident, Opportunity и Lead выглядят общими. До выдачи полного набора модели необходимо интеграционно подтвердить, что SQL/API слой не раскрывает пользователю недоступные записи.
@@ -123,3 +125,17 @@ Adapter обязан:
 5. никаких новых публичных endpoint и изменений Azure.
 
 После проверки шаблона распространить его на остальные read-only candidates и только затем подключать Semantic Kernel/Azure AI Foundry.
+
+## Реализованный шаблон read adapter
+
+Первая вертикаль реализована для `Timesheet.GetSet` в `src/service/Agent`:
+
+- tool-friendly вход содержит только `DateFrom` и `DateTo`;
+- Entra Object ID берётся из доверенного `AgentUserContext`;
+- adapter вызывает общую `ITimesheetSetGetFunc`, используемую также HTTP endpoint;
+- неправильный порядок дат отклоняется до бизнес-вызова;
+- диапазон ограничен option `MaxDateRangeInDays`, по умолчанию 31 день;
+- наружу возвращается отдельный минимальный agent DTO;
+- orchestration реализована через `AsyncPipeline`.
+
+Adapter пока не зарегистрирован в Application и Semantic Kernel и не доступен через HTTP. Это изолированный шаблон для согласования дальнейших read tools.

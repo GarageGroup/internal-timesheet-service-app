@@ -234,6 +234,20 @@ Resolver выполняет следующие проверки:
 - Код приложения, Azure и deployment в этом инкременте не изменялись.
 - Создан `docs/telegram-ai-agent-operation-catalog.md`.
 
+### 28.09.2026 — первый read-only agent adapter
+
+- Добавлен модуль `src/service/Agent` со стандартной структурой `Contract/Core/Test`.
+- Реализован adapter получения списаний за период поверх существующей `ITimesheetSetGetFunc`.
+- Вход adapter содержит только даты; Entra Object ID подставляется из доверенного `AgentUserContext` и недоступен модели.
+- Добавлена серверная проверка порядка дат и максимального диапазона; значение по умолчанию — 31 день.
+- Результат преобразуется в отдельный agent DTO, не связанный с HTTP binding metadata.
+- `TimesheetSetGetDependency` теперь отдельно предоставляет общую `ITimesheetSetGetFunc`; существующий HTTP endpoint продолжает использовать ту же реализацию.
+- Добавлены 5 тестов: неправильный порядок дат, слишком длинный период, доверенный Entra ID, преобразование ошибки и успешное преобразование результата.
+- Вопрос по отсутствующему `CallerObjectId` в `Timesheet.Update` помечен как обязательный для уточнения у руководства перед write-этапом.
+- Adapter пока не подключён к Application, HTTP или Semantic Kernel; Azure не изменялся.
+
+Проверка: `dotnet test Internal.Timesheet.Service.slnx --no-restore` — успешно, все 404 теста прошли.
+
 ## Что ещё не сделано на текущем этапе
 
 - Resolver не зарегистрирован в основном приложении, потому что внутренний endpoint ещё не создан.

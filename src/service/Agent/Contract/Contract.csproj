@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <NoWarn>$(NoWarn);IDE0130;CA1859</NoWarn>
+    <RootNamespace>GarageGroup.Internal.Timesheet</RootNamespace>
+    <AssemblyName>GarageGroup.Internal.Timesheet.Service.Agent.Contract</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Agent.Identity\Contract\Contract.csproj" />
+    <ProjectReference Include="..\..\..\shared\ProjectType\ProjectType.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GarageGroup.Infra.Endpoint.Core" Version="1.1.1" />
+    <PackageReference Include="PrimeFuncPack.Core.FlatArray" Version="1.6.0" />
+    <PackageReference Include="PrimeFuncPack.Primitives.Strings" Version="3.0.0" />
+  </ItemGroup>
+
+</Project>
