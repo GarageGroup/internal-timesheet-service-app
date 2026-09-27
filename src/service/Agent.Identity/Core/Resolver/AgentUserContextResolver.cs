@@ -11,32 +11,40 @@ internal sealed class AgentUserContextResolver(ISqlQueryEntitySetSupplier sqlApi
     public ValueTask<Result<AgentUserContext, Failure<AgentUserContextResolveFailureCode>>> ResolveAsync(
         AgentUserIdentity identity,
         CancellationToken cancellationToken)
+        =>
+        AsyncPipeline.Pipe(
+            identity, cancellationToken)
+        .Pipe(
+            ValidateIdentity)
+        .MapSuccess(
+            static @in => DbAgentUserBinding.QueryAll with
+            {
+                Top = 2,
+                Filter = DbAgentUserBinding.BuildFilter(@in.BotId, @in.TelegramUserId)
+            })
+        .ForwardValue(
+            sqlApi.QueryEntitySetOrFailureAsync<DbAgentUserBinding>,
+            static failure => failure.WithFailureCode(AgentUserContextResolveFailureCode.Unknown))
+        .Map(
+            bindings => MapBindings(identity, bindings),
+            static failure => failure)
+        .Forward(
+            static result => result);
+
+    private static Result<AgentUserIdentity, Failure<AgentUserContextResolveFailureCode>> ValidateIdentity(
+        AgentUserIdentity identity)
     {
         if (identity.BotId <= 0 || identity.TelegramUserId <= 0 || identity.TelegramChatId == 0)
         {
-            return ValueTask.FromResult<Result<AgentUserContext, Failure<AgentUserContextResolveFailureCode>>>(
-                Failure.Create(AgentUserContextResolveFailureCode.InvalidIdentity, "Agent user identity is invalid"));
+            return Failure.Create(AgentUserContextResolveFailureCode.InvalidIdentity, "Agent user identity is invalid");
         }
 
         if (identity.TelegramChatId != identity.TelegramUserId)
         {
-            return ValueTask.FromResult<Result<AgentUserContext, Failure<AgentUserContextResolveFailureCode>>>(
-                Failure.Create(AgentUserContextResolveFailureCode.UnsupportedChat, "Only private Telegram chats are supported"));
+            return Failure.Create(AgentUserContextResolveFailureCode.UnsupportedChat, "Only private Telegram chats are supported");
         }
 
-        return AsyncPipeline.Pipe(
-            DbAgentUserBinding.QueryAll with
-            {
-                Top = 2,
-                Filter = DbAgentUserBinding.BuildFilter(identity.BotId, identity.TelegramUserId)
-            },
-            cancellationToken)
-        .PipeValue(
-            sqlApi.QueryEntitySetOrFailureAsync<DbAgentUserBinding>)
-        .MapFailure(
-            static failure => failure.WithFailureCode(AgentUserContextResolveFailureCode.Unknown))
-        .Forward(
-            bindings => MapBindings(identity, bindings));
+        return identity;
     }
 
     private static Result<AgentUserContext, Failure<AgentUserContextResolveFailureCode>> MapBindings(

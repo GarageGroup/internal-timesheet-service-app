@@ -7,10 +7,8 @@ using Xunit;
 
 namespace GarageGroup.Internal.Timesheet.Service.Agent.Identity.Test;
 
-public static class AgentUserContextResolverTest
+partial class AgentUserContextResolverTest
 {
-    private static readonly AgentUserIdentity SomeIdentity = new(101, 202, 202);
-
     [Theory]
     [InlineData(0, 202, 202, AgentUserContextResolveFailureCode.InvalidIdentity)]
     [InlineData(101, 0, 202, AgentUserContextResolveFailureCode.InvalidIdentity)]
@@ -179,23 +177,4 @@ public static class AgentUserContextResolverTest
         Assert.Equal(AgentUserContextResolveFailureCode.Unknown, actual.FailureOrThrow().FailureCode);
     }
 
-    private static DbAgentUserBinding BuildBinding()
-        =>
-        new()
-        {
-            BindingId = Guid.NewGuid(),
-            CrmSystemUserId = Guid.NewGuid(),
-            EntraObjectId = Guid.NewGuid()
-        };
-
-    private static Mock<ISqlQueryEntitySetSupplier> BuildMockSqlApi(
-        in Result<FlatArray<DbAgentUserBinding>, Failure<Unit>> result)
-    {
-        var mock = new Mock<ISqlQueryEntitySetSupplier>();
-        _ = mock
-            .Setup(static a => a.QueryEntitySetOrFailureAsync<DbAgentUserBinding>(It.IsAny<IDbQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(result);
-
-        return mock;
-    }
 }

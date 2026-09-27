@@ -7,10 +7,8 @@ using Xunit;
 
 namespace GarageGroup.Internal.Timesheet.Endpoint.Agent.Profile.Get.Test;
 
-public static class AgentProfileGetFuncTest
+partial class AgentProfileGetFuncTest
 {
-    private static readonly AgentProfileGetIn SomeInput = new(101, 202, 202);
-
     [Theory]
     [InlineData(AgentUserContextResolveFailureCode.InvalidIdentity, AgentProfileGetFailureCode.InvalidIdentity)]
     [InlineData(AgentUserContextResolveFailureCode.UnsupportedChat, AgentProfileGetFailureCode.InvalidIdentity)]
@@ -89,11 +87,4 @@ public static class AgentProfileGetFuncTest
         Assert.Equal(new AgentProfileGetOut("Some user", "ru"), actual.SuccessOrThrow());
     }
 
-    private static Mock<IAgentUserContextResolver> BuildResolver(AgentUserContext context)
-    {
-        var resolver = new Mock<IAgentUserContextResolver>();
-        _ = resolver.Setup(static r => r.ResolveAsync(It.IsAny<AgentUserIdentity>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(context);
-        return resolver;
-    }
 }
