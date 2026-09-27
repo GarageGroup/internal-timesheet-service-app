@@ -18,6 +18,7 @@
 4. В первую итерацию подключаются только read-only tools.
 5. Любая операция записи требует серверного prepare/confirm flow, идемпотентности и аудита. Одного подтверждения в prompt недостаточно.
 6. Наличие существующего HTTP endpoint не означает, что его внутренняя функция уже безопасна для агента.
+7. Агент получает не всё API, а явный allowlist операций, необходимых для списания времени. Профиль, подписки, уведомления и account flow не являются AI tools.
 
 ## Классификация
 
@@ -27,26 +28,27 @@
 | `Write blocked` | Не подключать до реализации подтверждений, идемпотентности и проверки прав |
 | `System only` | Служебная операция, модель не должна выбирать её как tool |
 | `Diagnostic` | Временная операция для проверки и демонстрации контура |
+| `Excluded` | Операция осознанно не входит в функциональные границы агента |
 
 ## Матрица существующих операций
 
 | Модуль / функция | Назначение | Пользовательские аргументы | Доверенный контекст | Тип | Решение для агента |
 |---|---|---|---|---|---|
 | `Agent.Profile.Get / IAgentProfileGetFunc` | Проверка Telegram-привязки и получение профиля | Нет | Bot ID, Telegram user/chat | Read | `Diagnostic`; сохранить до отдельного указания |
-| `Profile.Get / IProfileGetFunc` | Имя и язык профиля пользователя текущего бота | Нет | Entra Object ID | Read | `Read candidate`; использовать через agent adapter |
+| `Profile.Get / IProfileGetFunc` | Имя и язык профиля пользователя текущего бота | Нет | Entra Object ID | Read | `Excluded`; не требуется для работы со списаниями |
 | `Period.GetSet / IPeriodSetGetFunc` | Доступные периоды списания | Нет | Не требуется | Read | `Read candidate` |
 | `Project.GetLastSet / ILastProjectSetGetFunc` | Последние проекты пользователя | Необязательный `top` | Entra Object ID | Read | `Read candidate`; ограничить `top` на сервере |
 | `Project.GetSet / IProjectSetGetFunc` | Общий набор активных проектов с пользовательской историей | Нет | Entra Object ID | Read | `Read candidate`; дополнительно проверить видимость четырёх типов проектов |
 | `Project.SearchSet / IProjectSetSearchFunc` | Поиск project/incident/opportunity/lead | Строка поиска, необязательный `top` | Entra Object ID как `CallerObjectId` | Read | `Read candidate`; ограничить длину строки и `top` |
 | `Timesheet.GetSet / ITimesheetSetGetFunc` | Списания пользователя за диапазон дат | `dateFrom`, `dateTo` | Entra Object ID | Read | `Read candidate`; ограничить диапазон дат и размер результата |
 | `Tag.GetSet / ITagSetGetFunc` | Хэштеги пользователя по выбранному проекту | Project ID | Entra Object ID | Read | `Read candidate`; Project ID должен происходить из разрешённого результата поиска/выбора |
-| `Subscription.GetSet / ISubscriptionSetGetFunc` | Настройки уведомлений пользователя | Нет | CRM System User ID | Read | `Read candidate`, но не нужен для первого timesheet-сценария |
+| `Subscription.GetSet / ISubscriptionSetGetFunc` | Настройки уведомлений пользователя | Нет | CRM System User ID | Read | `Excluded`; не относится к работе со списаниями |
 | `Timesheet.Modify / ITimesheetCreateFunc` | Создание списания | Дата, проект, длительность, комментарий | CRM System User ID как `CallerObjectId` | Write | `Write blocked` |
 | `Timesheet.Modify / ITimesheetUpdateFunc` | Изменение списания | Timesheet ID и изменяемые поля | CRM System User ID | Write | `Write blocked`; update-запрос требует дополнительного аудита impersonation/ownership |
 | `Timesheet.Delete / ITimesheetDeleteFunc` | Удаление списания | Timesheet ID | CRM System User ID как `CallerObjectId` | Write | `Write blocked` |
-| `Profile.Update / IProfileUpdateFunc` | Изменение языка профиля | Language code | CRM System User ID | Write | `Write blocked`; низкий приоритет |
-| `Notification.Subscribe / INotificationSubscribeFunc` | Настройка ежедневных/еженедельных уведомлений | Тип и параметры уведомления | CRM System User ID | Write | `Write blocked`; низкий приоритет |
-| `Notification.Subscribe / INotificationUnsubscribeFunc` | Отключение уведомлений | Тип уведомления | CRM System User ID | Write | `Write blocked`; низкий приоритет |
+| `Profile.Update / IProfileUpdateFunc` | Изменение языка профиля | Language code | CRM System User ID | Write | `Excluded`; не относится к работе со списаниями |
+| `Notification.Subscribe / INotificationSubscribeFunc` | Настройка ежедневных/еженедельных уведомлений | Тип и параметры уведомления | CRM System User ID | Write | `Excluded`; не относится к работе со списаниями |
+| `Notification.Subscribe / INotificationUnsubscribeFunc` | Отключение уведомлений | Тип уведомления | CRM System User ID | Write | `Excluded`; не относится к работе со списаниями |
 | `User.SignIn / IUserSignInFunc` | Создание Telegram/CRM-привязки по подписанному Mini App `initData` | Telegram `initData` | Интерактивный Entra user | Write | `System only`; никогда не вызывать моделью |
 | `User.SignOut / IUserSignOutFunc` | Отзыв Telegram-привязки | Нет | Интерактивный Entra user | Write | `System only`; отдельный явный account flow, не обычный tool |
 
@@ -54,14 +56,13 @@
 
 Первый безопасный набор native plugins предлагается ограничить следующими возможностями:
 
-1. `GetProfile` — получить язык и отображаемое имя пользователя.
-2. `GetPeriods` — получить допустимые периоды.
-3. `GetRecentProjects` — показать последние проекты пользователя.
-4. `SearchProjects` — найти проекты по тексту с серверным пределом результата.
-5. `GetTimesheets` — показать списания пользователя за ограниченный диапазон.
-6. `GetProjectTags` — получить подсказки тегов для уже выбранного проекта.
+1. `GetPeriods` — получить допустимые периоды.
+2. `GetRecentProjects` — показать последние проекты пользователя.
+3. `SearchProjects` — найти проекты по тексту с серверным пределом результата.
+4. `GetTimesheets` — показать списания пользователя за ограниченный диапазон.
+5. `GetProjectTags` — получить подсказки тегов для уже выбранного проекта.
 
-`Project.GetSet` можно добавить после проверки фактической видимости данных для Project, Incident, Opportunity и Lead. `Subscription.GetSet` безопаснее операций записи, но не требуется для первого пользовательского сценария и увеличивает поверхность tools.
+`Project.GetSet` можно добавить после проверки фактической видимости данных для Project, Incident, Opportunity и Lead, если поиска и последних проектов будет недостаточно. `Profile.Get`, `Profile.Update`, `Subscription.GetSet`, `Notification.Subscribe`, `User.SignIn` и `User.SignOut` в allowlist tools не входят. Диагностический `Agent.Profile.Get` временно остаётся отдельным endpoint для демонстрации авторизации и не регистрируется в Semantic Kernel.
 
 ## Обязательные agent adapters
 
@@ -169,3 +170,13 @@ Adapter пока не зарегистрирован в Application и Semantic 
 - результат преобразуется в компактные `AgentPeriodItem` с названием и границами периода;
 - adapter вызывает общую `IPeriodSetGetFunc`, используемую HTTP endpoint;
 - инфраструктурные ошибки преобразуются в безопасный `Unknown`.
+
+Пятая вертикаль реализована для `Tag.GetSet`:
+
+- вход содержит только Project ID;
+- Entra Object ID подставляется из доверенного `AgentUserContext`;
+- пустой Project ID отклоняется до вызова бизнес-функции;
+- количество тегов ограничено `AgentTagSetGetOption.MaxTags`, по умолчанию 20;
+- adapter вызывает общую `ITagSetGetFunc`, используемую HTTP endpoint.
+
+Сам adapter подтверждает изоляцию истории тегов по Entra user, но не доказывает, что Project ID был выбран из разрешённого набора. Будущий message orchestration должен передавать сюда ID из результата `SearchProjects`/`GetRecentProjects` либо выполнять отдельную проверку проекта.

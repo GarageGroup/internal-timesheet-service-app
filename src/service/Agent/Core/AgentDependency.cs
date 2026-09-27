@@ -8,6 +8,22 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class AgentDependency
 {
+    public static Dependency<IAgentTagSetGetFunc> UseAgentTagSetGetFunc(
+        this Dependency<ITagSetGetFunc, AgentTagSetGetOption> dependency)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.Fold<IAgentTagSetGetFunc>(CreateFunc);
+
+        static AgentTagSetGetFunc CreateFunc(ITagSetGetFunc tagSetGetFunc, AgentTagSetGetOption option)
+        {
+            ArgumentNullException.ThrowIfNull(tagSetGetFunc);
+            ArgumentNullException.ThrowIfNull(option);
+
+            return new(tagSetGetFunc, option);
+        }
+    }
+
     public static Dependency<IAgentPeriodSetGetFunc> UseAgentPeriodSetGetFunc(
         this Dependency<IPeriodSetGetFunc> dependency)
     {

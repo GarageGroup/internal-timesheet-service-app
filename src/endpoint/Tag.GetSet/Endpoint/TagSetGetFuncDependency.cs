@@ -10,12 +10,13 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class TagSetGetFuncDependency
 {
-    public static Dependency<TagSetGetEndpoint> UseTagGetSetEndpoint<TSqlApi>(
+    public static Dependency<ITagSetGetFunc> UseTagSetGetFunc<TSqlApi>(
         this Dependency<TSqlApi, TagSetGetOption> dependency)
         where TSqlApi : ISqlQueryEntitySetSupplier
     {
         ArgumentNullException.ThrowIfNull(dependency);
-        return dependency.Fold(CreateFunc).Map(TagSetGetEndpoint.Resolve);
+
+        return dependency.Fold<ITagSetGetFunc>(CreateFunc);
 
         static TagSetGetFunc CreateFunc(TSqlApi sqlApi, TagSetGetOption option)
         {
@@ -24,5 +25,14 @@ public static class TagSetGetFuncDependency
 
             return new(sqlApi, TodayProvider.Instance, option);
         }
+    }
+
+    public static Dependency<TagSetGetEndpoint> UseTagGetSetEndpoint<TSqlApi>(
+        this Dependency<TSqlApi, TagSetGetOption> dependency)
+        where TSqlApi : ISqlQueryEntitySetSupplier
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.UseTagSetGetFunc().Map(TagSetGetEndpoint.Resolve);
     }
 }
