@@ -15,6 +15,7 @@ public static class ProfileGetDependency
         where TBotApi : IBotInfoGetSupplier
     {
         ArgumentNullException.ThrowIfNull(dependency);
+
         return dependency.Fold<IProfileGetFunc>(CreateFunc);
 
         static ProfileGetFunc CreateFunc(TSqlApi dataverseApi, TBotApi botApi)
@@ -32,6 +33,7 @@ public static class ProfileGetDependency
         where TBotApi : IBotInfoGetSupplier
     {
         ArgumentNullException.ThrowIfNull(dependency);
+
         return dependency.UseProfileGetFunc().Map(ProfileGetEndpoint.Resolve);
     }
 }

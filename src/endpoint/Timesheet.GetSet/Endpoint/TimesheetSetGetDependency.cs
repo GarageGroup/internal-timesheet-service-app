@@ -14,11 +14,13 @@ public static class TimesheetSetGetDependency
         where TSqlApi : ISqlQueryEntitySetSupplier
     {
         ArgumentNullException.ThrowIfNull(dependency);
+
         return dependency.Map<ITimesheetSetGetFunc>(CreateFunc);
 
         static TimesheetSetGetFunc CreateFunc(TSqlApi sqlApi)
         {
             ArgumentNullException.ThrowIfNull(sqlApi);
+
             return new(sqlApi);
         }
     }
@@ -28,6 +30,7 @@ public static class TimesheetSetGetDependency
         where TSqlApi : ISqlQueryEntitySetSupplier
     {
         ArgumentNullException.ThrowIfNull(dependency);
+
         return dependency.UseTimesheetSetGetFunc().Map(TimesheetSetGetEndpoint.Resolve);
     }
 }

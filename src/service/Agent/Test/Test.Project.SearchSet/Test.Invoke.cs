@@ -1,3 +1,5 @@
+extern alias ProjectSearchContract;
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,6 +8,8 @@ using Moq;
 using Xunit;
 
 namespace GarageGroup.Internal.Timesheet.Service.Agent.Test;
+
+using SearchProjectItem = ProjectSearchContract::GarageGroup.Internal.Timesheet.ProjectItem;
 
 partial class AgentProjectSetSearchFuncTest
 {
@@ -85,7 +89,7 @@ partial class AgentProjectSetSearchFuncTest
     [Fact]
     public static async Task InvokeAsync_ProjectSearchResultIsSuccess_ExpectMappedProjects()
     {
-        var project = new ProjectItem(
+        var project = new SearchProjectItem(
             id: new("f5f6c10c-bb43-4bdf-ae42-cbff244bd175"),
             name: "Some project",
             type: ProjectType.Project);

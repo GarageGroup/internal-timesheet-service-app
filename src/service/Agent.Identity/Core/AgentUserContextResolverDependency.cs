@@ -14,11 +14,13 @@ public static class AgentUserContextResolverDependency
         where TSqlApi : ISqlQueryEntitySetSupplier
     {
         ArgumentNullException.ThrowIfNull(dependency);
+
         return dependency.Map<IAgentUserContextResolver>(CreateResolver);
 
         static AgentUserContextResolver CreateResolver(TSqlApi sqlApi)
         {
             ArgumentNullException.ThrowIfNull(sqlApi);
+
             return new(sqlApi);
         }
     }

@@ -14,6 +14,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Core\Core.csproj" />
+    <ProjectReference Include="..\..\..\endpoint\Project.GetLastSet\Contract\Contract.csproj" Aliases="global,LastProjectContract" />
+    <ProjectReference Include="..\..\..\endpoint\Project.SearchSet\Contract\Contract.csproj" Aliases="global,ProjectSearchContract" />
   </ItemGroup>
 
   <ItemGroup>

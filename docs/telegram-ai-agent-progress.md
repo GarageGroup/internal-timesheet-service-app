@@ -262,6 +262,19 @@ Resolver выполняет следующие проверки:
 
 Проверка: `dotnet test Internal.Timesheet.Service.slnx --no-restore` — успешно, все 413 тестов прошли.
 
+### 28.09.2026 — read-only adapter последних проектов
+
+- Добавлен adapter `Project.GetLastSet` в модуль `src/service/Agent`.
+- Модель передаёт только необязательный `top`; Entra Object ID подставляется из доверенного `AgentUserContext`.
+- Сервер применяет `top = 10` по умолчанию и допускает значения от 1 до 20.
+- Результат преобразуется в общий `AgentProjectItem` с сохранением комментария проекта.
+- Существующая `ILastProjectSetGetFunc` выделена из dependency composition и совместно используется HTTP endpoint и adapter.
+- Для одноимённых типов `ProjectItem` двух существующих endpoint в тестовом проекте заданы явные assembly aliases; публичные контракты не изменялись.
+- Добавлено 6 тестовых сценариев с учётом разворачивания theory cases.
+- Application, HTTP, Semantic Kernel и Azure не изменялись.
+
+Проверка: `dotnet test Internal.Timesheet.Service.slnx --no-restore` — успешно, все 419 тестов прошли.
+
 ## Что ещё не сделано на текущем этапе
 
 - Resolver не зарегистрирован в основном приложении, потому что внутренний endpoint ещё не создан.

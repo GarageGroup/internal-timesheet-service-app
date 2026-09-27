@@ -20,6 +20,7 @@ public static class AgentProfileGetDependency
         {
             ArgumentNullException.ThrowIfNull(resolver);
             ArgumentNullException.ThrowIfNull(profileGetFunc);
+
             return new(resolver, profileGetFunc);
         }
     }

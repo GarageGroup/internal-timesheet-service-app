@@ -151,3 +151,13 @@ Adapter пока не зарегистрирован в Application и Semantic 
 - результат преобразуется в общий компактный `AgentProjectItem`.
 
 Пределы вынесены в `AgentProjectSetSearchOption`. Они получат привязку к `appsettings.json` при регистрации agent-модуля в Application.
+
+Третья вертикаль реализована для `Project.GetLastSet`:
+
+- вход содержит только необязательный `top`;
+- Entra Object ID подставляется из доверенного `AgentUserContext`;
+- `top` по умолчанию равен 10, допустимый максимум — 20;
+- результат использует общий `AgentProjectItem` и сохраняет комментарий проекта;
+- adapter вызывает общую `ILastProjectSetGetFunc`, используемую HTTP endpoint.
+
+Пределы вынесены в `AgentLastProjectSetGetOption` и будут подключены к конфигурации вместе с остальными agent options.

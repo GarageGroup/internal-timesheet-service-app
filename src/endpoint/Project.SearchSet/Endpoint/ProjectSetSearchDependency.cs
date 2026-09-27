@@ -14,11 +14,13 @@ public static class ProjectSetSearchDependency
         where TDataverseApi : IDataverseSearchSupplier
     {
         ArgumentNullException.ThrowIfNull(dependency);
+
         return dependency.Map<IProjectSetSearchFunc>(CreateFunc);
 
         static ProjectSetSearchFunc CreateFunc(TDataverseApi dataverseApi)
         {
             ArgumentNullException.ThrowIfNull(dataverseApi);
+
             return new(dataverseApi);
         }
     }
@@ -28,6 +30,7 @@ public static class ProjectSetSearchDependency
         where TDataverseApi : IDataverseSearchSupplier
     {
         ArgumentNullException.ThrowIfNull(dependency);
+
         return dependency.UseProjectSetSearchFunc().Map(ProjectSetSearchEndpoint.Resolve);
     }
 }

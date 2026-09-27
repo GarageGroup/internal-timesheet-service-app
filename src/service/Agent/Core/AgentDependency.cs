@@ -8,16 +8,34 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class AgentDependency
 {
+    public static Dependency<IAgentLastProjectSetGetFunc> UseAgentLastProjectSetGetFunc(
+        this Dependency<ILastProjectSetGetFunc, AgentLastProjectSetGetOption> dependency)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.Fold<IAgentLastProjectSetGetFunc>(CreateFunc);
+
+        static AgentLastProjectSetGetFunc CreateFunc(ILastProjectSetGetFunc lastProjectSetGetFunc, AgentLastProjectSetGetOption option)
+        {
+            ArgumentNullException.ThrowIfNull(lastProjectSetGetFunc);
+            ArgumentNullException.ThrowIfNull(option);
+
+            return new(lastProjectSetGetFunc, option);
+        }
+    }
+
     public static Dependency<IAgentProjectSetSearchFunc> UseAgentProjectSetSearchFunc(
         this Dependency<IProjectSetSearchFunc, AgentProjectSetSearchOption> dependency)
     {
         ArgumentNullException.ThrowIfNull(dependency);
+
         return dependency.Fold<IAgentProjectSetSearchFunc>(CreateFunc);
 
         static AgentProjectSetSearchFunc CreateFunc(IProjectSetSearchFunc projectSetSearchFunc, AgentProjectSetSearchOption option)
         {
             ArgumentNullException.ThrowIfNull(projectSetSearchFunc);
             ArgumentNullException.ThrowIfNull(option);
+
             return new(projectSetSearchFunc, option);
         }
     }
@@ -26,12 +44,14 @@ public static class AgentDependency
         this Dependency<ITimesheetSetGetFunc, AgentTimesheetSetGetOption> dependency)
     {
         ArgumentNullException.ThrowIfNull(dependency);
+
         return dependency.Fold<IAgentTimesheetSetGetFunc>(CreateFunc);
 
         static AgentTimesheetSetGetFunc CreateFunc(ITimesheetSetGetFunc timesheetSetGetFunc, AgentTimesheetSetGetOption option)
         {
             ArgumentNullException.ThrowIfNull(timesheetSetGetFunc);
             ArgumentNullException.ThrowIfNull(option);
+
             return new(timesheetSetGetFunc, option);
         }
     }

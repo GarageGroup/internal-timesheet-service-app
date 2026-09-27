@@ -18,4 +18,6 @@ public sealed record class AgentProjectItem
     public string Name { get; }
 
     public ProjectType Type { get; }
+
+    public string? Comment { get; init; }
 }
