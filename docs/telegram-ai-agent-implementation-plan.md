@@ -401,6 +401,11 @@ Worker логически принадлежит модулю API. Размещ�
 | `Agent:Authentication:Audience` | Фактическая допустимая аудитория agent API token |
 | `Agent:Authentication:RequiredRole` | Значение app role, например `Timesheet.Agent.Invoke` |
 | `Agent:Authentication:AllowedClients` | Сопоставление разрешённого client ID и Telegram bot ID, задаётся сервером |
+| `Agent:Tools:Timesheet:MaxDateRangeInDays` | Максимальный диапазон одного запроса чтения списаний; по умолчанию 31 день |
+| `Agent:Tools:Project:DefaultTop` | Число проектов в результате, если модель не передала `top`; по умолчанию 10 |
+| `Agent:Tools:Project:MaxTop` | Серверный предел результатов поиска/последних проектов; по умолчанию 20 |
+| `Agent:Tools:Project:MaxSearchTextLength` | Максимальная длина поисковой строки; по умолчанию 100 символов |
+| `Agent:Tools:Tag:MaxTags` | Максимальное число тегов, возвращаемых модели; по умолчанию 20 |
 | `Agent:Storage:*` | Адреса Table/Queue/Blob и имена ресурсов; production доступ по MI |
 | `Agent:DefaultTimeZone` | Часовой пояс для относительных дат; начально `Europe/Moscow` |
 | `Agent:ApprovalTtlMinutes` | Срок preview; начально 10 минут |

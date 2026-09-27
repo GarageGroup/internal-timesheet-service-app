@@ -139,7 +139,7 @@ Adapter обязан:
 - наружу возвращается отдельный минимальный agent DTO;
 - orchestration реализована через `AsyncPipeline`.
 
-Adapter пока не зарегистрирован в Application и Semantic Kernel и не доступен через HTTP. Это изолированный шаблон для согласования дальнейших read tools.
+Adapter зарегистрирован во внутренней dependency composition приложения, но пока не передан Semantic Kernel и не доступен через HTTP.
 
 Вторая вертикаль реализована для `Project.SearchSet`:
 
@@ -151,7 +151,7 @@ Adapter пока не зарегистрирован в Application и Semantic 
 - `Forbidden` сохраняется как отдельный безопасный код ошибки;
 - результат преобразуется в общий компактный `AgentProjectItem`.
 
-Пределы вынесены в `AgentProjectSetSearchOption`. Они получат привязку к `appsettings.json` при регистрации agent-модуля в Application.
+Пределы вынесены в `AgentProjectSetSearchOption` и связаны с секцией `Agent:Tools:Project` в `appsettings.json`.
 
 Третья вертикаль реализована для `Project.GetLastSet`:
 
@@ -161,7 +161,7 @@ Adapter пока не зарегистрирован в Application и Semantic 
 - результат использует общий `AgentProjectItem` и сохраняет комментарий проекта;
 - adapter вызывает общую `ILastProjectSetGetFunc`, используемую HTTP endpoint.
 
-Пределы вынесены в `AgentLastProjectSetGetOption` и будут подключены к конфигурации вместе с остальными agent options.
+Пределы вынесены в `AgentLastProjectSetGetOption` и связаны с секцией `Agent:Tools:Project` в `appsettings.json`.
 
 Четвёртая вертикаль реализована для `Period.GetSet`:
 
@@ -180,3 +180,5 @@ Adapter пока не зарегистрирован в Application и Semantic 
 - adapter вызывает общую `ITagSetGetFunc`, используемую HTTP endpoint.
 
 Сам adapter подтверждает изоляцию истории тегов по Entra user, но не доказывает, что Project ID был выбран из разрешённого набора. Будущий message orchestration должен передавать сюда ID из результата `SearchProjects`/`GetRecentProjects` либо выполнять отдельную проверку проекта.
+
+Все пять разрешённых read adapters собраны в `App.Agent.Tools.cs`. Их лимиты читаются из общей секции `Agent:Tools`; существующие HTTP endpoint продолжают использовать прежние business-функции и собственные настройки. Semantic Kernel пока не подключён, поэтому эти зависимости ещё не доступны модели.
