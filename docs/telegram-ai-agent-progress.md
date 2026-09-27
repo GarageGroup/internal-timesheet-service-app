@@ -248,6 +248,20 @@ Resolver выполняет следующие проверки:
 
 Проверка: `dotnet test Internal.Timesheet.Service.slnx --no-restore` — успешно, все 404 теста прошли.
 
+### 28.09.2026 — read-only adapter поиска проектов
+
+- Добавлен adapter `Project.SearchSet` в существующий модуль `src/service/Agent`.
+- Модель сможет задавать только поисковый текст и `top`; `CallerObjectId` подставляется из `AgentUserContext.EntraObjectId`.
+- Уточнено различие идентификаторов: существующее свойство `ProjectSetSearchIn.SystemUserId` получено из claim `oid` и фактически содержит Entra Object ID, а не CRM primary key.
+- Введены серверные ограничения: непустой текст до 100 символов, `top` от 1 до 20, значение по умолчанию 10.
+- Существующая `IProjectSetSearchFunc` выделена из dependency composition и совместно используется HTTP endpoint и agent adapter.
+- Ошибка доступа преобразуется в отдельный `Forbidden`, остальные ошибки — в `Unknown`.
+- Adapter покрыт тестами в принятой структуре `Test/Test.Project.SearchSet`.
+- Настройки пока не привязаны к `appsettings.json`, потому что agent-модуль ещё не зарегистрирован в Application.
+- Application, HTTP, Semantic Kernel и Azure не изменялись.
+
+Проверка: `dotnet test Internal.Timesheet.Service.slnx --no-restore` — успешно, все 413 тестов прошли.
+
 ## Что ещё не сделано на текущем этапе
 
 - Resolver не зарегистрирован в основном приложении, потому что внутренний endpoint ещё не создан.

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.CompilerServices;
 using GarageGroup.Infra;
 using PrimeFuncPack;
@@ -9,17 +9,25 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class ProjectSetSearchDependency
 {
-    public static Dependency<ProjectSetSearchEndpoint> UseProjectSetSearchEndpoint<TDataverseApi>(
+    public static Dependency<IProjectSetSearchFunc> UseProjectSetSearchFunc<TDataverseApi>(
         this Dependency<TDataverseApi> dependency)
         where TDataverseApi : IDataverseSearchSupplier
     {
         ArgumentNullException.ThrowIfNull(dependency);
-        return dependency.Map(CreateFunc).Map(ProjectSetSearchEndpoint.Resolve);
+        return dependency.Map<IProjectSetSearchFunc>(CreateFunc);
 
         static ProjectSetSearchFunc CreateFunc(TDataverseApi dataverseApi)
         {
             ArgumentNullException.ThrowIfNull(dataverseApi);
             return new(dataverseApi);
         }
+    }
+
+    public static Dependency<ProjectSetSearchEndpoint> UseProjectSetSearchEndpoint<TDataverseApi>(
+        this Dependency<TDataverseApi> dependency)
+        where TDataverseApi : IDataverseSearchSupplier
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+        return dependency.UseProjectSetSearchFunc().Map(ProjectSetSearchEndpoint.Resolve);
     }
 }

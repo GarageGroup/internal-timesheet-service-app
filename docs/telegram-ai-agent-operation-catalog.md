@@ -37,7 +37,7 @@
 | `Period.GetSet / IPeriodSetGetFunc` | Доступные периоды списания | Нет | Не требуется | Read | `Read candidate` |
 | `Project.GetLastSet / ILastProjectSetGetFunc` | Последние проекты пользователя | Необязательный `top` | Entra Object ID | Read | `Read candidate`; ограничить `top` на сервере |
 | `Project.GetSet / IProjectSetGetFunc` | Общий набор активных проектов с пользовательской историей | Нет | Entra Object ID | Read | `Read candidate`; дополнительно проверить видимость четырёх типов проектов |
-| `Project.SearchSet / IProjectSetSearchFunc` | Поиск project/incident/opportunity/lead | Строка поиска, необязательный `top` | CRM System User ID как `CallerObjectId` | Read | `Read candidate`; ограничить длину строки и `top` |
+| `Project.SearchSet / IProjectSetSearchFunc` | Поиск project/incident/opportunity/lead | Строка поиска, необязательный `top` | Entra Object ID как `CallerObjectId` | Read | `Read candidate`; ограничить длину строки и `top` |
 | `Timesheet.GetSet / ITimesheetSetGetFunc` | Списания пользователя за диапазон дат | `dateFrom`, `dateTo` | Entra Object ID | Read | `Read candidate`; ограничить диапазон дат и размер результата |
 | `Tag.GetSet / ITagSetGetFunc` | Хэштеги пользователя по выбранному проекту | Project ID | Entra Object ID | Read | `Read candidate`; Project ID должен происходить из разрешённого результата поиска/выбора |
 | `Subscription.GetSet / ISubscriptionSetGetFunc` | Настройки уведомлений пользователя | Нет | CRM System User ID | Read | `Read candidate`, но не нужен для первого timesheet-сценария |
@@ -139,3 +139,15 @@ Adapter обязан:
 - orchestration реализована через `AsyncPipeline`.
 
 Adapter пока не зарегистрирован в Application и Semantic Kernel и не доступен через HTTP. Это изолированный шаблон для согласования дальнейших read tools.
+
+Вторая вертикаль реализована для `Project.SearchSet`:
+
+- вход содержит поисковый текст и необязательный `top`;
+- `CallerObjectId` формируется из доверенного Entra Object ID, а не CRM primary key;
+- поисковый текст обрезается по краям, пустое значение отклоняется;
+- максимальная длина текста по умолчанию — 100 символов;
+- `top` по умолчанию равен 10, допустимый максимум — 20;
+- `Forbidden` сохраняется как отдельный безопасный код ошибки;
+- результат преобразуется в общий компактный `AgentProjectItem`.
+
+Пределы вынесены в `AgentProjectSetSearchOption`. Они получат привязку к `appsettings.json` при регистрации agent-модуля в Application.

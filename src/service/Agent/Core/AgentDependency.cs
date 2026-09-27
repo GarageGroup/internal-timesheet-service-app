@@ -8,6 +8,20 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class AgentDependency
 {
+    public static Dependency<IAgentProjectSetSearchFunc> UseAgentProjectSetSearchFunc(
+        this Dependency<IProjectSetSearchFunc, AgentProjectSetSearchOption> dependency)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+        return dependency.Fold<IAgentProjectSetSearchFunc>(CreateFunc);
+
+        static AgentProjectSetSearchFunc CreateFunc(IProjectSetSearchFunc projectSetSearchFunc, AgentProjectSetSearchOption option)
+        {
+            ArgumentNullException.ThrowIfNull(projectSetSearchFunc);
+            ArgumentNullException.ThrowIfNull(option);
+            return new(projectSetSearchFunc, option);
+        }
+    }
+
     public static Dependency<IAgentTimesheetSetGetFunc> UseAgentTimesheetSetGetFunc(
         this Dependency<ITimesheetSetGetFunc, AgentTimesheetSetGetOption> dependency)
     {
