@@ -8,6 +8,21 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class AgentDependency
 {
+    public static Dependency<IAgentPeriodSetGetFunc> UseAgentPeriodSetGetFunc(
+        this Dependency<IPeriodSetGetFunc> dependency)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.Map<IAgentPeriodSetGetFunc>(CreateFunc);
+
+        static AgentPeriodSetGetFunc CreateFunc(IPeriodSetGetFunc periodSetGetFunc)
+        {
+            ArgumentNullException.ThrowIfNull(periodSetGetFunc);
+
+            return new(periodSetGetFunc);
+        }
+    }
+
     public static Dependency<IAgentLastProjectSetGetFunc> UseAgentLastProjectSetGetFunc(
         this Dependency<ILastProjectSetGetFunc, AgentLastProjectSetGetOption> dependency)
     {

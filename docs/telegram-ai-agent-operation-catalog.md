@@ -161,3 +161,11 @@ Adapter пока не зарегистрирован в Application и Semantic 
 - adapter вызывает общую `ILastProjectSetGetFunc`, используемую HTTP endpoint.
 
 Пределы вынесены в `AgentLastProjectSetGetOption` и будут подключены к конфигурации вместе с остальными agent options.
+
+Четвёртая вертикаль реализована для `Period.GetSet`:
+
+- tool не принимает пользовательские аргументы;
+- вызов разрешён только после формирования `AgentUserContext`, хотя существующей бизнес-функции identity не требуется;
+- результат преобразуется в компактные `AgentPeriodItem` с названием и границами периода;
+- adapter вызывает общую `IPeriodSetGetFunc`, используемую HTTP endpoint;
+- инфраструктурные ошибки преобразуются в безопасный `Unknown`.

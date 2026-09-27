@@ -275,6 +275,18 @@ Resolver выполняет следующие проверки:
 
 Проверка: `dotnet test Internal.Timesheet.Service.slnx --no-restore` — успешно, все 419 тестов прошли.
 
+### 28.09.2026 — read-only adapter периодов
+
+- Добавлен adapter `Period.GetSet` в модуль `src/service/Agent`.
+- Tool не принимает пользовательские параметры, но его контракт требует уже разрешённый `AgentUserContext`, чтобы он не использовался вне авторизованного agent flow.
+- Результат преобразуется в `AgentPeriodItem` с названием, началом и концом периода.
+- Существующая `IPeriodSetGetFunc` выделена из dependency composition и совместно используется HTTP endpoint и adapter.
+- Инфраструктурные ошибки преобразуются в безопасный код `Unknown`.
+- Добавлены 3 unit-теста вызова зависимости, ошибки и успешного преобразования.
+- Application, HTTP, Semantic Kernel и Azure не изменялись.
+
+Проверка: `dotnet test Internal.Timesheet.Service.slnx --no-restore` — успешно, все 422 теста прошли.
+
 ## Что ещё не сделано на текущем этапе
 
 - Resolver не зарегистрирован в основном приложении, потому что внутренний endpoint ещё не создан.
