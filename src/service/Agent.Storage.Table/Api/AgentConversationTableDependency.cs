@@ -1,7 +1,10 @@
 using System;
+using System.Runtime.CompilerServices;
 using Azure.Core;
 using Azure.Data.Tables;
 using PrimeFuncPack;
+
+[assembly: InternalsVisibleTo("GarageGroup.Internal.Timesheet.Service.Agent.Storage.Table.Test")]
 
 namespace GarageGroup.Internal.Timesheet;
 
@@ -14,12 +17,12 @@ public static class AgentConversationTableDependency
 
         return dependency.Fold<IAgentConversationStore>(CreateStore);
 
-        static AgentConversationTableStore CreateStore(TokenCredential credential, AgentConversationTableOption option)
+        static AgentConversationTableApi CreateStore(TokenCredential credential, AgentConversationTableOption option)
         {
             ArgumentNullException.ThrowIfNull(credential);
             ArgumentNullException.ThrowIfNull(option);
 
-            return new(new TableClient(option.ServiceEndpoint, option.TableName, credential));
+            return new(new TableApi(new TableClient(option.ServiceEndpoint, option.TableName, credential)));
         }
     }
 }

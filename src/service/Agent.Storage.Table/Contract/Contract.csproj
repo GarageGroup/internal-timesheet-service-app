@@ -8,16 +8,11 @@
     <InvariantGlobalization>false</InvariantGlobalization>
     <NoWarn>$(NoWarn);IDE0130;CA1859</NoWarn>
     <RootNamespace>GarageGroup.Internal.Timesheet</RootNamespace>
-    <AssemblyName>GarageGroup.Internal.Timesheet.Service.Agent.Storage.Table.Api</AssemblyName>
+    <AssemblyName>GarageGroup.Internal.Timesheet.Service.Agent.Storage.Table.Contract</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Contract\Contract.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Azure.Data.Tables" Version="12.13.0" />
-    <PackageReference Include="PrimeFuncPack.Dependency.Core" Version="2.2.0" />
+    <ProjectReference Include="..\..\Agent\Contract\Contract.csproj" />
   </ItemGroup>
 
 </Project>

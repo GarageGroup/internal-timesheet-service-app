@@ -379,7 +379,7 @@ Resolver выполняет следующие проверки:
 
 ### 28.09.2026 — Azure Table provider для истории диалога
 
-- Добавлен отдельный infrastructure-модуль `Agent.Storage.Table/Api`, реализующий `IAgentConversationStore` через `Azure.Data.Tables` 12.13.0.
+- Добавлен отдельный infrastructure-модуль `Agent.Storage.Table` в принятой структуре `Contract` / `Api` / `Test`; `Api` реализует контракт через `Azure.Data.Tables` 12.13.0.
 - Одна ограниченная история хранится в одной Table entity; ключ строится из доверенных `BotId`, `TelegramUserId` и `TelegramChatId`, а не из входного DTO Telegram.
 - Запись выполняется с ETag прочитанной версии. Создание существующей entity, несовпадение ETag и исчезновение entity отображаются в `ConversationConflict`.
 - Gateway теперь сохраняет всю новую ограниченную историю одним replace-запросом и оставляет только последние `Agent:Message:MaxHistoryMessageCount` элементов. Это позволяет выполнить атомарную ETag-проверку без повторного чтения внутри provider.
@@ -388,6 +388,17 @@ Resolver выполняет следующие проверки:
 - На этом этапе никакие Azure-ресурсы и роли не изменялись.
 
 Проверка: сборка всего решения без ошибок и предупреждений; 42 теста agent-модуля прошли.
+
+### 28.09.2026 — unit-тесты Azure Table conversation storage
+
+- Доступ к Azure SDK изолирован внутренним `IAgentConversationTableApi`, чтобы storage-логику проверять без сети, Azure account и эмулятора.
+- Добавлен отдельный test-проект в структуру `Agent.Storage.Table/Test`.
+- Storage-интерфейс, модели результата и failure code перенесены из общего `Agent/Contract` в `Agent.Storage.Table/Contract`; Agent Core зависит от отдельного контракта, а не от реализации `Api`.
+- Дерево модуля приведено к принятой структуре: контракты сгруппированы в `Contract/Conversation`, реализация разделена на `Api/Api` и `Api/Table`, а тесты размещены зеркально в `Test/Test.Api`.
+- Тестами покрыты отсутствие entity, восстановление сообщений и ETag, формирование доверенных partition/row keys, сериализация при создании и отображение HTTP 404/409/412 в `ConversationConflict`.
+- Интеграционный запрос в Azure Table не выполнялся; Azure-конфигурация не изменялась.
+
+Проверка: 6 тестов Table storage прошли.
 
 ## Что ещё не сделано на текущем этапе
 

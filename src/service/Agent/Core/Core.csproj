@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Contract\Contract.csproj" />
+    <ProjectReference Include="..\..\Agent.Storage.Table\Contract\Contract.csproj" />
     <ProjectReference Include="..\..\..\endpoint\Period.GetSet\Contract\Contract.csproj" />
     <ProjectReference Include="..\..\..\endpoint\Project.GetLastSet\Contract\Contract.csproj" />
     <ProjectReference Include="..\..\..\endpoint\Project.SearchSet\Contract\Contract.csproj" />

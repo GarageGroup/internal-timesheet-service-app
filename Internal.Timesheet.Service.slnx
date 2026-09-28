@@ -97,7 +97,9 @@
     <Project Path="src/service/Agent.Identity/Test/Test.csproj" />
   </Folder>
   <Folder Name="/service/Agent.Storage.Table/">
+    <Project Path="src/service/Agent.Storage.Table/Contract/Contract.csproj" />
     <Project Path="src/service/Agent.Storage.Table/Api/Api.csproj" />
+    <Project Path="src/service/Agent.Storage.Table/Test/Test.csproj" />
   </Folder>
   <Folder Name="/service/BotApi/">
     <Project Path="src/service/BotApi/Api/Api.csproj" />
