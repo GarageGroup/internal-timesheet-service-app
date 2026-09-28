@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using Azure.Core;
 using PrimeFuncPack;
 
 [assembly: InternalsVisibleTo("GarageGroup.Internal.Timesheet.Service.Agent.Test")]
@@ -8,6 +9,48 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class AgentDependency
 {
+    public static Dependency<AgentKernelFactory> UseAgentKernelFactory(
+        this Dependency<
+            IAgentTimesheetSetGetFunc,
+            IAgentProjectSetSearchFunc,
+            IAgentLastProjectSetGetFunc,
+            IAgentPeriodSetGetFunc,
+            IAgentTagSetGetFunc,
+            TokenCredential,
+            AgentFoundryOption> dependency)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.Fold(CreateFactory);
+
+        static AgentKernelFactory CreateFactory(
+            IAgentTimesheetSetGetFunc timesheetSetGetFunc,
+            IAgentProjectSetSearchFunc projectSetSearchFunc,
+            IAgentLastProjectSetGetFunc lastProjectSetGetFunc,
+            IAgentPeriodSetGetFunc periodSetGetFunc,
+            IAgentTagSetGetFunc tagSetGetFunc,
+            TokenCredential tokenCredential,
+            AgentFoundryOption option)
+        {
+            ArgumentNullException.ThrowIfNull(timesheetSetGetFunc);
+            ArgumentNullException.ThrowIfNull(projectSetSearchFunc);
+            ArgumentNullException.ThrowIfNull(lastProjectSetGetFunc);
+            ArgumentNullException.ThrowIfNull(periodSetGetFunc);
+            ArgumentNullException.ThrowIfNull(tagSetGetFunc);
+            ArgumentNullException.ThrowIfNull(tokenCredential);
+            ArgumentNullException.ThrowIfNull(option);
+
+            return new(
+                timesheetSetGetFunc,
+                projectSetSearchFunc,
+                lastProjectSetGetFunc,
+                periodSetGetFunc,
+                tagSetGetFunc,
+                tokenCredential,
+                option);
+        }
+    }
+
     public static Dependency<IAgentTagSetGetFunc> UseAgentTagSetGetFunc(
         this Dependency<ITagSetGetFunc, AgentTagSetGetOption> dependency)
     {

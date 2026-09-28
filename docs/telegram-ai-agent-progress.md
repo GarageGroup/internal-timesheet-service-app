@@ -329,6 +329,21 @@ Resolver выполняет следующие проверки:
 
 Проверка agent-модуля: 34 теста прошли.
 
+### 28.09.2026 — фабрика Kernel для Azure AI Foundry
+
+- Добавлена `AgentKernelFactory`, создающая отдельный Semantic Kernel для доверенного `AgentUserContext`.
+- Первоначальный вариант с API key старого Foundry заменён на новый Foundry project endpoint и Entra ID.
+- Используются `ProjectEndpoint`, `ModelId` и `TokenScope`; фабрика сама добавляет путь `/openai/v1/`.
+- Стандартный `TokenCredential` регистрируется один раз на уровне host через общий инфраструктурный пакет; локально он использует активную сессию `az login`, а после развертывания в Azure — Managed Identity.
+- `AgentKernelFactory` не создаёт `DefaultAzureCredential` напрямую: credential и `AgentFoundryOption` передаются в неё через общий для проекта `Pipeline/Dependency` composition root.
+- В каждый созданный Kernel регистрируется только native plugin `TimesheetRead`; импорт Swagger и автоматическое предоставление всего API не используются.
+- В общий `appsettings.json` добавлен пустой шаблон секции `Agent:Foundry`; реальные секреты в репозиторий не добавлялись.
+- Конфигурация проверяет абсолютный HTTPS endpoint формата `*.services.ai.azure.com/api/projects/*`, непустые model ID и token scope.
+- Тесты проверяют наличие chat completion service, точный allowlist функций и фактический вызов plugin с контекстом, переданным фабрике.
+- Реальные запросы в Foundry, message endpoint, Telegram-бот и Azure не изменялись.
+
+Проверка agent-модуля: 36 тестов прошли.
+
 ## Что ещё не сделано на текущем этапе
 
 - Resolver не зарегистрирован в основном приложении, потому что внутренний endpoint ещё не создан.

@@ -17,6 +17,8 @@ partial class ApplicationHost
 
         ValidateAgentConfiguration(builder.Configuration);
 
+        _ = builder.Services.AddTokenCredentialStandardAsSingleton();
+
         _ = builder.Services
             .AddAuthentication()
             .AddJwtBearer(AgentAuthenticationScheme, options => ConfigureAgentJwt(options, builder.Configuration));

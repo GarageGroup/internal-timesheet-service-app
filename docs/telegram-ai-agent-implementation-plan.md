@@ -393,10 +393,9 @@ Worker логически принадлежит модулю API. Размещ�
 |---|---|
 | `Agent:Enabled` | Feature flag; изначально `false` |
 | `Agent:WritesEnabled` | Отдельное включение mutations; изначально `false` |
-| `Agent:Foundry:Endpoint` | Endpoint конкретного deployment из Foundry; проверить совместимость с выбранным connector |
-| `Agent:Foundry:DeploymentName` | Имя deployment модели с поддержкой tool calling, не только название семейства модели |
-| `Agent:Foundry:AuthenticationMode` | Явно выбранный способ доступа: сначала проверенный в прототипе, позднее MI при поддержке connector |
-| `Agent:Foundry:ApiKey` | Только если нужен API key; локальные user-secrets/неотслеживаемый override, production Key Vault |
+| `Agent:Foundry:ProjectEndpoint` | Endpoint проекта нового Foundry: `https://<resource>.services.ai.azure.com/api/projects/<project>`; `/openai/v1/` добавляется кодом |
+| `Agent:Foundry:ModelId` | Имя deployment модели с поддержкой tool calling; передаётся connector как `modelId` |
+| `Agent:Foundry:TokenScope` | Entra scope нового Foundry; по умолчанию `https://ai.azure.com/.default` |
 | `Agent:Authentication:TenantId` | Tenant ID корпоративного Entra |
 | `Agent:Authentication:Audience` | Фактическая допустимая аудитория agent API token |
 | `Agent:Authentication:RequiredRole` | Значение app role, например `Timesheet.Agent.Invoke` |
@@ -415,7 +414,7 @@ Worker логически принадлежит модулю API. Размещ�
 | `AgentApi:BaseUrl` в боте | HTTPS URL внутренних endpoint |
 | `AgentApi:Scope` в боте | `<ApiApplicationIdUri>/.default` |
 
-Foundry credential, credential бота для API и credential API для CRM — разные настройки и разные разрешения. Не использовать один универсальный токен.
+Foundry credential, credential бота для API и credential API для CRM — разные разрешения, даже если технически они получаются одной Managed Identity приложения. Стандартный `TokenCredential` регистрируется инфраструктурным пакетом на уровне host и передаётся в Foundry-модуль через `Pipeline/Dependency`; модуль не создаёт `DefaultAzureCredential` напрямую. Локально ожидается активная сессия `az login`, в Azure — Managed Identity с отдельной ролью на Foundry project/resource. API key не используется.
 
 Не коммитить реальные секреты, Telegram bot token, access tokens, initData и production connection strings. Шаблон конфигурации содержит placeholders; production значения предоставляет конфигурация хоста/Key Vault. Для локального удобства допустим один git-ignored файл с overrides, если его загрузка реализована явно и пример безопасен.
 
