@@ -8,24 +8,8 @@ using PrimeFuncPack;
 
 namespace GarageGroup.Internal.Timesheet;
 
-public static class AgentStorageTableDependency
+public static class AgentConversationTableDependency
 {
-    public static Dependency<IAgentRequestStore> UseAgentRequestTableStore(
-        this Dependency<TokenCredential, AgentRequestTableOption> dependency)
-    {
-        ArgumentNullException.ThrowIfNull(dependency);
-
-        return dependency.Fold<IAgentRequestStore>(CreateStore);
-
-        static AgentRequestTableApi CreateStore(TokenCredential credential, AgentRequestTableOption option)
-        {
-            ArgumentNullException.ThrowIfNull(credential);
-            ArgumentNullException.ThrowIfNull(option);
-
-            return new(new TableApi(new TableClient(option.ServiceEndpoint, option.TableName, credential)));
-        }
-    }
-
     public static Dependency<IAgentConversationStore> UseAgentConversationTableStore(
         this Dependency<TokenCredential, AgentConversationTableOption> dependency)
     {
