@@ -199,7 +199,13 @@ Plugin создаётся для одного доверенного `AgentUserC
 
 Фабрика `AgentKernelFactory` создаёт отдельный Kernel для переданного `AgentUserContext`, подключает новый Microsoft Foundry project endpoint через OpenAI v1 connector и регистрирует только `TimesheetRead`. Connector использует `ProjectEndpoint`, `ModelId` и `TokenScope`; путь `/openai/v1/` добавляется фабрикой. `AgentFoundryOption` и зарегистрированный на уровне host стандартный `TokenCredential` передаются в фабрику через `Pipeline/Dependency`. API key не используется: локально credential использует `az login`, в Azure — Managed Identity. Создание Kernel не выполняет сетевой запрос; обращение к Foundry начнётся только на этапе message orchestration.
 
-`AgentMessageFunc` выполняет один read-only ход: создаёт Kernel для доверенного `AgentUserContext`, добавляет системную инструкцию с актуальной датой и часовым поясом, восстанавливает ограниченную серверную историю ролей `User`/`Assistant` и вызывает chat completion с автоматическим выбором функций. Само durable-хранилище пока не реализовано; будущий endpoint должен загружать историю по доверенному owner, а не принимать её от Telegram-клиента. Исключения Foundry наружу не передаются.
+`AgentMessageFunc` выполняет один read-only ход: создаёт Kernel для доверенного `AgentUserContext`, добавляет системную инструкцию с актуальной датой и часовым поясом, восстанавливает ограниченную серверную историю ролей `User`/`Assistant` и вызывает chat completion с автоматическим выбором функций. `AgentConversationMessageFunc` загружает и сохраняет эту историю в Azure Table по доверенному owner с ETag optimistic concurrency; Telegram-клиент историю не передаёт. Исключения Foundry наружу не передаются.
+
+Параметры дат `get_timesheets` публикуются в schema Semantic Kernel как строки `yyyy-MM-dd`. Plugin
+явно разбирает их через invariant `DateOnly.TryParseExact` и только после этого вызывает типизированный
+`IAgentTimesheetSetGetFunc`. Это необходимо, потому что стандартный Kernel binder не преобразует
+JSON-строку непосредственно в `System.DateOnly`. Ошибка формата возвращается модели как безопасный
+`InvalidDateFormat` и не доходит до CRM/SQL-функции.
 
 Над ним добавлен `AgentConversationMessageFunc`. Он получает историю через `IAgentConversationStore` по полному доверенному `AgentUserContext`, вызывает `AgentMessageFunc` и дописывает user/assistant пару с ожидаемой версией диалога. Контракт storage предусматривает optimistic concurrency; конкретный Azure provider будет реализован отдельно вместе с решением по ресурсам и deployment-конфигурации.
 

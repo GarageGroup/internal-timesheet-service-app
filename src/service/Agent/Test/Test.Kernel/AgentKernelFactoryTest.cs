@@ -23,10 +23,12 @@ public static partial class AgentKernelFactoryTest
             crmSystemUserId: new("ff66af05-eccc-4c7d-b6a7-98a56e39c6e9"),
             entraObjectId: new("bcf9aa86-35b6-4e97-9bc2-3477d94a519e"));
 
-    private static AgentKernelFactory CreateFactory(Mock<IAgentPeriodSetGetFunc>? periodFunc = null)
+    private static AgentKernelFactory CreateFactory(
+        Mock<IAgentPeriodSetGetFunc>? periodFunc = null,
+        Mock<IAgentTimesheetSetGetFunc>? timesheetFunc = null)
         =>
         new(
-            new Mock<IAgentTimesheetSetGetFunc>().Object,
+            (timesheetFunc ?? new()).Object,
             new Mock<IAgentProjectSetSearchFunc>().Object,
             new Mock<IAgentLastProjectSetGetFunc>().Object,
             (periodFunc ?? new()).Object,

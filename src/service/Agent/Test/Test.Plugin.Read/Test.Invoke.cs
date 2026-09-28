@@ -22,14 +22,33 @@ partial class AgentReadPluginTest
         .ReturnsAsync(source);
 
         var actual = await CreatePlugin(timesheetFunc: mockFunc).GetTimesheetsAsync(
-            dateFrom,
-            dateTo,
+            "2026-09-01",
+            "2026-09-28",
             TestContext.Current.CancellationToken);
 
         Assert.True(actual.IsSuccess);
         Assert.Equal(source, actual.Data);
         Assert.Null(actual.ErrorCode);
         mockFunc.VerifyAll();
+    }
+
+    [Theory]
+    [InlineData("01.09.2026", "2026-09-28")]
+    [InlineData("2026-09-01", "28.09.2026")]
+    [InlineData("", "2026-09-28")]
+    public static async Task GetTimesheetsAsync_InvalidDate_ExpectSafeErrorCode(string dateFrom, string dateTo)
+    {
+        var mockFunc = new Mock<IAgentTimesheetSetGetFunc>(MockBehavior.Strict);
+
+        var actual = await CreatePlugin(timesheetFunc: mockFunc).GetTimesheetsAsync(
+            dateFrom,
+            dateTo,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(actual.IsSuccess);
+        Assert.Null(actual.Data);
+        Assert.Equal(nameof(AgentTimesheetSetGetFailureCode.InvalidDateFormat), actual.ErrorCode);
+        mockFunc.VerifyNoOtherCalls();
     }
 
     [Fact]

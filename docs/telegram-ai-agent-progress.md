@@ -32,6 +32,18 @@ recycle; agent API не вызывался. Function App перезапущен 
 Foundry deployment `gpt-5-mini` и read-only project tool; пользователь получил корректный ответ.
 Таким образом, read-only end-to-end вертикальный срез подтверждён в test.
 
+При ручной проверке всех пяти read-only tools выявлена одна ошибка: `get_timesheets` объявлял параметры
+Kernel-функции как `DateOnly`, а Semantic Kernel передавал даты модели как JSON-строки. Binder завершался
+ошибкой преобразования `System.String` в `System.DateOnly` до вызова business-функции. Остальные tools
+ручную проверку прошли без выявленных ошибок.
+
+Граница `get_timesheets` исправлена: tool принимает строки строго в формате `yyyy-MM-dd`, явно и
+invariant-преобразует их в `DateOnly`, после чего вызывает неизменённый типизированный контракт.
+Некорректная дата возвращает безопасный `InvalidDateFormat`, а не исключение. Добавлены unit-тесты
+валидного и некорректного формата и regression-тест вызова через настоящий `KernelArguments` binder.
+Release-сборка прошла без ошибок и предупреждений; все тесты решения прошли. Изменение ещё не
+развёртывалось в test.
+
 ```text
 [x] Этап 0. Baseline и первичный аудит
 [~] Этап 1. Identity и binding без LLM

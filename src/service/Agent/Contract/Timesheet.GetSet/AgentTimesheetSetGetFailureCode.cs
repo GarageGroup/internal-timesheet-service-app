@@ -4,6 +4,8 @@ public enum AgentTimesheetSetGetFailureCode
 {
     Unknown,
 
+    InvalidDateFormat,
+
     InvalidDateRange,
 
     DateRangeTooLong
