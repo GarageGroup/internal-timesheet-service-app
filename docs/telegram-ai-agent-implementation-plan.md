@@ -407,6 +407,7 @@ Worker логически принадлежит модулю API. Размещ�
 | `Agent:Tools:Tag:MaxTags` | Максимальное число тегов, возвращаемых модели; по умолчанию 20 |
 | `Agent:Storage:TableServiceEndpoint` | HTTPS endpoint Table Storage account; локально и в Azure используется Entra credential, не account key |
 | `Agent:Storage:ConversationTableName` | Имя заранее созданной таблицы ограниченной истории диалогов; по умолчанию `TimesheetAgentConversation` |
+| `Agent:Storage:RequestTableName` | Имя заранее созданной таблицы заданий агента; по умолчанию `TimesheetAgentRequest` |
 | `Agent:Storage:*` | Будущие адреса Queue/Blob и имена ресурсов для jobs/outbox; production доступ по MI |
 | `Agent:DefaultTimeZone` | Часовой пояс для относительных дат; начально `Europe/Moscow` |
 | `Agent:ApprovalTtlMinutes` | Срок preview; начально 10 минут |
