@@ -7,7 +7,9 @@
 Связанные документы:
 
 - [план реализации](telegram-ai-agent-implementation-plan.md);
-- [журнал прогресса](telegram-ai-agent-progress.md).
+- [журнал прогресса](telegram-ai-agent-progress.md);
+- [обзор решения для руководителя](telegram-ai-agent-management-overview.md);
+- [production rollout runbook](telegram-ai-agent-production-rollout.md).
 
 ## Область изменений
 
@@ -272,6 +274,76 @@ inference и запись истории должны проверяться п�
 
 Для production необходимо отдельно выбрать регион и deployment type, проверить квоту и требования
 data residency, создать production deployment и назначить минимальные роли только production identity.
+
+## 28.09.2026 — ZIP deployment Telegram-бота и message operation в APIM
+
+В test Function App `func-internal-gtimesheet-test` напрямую развёрнут ZIP-пакет Telegram-бота из
+коммита `9ac5a3c Add agent text message handling`.
+
+Перед deployment выполнены Release-сборка и все 7 тестов бота; тесты прошли. Пакет создан во временной
+директории вне Git-репозитория, поэтому локальный `launchSettings.json` и содержащиеся в нём секреты в
+ZIP не вошли. Deployment выполнен через Azure CLI без remote build:
+
+- deployment ID: `3b495a76-2cdf-4048-9cbd-b63fc7d57ba1`;
+- итоговый статус: `4` / successful;
+- Function App после recycle: `Running`, availability `Normal`;
+- Azure обнаружил функции `HandleBotEntity`, `HandleBotHttp` и `HealthCheck`.
+
+Существующие App Settings, Managed Identity и Telegram webhook deployment-командой не изменялись.
+Прямой вызов Function App `/health` вернул `401`, что соответствует защищённому внешнему контуру.
+
+В test APIM `apim-integration-platform-test-01`, API `garage-timesheet-agent-api`, добавлена операция:
+
+| Параметр | Значение |
+|---|---|
+| Operation ID | `post-agent-message` |
+| Method | `POST` |
+| URL template | `/internal/agent/messages` |
+
+У диагностической операции `/internal/agent/profile` нет отдельной operation policy: backend URL и
+client certificate настроены общей policy API. Поэтому новая операция наследует тот же защищённый
+маршрут; JWT заголовок бота не подменяется. Общая policy, Mini App API и production не изменялись.
+
+Откат бота: повторно развернуть предыдущий ZIP/коммит. Откат APIM: удалить только operation
+`post-agent-message`. Для production операцию необходимо добавить декларативно через принятую IaC или
+CI/CD-схему одновременно с production deployment бота и API.
+
+### Исправление маршрутизации обычного текста
+
+Первая Telegram-проверка показала, что обычный вопрос пользователя вызвал диагностический
+`POST /internal/agent/profile`, а не `POST /internal/agent/messages`. Application Insights подтвердил
+успешный profile-запрос и отсутствие message-запроса.
+
+Причина была в коде бота: `AgentProfileCommand` одновременно регистрировался как именованная команда
+`profile` и реализовывал общий `IChatCommandParser` с безусловно успешным `Parse`. В результате он
+перехватывал обычные сообщения раньше agent message parser.
+
+Profile-команда оставлена для демонстрации, но исключена из общей parser-цепочки: теперь она доступна
+только как `/profile`. Исправленный пакет повторно развёрнут ZIP-способом:
+
+- deployment ID: `c201a2f2-6cc7-4b88-a646-283368b4a28f`;
+- итоговый статус: `4` / successful;
+- изменения Azure-конфигурации при повторном deployment не выполнялись.
+
+Добавлен regression-тест, проверяющий, что `AgentProfileCommand` больше не является fallback parser.
+После исправления прошли все 8 тестов бота. Код и тест пока не закоммичены.
+
+После повторной отправки обычного текста webhook `HandleBotHttp` успешно завершился с HTTP 204 и
+Durable sidecar принял `SignalEntity`, однако `HandleBotEntity` не запустился. Вызовов APIM, agent API
+и Foundry для этого update не было; поэтому отсутствие ответа не связано с моделью или message endpoint.
+
+После двух последовательных ZIP recycle Durable worker сохранил pending signal, но не выбрал его из
+control queue. Test Function App был штатно перезапущен через Azure CLI; состояние после перезапуска —
+`Running` / `Normal`. Настройки и Durable Storage не очищались. Конфигурация показывает control queue
+visibility timeout 5 минут, поэтому исходный сигнал может быть повторно обработан после окончания
+невидимости. Production не изменялся.
+
+После перезапуска новый Telegram update был успешно обработан. Пользователь получил содержательный
+ответ на read-only вопрос о доступных проектах. Это подтвердило фактическую цепочку Telegram bot →
+Managed Identity → APIM → Timesheet API → user binding → Semantic Kernel → Foundry `gpt-5-mini` →
+project tool → Telegram response. Дополнительные Azure-изменения для успешной проверки не выполнялись.
+
+Исправление маршрутизации бота зафиксировано коммитом `eace3c6 Fix agent message command routing`.
 
 ## Правила дальнейшего ведения
 
