@@ -15,4 +15,9 @@ public interface IAgentRequestStore
         AgentUserContext context,
         string requestId,
         CancellationToken cancellationToken);
+
+    ValueTask<Result<Unit, Failure<AgentRequestStoreFailureCode>>> UpdateAsync(
+        AgentUserContext context,
+        AgentRequestUpdateIn input,
+        CancellationToken cancellationToken);
 }

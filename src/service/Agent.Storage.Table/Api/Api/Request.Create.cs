@@ -3,7 +3,6 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure;
-using Azure.Data.Tables;
 
 namespace GarageGroup.Internal.Timesheet;
 
@@ -15,19 +14,7 @@ partial class AgentRequestTableApi
         CancellationToken cancellationToken)
     {
         var requestId = GetRequestId(context.BotId, input.TelegramUpdateId);
-        var entity = new TableEntity(GetRequestPartitionKey(context), requestId)
-        {
-            [TelegramUserIdPropertyName] = context.TelegramUserId,
-            [TelegramChatIdPropertyName] = context.TelegramChatId,
-            [TelegramUpdateIdPropertyName] = input.TelegramUpdateId,
-            [TextPropertyName] = input.Text,
-            [StatusPropertyName] = AgentRequestStatus.Queued.ToString()
-        };
-
-        if (input.Locale is not null)
-        {
-            entity[LocalePropertyName] = input.Locale;
-        }
+        var entity = CreateEntity(context, input, requestId, AgentRequestStatus.Queued);
 
         try
         {

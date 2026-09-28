@@ -6,7 +6,11 @@ public enum AgentRequestStatus
 
     Running,
 
+    AwaitingConfirmation,
+
     Completed,
 
-    Failed
+    Failed,
+
+    Indeterminate
 }
