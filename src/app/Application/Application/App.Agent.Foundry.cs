@@ -1,5 +1,6 @@
 using System;
 using Azure.Core;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PrimeFuncPack;
 
@@ -7,7 +8,15 @@ namespace GarageGroup.Internal.Timesheet;
 
 partial class Application
 {
-    private static Dependency<AgentKernelFactory> UseAgentKernelFactory()
+    private static Dependency<IAgentMessageFunc> UseAgentMessageFunc()
+        =>
+        Pipeline.Pipe(
+            UseAgentKernelFactory())
+        .With(
+            ResolveAgentMessageOption)
+        .UseAgentMessageFunc();
+
+    private static Dependency<IAgentKernelFactory> UseAgentKernelFactory()
         =>
         Pipeline.Pipe(
             UseAgentTimesheetSetGetFunc())
@@ -28,6 +37,25 @@ partial class Application
     private static TokenCredential ResolveTokenCredential(IServiceProvider serviceProvider)
         =>
         serviceProvider.GetRequiredService<TokenCredential>();
+
+    private static AgentMessageOption ResolveAgentMessageOption(IServiceProvider serviceProvider)
+    {
+        var configuration = serviceProvider.GetConfiguration();
+        var timeZoneId = configuration["Agent:Message:TimeZoneId"];
+        var maxTextLength = configuration.GetValue("Agent:Message:MaxTextLength", 2000);
+
+        if (string.IsNullOrWhiteSpace(timeZoneId))
+        {
+            throw new InvalidOperationException("Agent message time zone ID must be specified");
+        }
+
+        if (maxTextLength <= 0)
+        {
+            throw new InvalidOperationException("Agent message maximum text length must be positive");
+        }
+
+        return new(TimeZoneInfo.FindSystemTimeZoneById(timeZoneId), maxTextLength);
+    }
 
     private static AgentFoundryOption ResolveAgentFoundryOption(IServiceProvider serviceProvider)
     {

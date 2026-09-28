@@ -9,7 +9,25 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class AgentDependency
 {
-    public static Dependency<AgentKernelFactory> UseAgentKernelFactory(
+    public static Dependency<IAgentMessageFunc> UseAgentMessageFunc(
+        this Dependency<IAgentKernelFactory, AgentMessageOption> dependency)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.Fold<IAgentMessageFunc>(CreateFunc);
+
+        static AgentMessageFunc CreateFunc(
+            IAgentKernelFactory kernelFactory,
+            AgentMessageOption option)
+        {
+            ArgumentNullException.ThrowIfNull(kernelFactory);
+            ArgumentNullException.ThrowIfNull(option);
+
+            return new(kernelFactory, new DateProvider(option.TimeZone), option);
+        }
+    }
+
+    public static Dependency<IAgentKernelFactory> UseAgentKernelFactory(
         this Dependency<
             IAgentTimesheetSetGetFunc,
             IAgentProjectSetSearchFunc,
@@ -21,7 +39,7 @@ public static class AgentDependency
     {
         ArgumentNullException.ThrowIfNull(dependency);
 
-        return dependency.Fold(CreateFactory);
+        return dependency.Fold<IAgentKernelFactory>(CreateFactory);
 
         static AgentKernelFactory CreateFactory(
             IAgentTimesheetSetGetFunc timesheetSetGetFunc,

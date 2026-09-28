@@ -13,7 +13,7 @@ public sealed class AgentKernelFactory(
     IAgentPeriodSetGetFunc periodSetGetFunc,
     IAgentTagSetGetFunc tagSetGetFunc,
     TokenCredential tokenCredential,
-    AgentFoundryOption option)
+    AgentFoundryOption option) : IAgentKernelFactory
 {
     public Kernel Create(AgentUserContext context)
     {
