@@ -182,3 +182,17 @@ Adapter зарегистрирован во внутренней dependency comp
 Сам adapter подтверждает изоляцию истории тегов по Entra user, но не доказывает, что Project ID был выбран из разрешённого набора. Будущий message orchestration должен передавать сюда ID из результата `SearchProjects`/`GetRecentProjects` либо выполнять отдельную проверку проекта.
 
 Все пять разрешённых read adapters собраны в `App.Agent.Tools.cs`. Их лимиты читаются из общей секции `Agent:Tools`; существующие HTTP endpoint продолжают использовать прежние business-функции и собственные настройки. Semantic Kernel пока не подключён, поэтому эти зависимости ещё не доступны модели.
+
+## Реализованный Semantic Kernel read plugin
+
+В `src/service/Agent/Core/Plugin.Read` добавлен native plugin `TimesheetRead` на Semantic Kernel 1.80.0. Он содержит ровно пять функций из утверждённого allowlist:
+
+1. `get_timesheets`;
+2. `search_projects`;
+3. `get_recent_projects`;
+4. `get_periods`;
+5. `get_project_tags`.
+
+Plugin создаётся для одного доверенного `AgentUserContext`; identity не входит в схемы аргументов функций. Результат каждой функции имеет единый безопасный формат `IsSuccess`, `Data`, `ErrorCode`. Текст и исходное исключение инфраструктурной ошибки модели не возвращаются.
+
+`Profile.Get`, `Subscription.GetSet`, уведомления, account flow и write-функции в plugin отсутствуют. Plugin пока не добавлен в рабочий Kernel и не вызывается через HTTP — это следующий отдельный инкремент.
