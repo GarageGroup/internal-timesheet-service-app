@@ -1,6 +1,6 @@
 # Telegram AI Agent: журнал изменений Azure
 
-Последнее обновление: 26.09.2026.
+Последнее обновление: 28.09.2026.
 
 Этот документ фиксирует инфраструктурные изменения тестового контура Telegram AI Agent. Он предназначен для аудита и последующего воспроизведения конфигурации в production. Секреты, ключи, токены, connection strings и персональные данные здесь не публикуются.
 
@@ -152,6 +152,126 @@ Test Mini App развёрнут напрямую и затем успешно �
 - Подтверждена полная цепочка Managed Identity, Entra app role, APIM client certificate, JWT-проверки API и серверной Telegram/CRM-привязки.
 - Запрос без токена и запрос с некорректным Bearer-токеном получили HTTP 401.
 - Во время этой проверки конфигурация и ресурсы Azure не изменялись.
+
+## 28.09.2026 — подготовка Table Storage и аудит Foundry
+
+### Выполненные изменения
+
+В существующем Storage Account `stinternalgtimesheettest` создана таблица
+`TimesheetAgentConversation` через Azure CLI с Entra-аутентификацией. Таблица предназначена только
+для ограниченной истории диалогов агента. Connection string и storage key приложению не выдавались.
+
+Production-ресурсы, APIM, Function App и настройки `app-garage-timesheet-service-test` не изменялись.
+App Service не перезапускался.
+
+### Подтверждённая инфраструктура
+
+- рабочий API размещён в `app-garage-timesheet-service-test`;
+- API использует user-assigned Managed Identity `id-internal-gtimesheet-test` с principal ID
+  `7ec77991-a88b-40b6-a6b2-47233c6bf9bf`;
+- существующий Foundry resource: `ai-garage-timesheet-test`;
+- существующий Foundry project: `ai-timesheet-test`;
+- project endpoint:
+  `https://ai-garage-timesheet-test.services.ai.azure.com/api/projects/ai-timesheet-test`;
+- отдельный App Service `app-garage-timesheet-agent-test` не является хостом разрабатываемого API и
+  не должен получать его storage/Foundry-разрешения.
+
+### Не выполнено и причина
+
+Назначение роли `Storage Table Data Contributor` identity API на Storage Account отклонено Azure:
+у текущего пользователя нет разрешения `Microsoft.Authorization/roleAssignments/write`.
+
+Первоначально запланированное имя роли `Azure AI User` отсутствует в данной подписке: актуальное имя
+этой Foundry-роли — `Foundry User`. Для используемого приложением прямого OpenAI v1 inference
+connector документация Microsoft требует роль `Cognitive Services User` на scope Foundry resource;
+назначить её должен пользователь с правом управления RBAC.
+
+Deployment `gpt-5.4` не создан. Azure вернул `InsufficientQuota`: лимит
+`OpenAI.GlobalStandard.gpt-5.4` в `North Europe` равен нулю. Дополнительная проверка usage показала,
+что ненулевая квота в регионе сейчас есть только для embedding-модели, но не для chat-моделей.
+Неудачная попытка deployment не создала ресурс и не начала потребление модели.
+
+### Требуемые ручные действия
+
+1. Назначить principal `7ec77991-a88b-40b6-a6b2-47233c6bf9bf` роль
+   `Storage Table Data Contributor` на `stinternalgtimesheettest`.
+2. Назначить тому же principal роль `Cognitive Services User` на Foundry resource, который будет
+   использоваться приложением.
+3. Запросить chat-model quota для выбранной модели и deployment type в `North Europe` либо выбрать
+   другой регион/существующий корпоративный Foundry resource с доступной квотой.
+4. После появления квоты создать deployment и только затем добавить в API настройки
+   `Agent__Foundry__ProjectEndpoint`, `Agent__Foundry__ModelId` и
+   `Agent__Storage__TableServiceEndpoint`.
+
+### Откат и production checklist
+
+Текущий шаг откатывается удалением только таблицы `TimesheetAgentConversation`; пока она пуста и код
+не развёрнут, иных зависимостей у неё нет. Удаление автоматически не выполнялось.
+
+Для production необходимо отдельно создать таблицу, выдать две минимальные роли production identity,
+подтвердить регион и квоту модели, создать отдельный deployment и записать production endpoint/model
+через принятую CI/CD или IaC-схему. Test resource IDs и principal ID переносить нельзя.
+
+## 28.09.2026 — пересоздание Foundry в West Europe и deployment модели
+
+Пользователь пересоздал test Foundry resource и проект в регионе `West Europe`:
+
+| Объект | Значение |
+|---|---|
+| Foundry resource | `ai-timesheet-test` |
+| Foundry project | `ai-timesheet-test` |
+| Project endpoint | `https://ai-timesheet-test.services.ai.azure.com/api/projects/ai-timesheet-test` |
+
+Через Azure CLI успешно создан deployment:
+
+| Параметр | Значение |
+|---|---|
+| Deployment | `gpt-5-mini` |
+| Model version | `2025-08-07` |
+| Deployment type / SKU | `GlobalStandard` |
+| Capacity | `10` тысяч токенов в минуту |
+| Provisioning state | `Succeeded` |
+
+Deployment использует доступную subscription quota в `West Europe`. Это pay-per-token deployment,
+а не зарезервированная provisioned capacity. Для `GlobalStandard` регион ресурса не гарантирует регион
+обработки inference; перед production необходимо отдельно подтвердить требования к обработке CRM-текста.
+
+Повторные попытки назначить identity API роли `Storage Table Data Contributor` и
+`Cognitive Services User` завершились `AuthorizationFailed`: текущая учётная запись не имеет
+`Microsoft.Authorization/roleAssignments/write`. Роли не назначены, настройки App Service не
+изменялись, приложение не перезапускалось. Администратору передаётся отдельный идемпотентный скрипт
+назначения ролей.
+
+После передачи скрипта администратор успешно назначил Managed Identity
+`id-internal-gtimesheet-test` (principal ID `7ec77991-a88b-40b6-a6b2-47233c6bf9bf`) две роли:
+
+| Роль | Scope |
+|---|---|
+| `Storage Table Data Contributor` | Storage Account `stinternalgtimesheettest` |
+| `Cognitive Services User` | Foundry resource `ai-timesheet-test` |
+
+Назначения повторно проверены через Azure CLI. Роли выданы resource-level identity API, а не
+Telegram-боту, проектной identity Foundry или вспомогательному App Service.
+
+В `app-garage-timesheet-service-test` через Azure CLI записаны настройки:
+
+| Настройка | Значение / назначение |
+|---|---|
+| `Agent__Foundry__ProjectEndpoint` | endpoint test-проекта `ai-timesheet-test` |
+| `Agent__Foundry__ModelId` | deployment `gpt-5-mini` |
+| `Agent__Foundry__TokenScope` | `https://ai.azure.com/.default` |
+| `Agent__Storage__TableServiceEndpoint` | Table endpoint `stinternalgtimesheettest` |
+| `Agent__Storage__ConversationTableName` | `TimesheetAgentConversation` |
+
+Секреты и API keys не добавлялись. Существующая настройка `AZURE_CLIENT_ID` подтверждена как client
+ID `id-internal-gtimesheet-test`. Изменение app settings автоматически перезапустило test App Service;
+после перезапуска Azure сообщил `Running` и `Normal`. Production и APIM не изменялись.
+
+Последний код message endpoint и Foundry orchestration на этом шаге не развёртывался, поэтому реальный
+inference и запись истории должны проверяться после следующего CI/CD deployment API.
+
+Для production необходимо отдельно выбрать регион и deployment type, проверить квоту и требования
+data residency, создать production deployment и назначить минимальные роли только production identity.
 
 ## Правила дальнейшего ведения
 

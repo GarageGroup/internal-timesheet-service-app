@@ -12,7 +12,7 @@
 
 Проект находится на **этапе 3 — Semantic Kernel и read-only инструменты**.
 
-Resolver пользователя, read-only инструменты, Foundry kernel, ограниченная история диалога и синхронный message endpoint реализованы и покрыты unit-тестами. Следующая задача после проверки изменений — подготовить необходимую Azure Table и конфигурацию тестового API, затем подключить вызов endpoint из Telegram-бота.
+Resolver пользователя, read-only инструменты, Foundry kernel, ограниченная история диалога, синхронный message endpoint и вызов из Telegram-бота реализованы и покрыты unit-тестами. В test созданы таблица истории и deployment `gpt-5-mini`, Managed Identity API получила обе минимальные RBAC-роли, а App Service — Foundry/Storage-настройки. Следующий шаг — развернуть текущий код API и выполнить реальную интеграционную проверку.
 
 ```text
 [x] Этап 0. Baseline и первичный аудит
