@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using GarageGroup.Infra;
@@ -38,23 +39,33 @@ partial class AgentConversationMessageFunc
         .MapFailure(
             static failure => failure.MapFailureCode(MapMessageFailureCode))
         .ForwardValue(
-            (@out, token) => AppendConversationAsync(context, input, conversation.Version, @out, token));
+            (@out, token) => SaveConversationAsync(
+                context,
+                conversation.Version,
+                conversation.Messages,
+                input,
+                @out,
+                token));
 
-    private ValueTask<Result<AgentMessageOut, Failure<AgentConversationMessageFailureCode>>> AppendConversationAsync(
+    private ValueTask<Result<AgentMessageOut, Failure<AgentConversationMessageFailureCode>>> SaveConversationAsync(
         AgentUserContext context,
-        AgentConversationMessageIn input,
         string? expectedVersion,
+        FlatArray<AgentChatMessage> conversationMessages,
+        AgentConversationMessageIn input,
         AgentMessageOut output,
         CancellationToken cancellationToken)
         =>
         AsyncPipeline.Pipe(
             context, cancellationToken)
         .PipeValue(
-            (@in, token) => conversationStore.AppendAsync(
+            (@in, token) => conversationStore.SaveAsync(
                 @in,
                 expectedVersion,
-                new(AgentChatMessageRole.User, input.Text.Trim()),
-                new(AgentChatMessageRole.Assistant, output.Text),
+                conversationMessages.AsEnumerable()
+                    .Append(new(AgentChatMessageRole.User, input.Text.Trim()))
+                    .Append(new(AgentChatMessageRole.Assistant, output.Text))
+                    .TakeLast(option.MaxMessageCount)
+                    .ToArray(),
                 token))
         .MapFailure(
             static failure => failure.MapFailureCode(MapStoreFailureCode))

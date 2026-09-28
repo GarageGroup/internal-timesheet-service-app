@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Azure.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +9,24 @@ namespace GarageGroup.Internal.Timesheet;
 
 partial class Application
 {
+    private static Dependency<IAgentConversationMessageFunc> UseAgentConversationMessageFunc()
+        =>
+        Pipeline.Pipe(
+            UseAgentMessageFunc())
+        .With(
+            UseAgentConversationStore())
+        .With(
+            ResolveAgentConversationMessageOption)
+        .UseAgentConversationMessageFunc();
+
+    private static Dependency<IAgentConversationStore> UseAgentConversationStore()
+        =>
+        Dependency.From(
+            ResolveTokenCredential)
+        .With(
+            ResolveAgentConversationTableOption)
+        .UseAgentConversationTableStore();
+
     private static Dependency<IAgentMessageFunc> UseAgentMessageFunc()
         =>
         Pipeline.Pipe(
@@ -55,15 +74,42 @@ partial class Application
             throw new InvalidOperationException("Agent message maximum text length must be positive");
         }
 
-        if (maxHistoryMessageCount < 0)
+        if (maxHistoryMessageCount < 2)
         {
-            throw new InvalidOperationException("Agent message maximum history message count must not be negative");
+            throw new InvalidOperationException("Agent message maximum history message count must be at least two");
         }
 
         return new(TimeZoneInfo.FindSystemTimeZoneById(timeZoneId), maxTextLength)
         {
             MaxHistoryMessageCount = maxHistoryMessageCount
         };
+    }
+
+    private static AgentConversationMessageOption ResolveAgentConversationMessageOption(IServiceProvider serviceProvider)
+        =>
+        new(serviceProvider.GetConfiguration().GetValue("Agent:Message:MaxHistoryMessageCount", 20));
+
+    private static AgentConversationTableOption ResolveAgentConversationTableOption(IServiceProvider serviceProvider)
+    {
+        var configuration = serviceProvider.GetConfiguration();
+        var endpointValue = configuration["Agent:Storage:TableServiceEndpoint"];
+        var tableName = configuration["Agent:Storage:ConversationTableName"];
+
+        if (Uri.TryCreate(endpointValue, UriKind.Absolute, out var endpoint) is false ||
+            endpoint.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) is false)
+        {
+            throw new InvalidOperationException("Agent storage table service endpoint must be an absolute HTTPS URL");
+        }
+
+        if (string.IsNullOrWhiteSpace(tableName) ||
+            tableName.Length is < 3 or > 63 ||
+            char.IsLetter(tableName[0]) is false ||
+            tableName.Any(static c => char.IsLetterOrDigit(c) is false))
+        {
+            throw new InvalidOperationException("Agent storage conversation table name must be specified");
+        }
+
+        return new(endpoint, tableName.Trim());
     }
 
     private static AgentFoundryOption ResolveAgentFoundryOption(IServiceProvider serviceProvider)

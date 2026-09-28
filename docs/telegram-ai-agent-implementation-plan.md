@@ -405,7 +405,9 @@ Worker логически принадлежит модулю API. Размещ�
 | `Agent:Tools:Project:MaxTop` | Серверный предел результатов поиска/последних проектов; по умолчанию 20 |
 | `Agent:Tools:Project:MaxSearchTextLength` | Максимальная длина поисковой строки; по умолчанию 100 символов |
 | `Agent:Tools:Tag:MaxTags` | Максимальное число тегов, возвращаемых модели; по умолчанию 20 |
-| `Agent:Storage:*` | Адреса Table/Queue/Blob и имена ресурсов; production доступ по MI |
+| `Agent:Storage:TableServiceEndpoint` | HTTPS endpoint Table Storage account; локально и в Azure используется Entra credential, не account key |
+| `Agent:Storage:ConversationTableName` | Имя заранее созданной таблицы ограниченной истории диалогов; по умолчанию `TimesheetAgentConversation` |
+| `Agent:Storage:*` | Будущие адреса Queue/Blob и имена ресурсов для jobs/outbox; production доступ по MI |
 | `Agent:DefaultTimeZone` | Часовой пояс для относительных дат; начально `Europe/Moscow` |
 | `Agent:ApprovalTtlMinutes` | Срок preview; начально 10 минут |
 | `Agent:MaxModelSteps`, `Agent:RequestTimeoutSeconds` | Предельная длина цикла и время задания, выставить после измерений |

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using GarageGroup.Infra;
@@ -33,6 +34,12 @@ partial class AgentConversationMessageFuncTest
         var sourceHistory = new AgentChatMessage(AgentChatMessageRole.Assistant, "Предыдущий ответ");
         var conversation = new AgentConversationGetOut([sourceHistory], "version-1");
         var output = new AgentMessageOut("Текущий ответ");
+        AgentChatMessage[] expectedMessages =
+        [
+            sourceHistory,
+            new(AgentChatMessageRole.User, "Покажи списания"),
+            new(AgentChatMessageRole.Assistant, "Текущий ответ")
+        ];
         AgentMessageIn? actualMessageInput = null;
 
         var messageFunc = new Mock<IAgentMessageFunc>();
@@ -43,11 +50,11 @@ partial class AgentConversationMessageFuncTest
         var conversationStore = new Mock<IAgentConversationStore>();
         _ = conversationStore.Setup(f => f.GetAsync(SomeContext, It.IsAny<CancellationToken>())).ReturnsAsync(conversation);
         _ = conversationStore.Setup(
-            f => f.AppendAsync(
+            f => f.SaveAsync(
                 SomeContext,
                 "version-1",
-                new(AgentChatMessageRole.User, "Покажи списания"),
-                new(AgentChatMessageRole.Assistant, "Текущий ответ"),
+                It.Is<FlatArray<AgentChatMessage>>(messages =>
+                    messages.AsEnumerable().SequenceEqual(expectedMessages)),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Unit.Value);
 
@@ -74,11 +81,10 @@ partial class AgentConversationMessageFuncTest
         _ = conversationStore.Setup(f => f.GetAsync(SomeContext, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AgentConversationGetOut(default, "version-1"));
         _ = conversationStore.Setup(
-            f => f.AppendAsync(
+            f => f.SaveAsync(
                 SomeContext,
                 "version-1",
-                It.IsAny<AgentChatMessage>(),
-                It.IsAny<AgentChatMessage>(),
+                It.IsAny<FlatArray<AgentChatMessage>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Failure.Create(AgentConversationStoreFailureCode.Conflict, "Version conflict"));
 

@@ -10,10 +10,9 @@ public interface IAgentConversationStore
         AgentUserContext context,
         CancellationToken cancellationToken);
 
-    ValueTask<Result<Unit, Failure<AgentConversationStoreFailureCode>>> AppendAsync(
+    ValueTask<Result<Unit, Failure<AgentConversationStoreFailureCode>>> SaveAsync(
         AgentUserContext context,
         string? expectedVersion,
-        AgentChatMessage userMessage,
-        AgentChatMessage assistantMessage,
+        FlatArray<AgentChatMessage> messages,
         CancellationToken cancellationToken);
 }

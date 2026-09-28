@@ -377,6 +377,18 @@ Resolver выполняет следующие проверки:
 
 Проверка agent-модуля: 42 теста прошли.
 
+### 28.09.2026 — Azure Table provider для истории диалога
+
+- Добавлен отдельный infrastructure-модуль `Agent.Storage.Table/Api`, реализующий `IAgentConversationStore` через `Azure.Data.Tables` 12.13.0.
+- Одна ограниченная история хранится в одной Table entity; ключ строится из доверенных `BotId`, `TelegramUserId` и `TelegramChatId`, а не из входного DTO Telegram.
+- Запись выполняется с ETag прочитанной версии. Создание существующей entity, несовпадение ETag и исчезновение entity отображаются в `ConversationConflict`.
+- Gateway теперь сохраняет всю новую ограниченную историю одним replace-запросом и оставляет только последние `Agent:Message:MaxHistoryMessageCount` элементов. Это позволяет выполнить атомарную ETag-проверку без повторного чтения внутри provider.
+- Добавлены настройки `Agent:Storage:TableServiceEndpoint` и `Agent:Storage:ConversationTableName`; connection string и account key не используются, доступ выполняется общим `TokenCredential`.
+- Таблица автоматически не создаётся приложением: её создание и выдача роли Managed Identity должны быть отдельным явно зафиксированным инфраструктурным шагом.
+- На этом этапе никакие Azure-ресурсы и роли не изменялись.
+
+Проверка: сборка всего решения без ошибок и предупреждений; 42 теста agent-модуля прошли.
+
 ## Что ещё не сделано на текущем этапе
 
 - Resolver не зарегистрирован в основном приложении, потому что внутренний endpoint ещё не создан.

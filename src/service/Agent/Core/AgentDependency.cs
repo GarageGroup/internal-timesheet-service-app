@@ -10,7 +10,7 @@ namespace GarageGroup.Internal.Timesheet;
 public static class AgentDependency
 {
     public static Dependency<IAgentConversationMessageFunc> UseAgentConversationMessageFunc(
-        this Dependency<IAgentMessageFunc, IAgentConversationStore> dependency)
+        this Dependency<IAgentMessageFunc, IAgentConversationStore, AgentConversationMessageOption> dependency)
     {
         ArgumentNullException.ThrowIfNull(dependency);
 
@@ -18,12 +18,14 @@ public static class AgentDependency
 
         static AgentConversationMessageFunc CreateFunc(
             IAgentMessageFunc messageFunc,
-            IAgentConversationStore conversationStore)
+            IAgentConversationStore conversationStore,
+            AgentConversationMessageOption option)
         {
             ArgumentNullException.ThrowIfNull(messageFunc);
             ArgumentNullException.ThrowIfNull(conversationStore);
+            ArgumentNullException.ThrowIfNull(option);
 
-            return new(messageFunc, conversationStore);
+            return new(messageFunc, conversationStore, option);
         }
     }
 
