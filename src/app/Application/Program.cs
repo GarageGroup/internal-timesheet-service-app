@@ -24,6 +24,7 @@ static class Program
         .UseNotificationEndpointSet()
         .UseSubscriptionSetGetEndpoint()
         .UseProfileGetEndpoint()
+        .UseAgentMessageSendEndpoint()
         .UseAgentProfileGetEndpoint()
         .UseProfileUpdateEndpoint()
         .UseUserSignOutEndpoint()

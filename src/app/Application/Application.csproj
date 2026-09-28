@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\endpoint\Agent.Message.Send\Endpoint\Endpoint.csproj" />
     <ProjectReference Include="..\..\endpoint\Agent.Profile.Get\Endpoint\Endpoint.csproj" />
     <ProjectReference Include="..\..\service\Agent\Contract\Contract.csproj" />
     <ProjectReference Include="..\..\service\Agent\Core\Core.csproj" />

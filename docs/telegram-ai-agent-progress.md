@@ -10,15 +10,15 @@
 
 ## Текущее состояние
 
-Проект находится на **этапе 1 — Identity и привязка пользователя без LLM**.
+Проект находится на **этапе 3 — Semantic Kernel и read-only инструменты**.
 
-Базовый модуль разрешения пользователя и усиленная проверка `User.SignIn` реализованы и покрыты unit-тестами. Resolver пока не подключён к HTTP endpoint, Telegram-боту или Semantic Kernel. Следующая задача — зарегистрировать resolver в приложении и создать первый внутренний read-only endpoint с вызовом `Profile.Get`.
+Resolver пользователя, read-only инструменты, Foundry kernel, ограниченная история диалога и синхронный message endpoint реализованы и покрыты unit-тестами. Следующая задача после проверки изменений — подготовить необходимую Azure Table и конфигурацию тестового API, затем подключить вызов endpoint из Telegram-бота.
 
 ```text
 [x] Этап 0. Baseline и первичный аудит
 [~] Этап 1. Identity и binding без LLM
-[ ] Этап 2. Общие business factories и проверка прав
-[ ] Этап 3. Semantic Kernel и read-only инструменты
+[~] Этап 2. Общие business factories и проверка прав
+[~] Этап 3. Semantic Kernel и read-only инструменты
 [ ] Этап 4. Подтверждения и операции записи
 [ ] Этап 5. Пилот и эксплуатация
 ```
@@ -444,6 +444,18 @@ Resolver выполняет следующие проверки:
 - Azure-ресурсы и конфигурация не изменялись.
 
 Следующий инкремент: один защищённый синхронный `POST /internal/agent/messages`, который разрешает доверенный Telegram-контекст и вызывает готовый `IAgentConversationMessageFunc`.
+
+### 28.09.2026 — синхронный endpoint сообщений агента
+
+- Добавлен модуль `Agent.Message.Send` в принятой структуре `Contract` / `Endpoint/Func` / `Test/Test.Func`.
+- `POST /internal/agent/messages` принимает доверенный `BotId` из claim вызывающего приложения, Telegram update/user/chat, текст и locale из JSON body.
+- Endpoint сначала разрешает актуальную привязку пользователя через `IAgentUserContextResolver`, затем передаёт только доверенный `AgentUserContext` в `IAgentConversationMessageFunc`.
+- Вызов построен через `AsyncPipeline`; HTTP endpoint не содержит Semantic Kernel, storage или Dataverse-логику.
+- Ошибки identity, сообщения и конкурентного изменения истории отображаются в безопасные endpoint failure codes; детали инфраструктурных исключений наружу не проектируются.
+- Endpoint зарегистрирован в основном приложении и защищается существующим контуром `/internal/agent/*`, feature flag и app-only авторизацией.
+- Очередь, worker и status endpoint не возвращались; Azure-конфигурация не изменялась.
+
+Проверка модуля endpoint: 14 тестов прошли.
 
 ## Что ещё не сделано на текущем этапе
 
