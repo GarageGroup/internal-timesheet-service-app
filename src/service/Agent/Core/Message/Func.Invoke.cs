@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using GarageGroup.Infra;
@@ -28,6 +29,19 @@ partial class AgentMessageFunc
     {
         var kernel = kernelFactory.Create(context);
         var history = new ChatHistory(BuildSystemPrompt(input.Locale));
+
+        foreach (var message in input.History)
+        {
+            if (message.Role is AgentChatMessageRole.User)
+            {
+                history.AddUserMessage(message.Text.Trim());
+            }
+            else
+            {
+                history.AddAssistantMessage(message.Text.Trim());
+            }
+        }
+
         history.AddUserMessage(input.Text.Trim());
 
         try
@@ -71,6 +85,21 @@ partial class AgentMessageFunc
             return Failure.Create(
                 AgentMessageFailureCode.InvalidMessage,
                 $"Message text must not exceed {option.MaxTextLength} characters");
+        }
+
+        if (input.History.AsEnumerable().Take(option.MaxHistoryMessageCount + 1).Count() > option.MaxHistoryMessageCount)
+        {
+            return Failure.Create(
+                AgentMessageFailureCode.InvalidMessage,
+                $"Message history must not exceed {option.MaxHistoryMessageCount} items");
+        }
+
+        foreach (var message in input.History)
+        {
+            if (string.IsNullOrWhiteSpace(message.Text) || message.Text.Length > option.MaxTextLength)
+            {
+                return Failure.Create(AgentMessageFailureCode.InvalidMessage, "Message history contains invalid text");
+            }
         }
 
         return input;

@@ -20,7 +20,10 @@ public static partial class AgentMessageFuncTest
 
     private static readonly AgentMessageOption SomeOption = new(
         TimeZoneInfo.FindSystemTimeZoneById("Europe/Moscow"),
-        2000);
+        2000)
+    {
+        MaxHistoryMessageCount = 20
+    };
 
     private static AgentMessageFunc CreateFunc(
         IChatCompletionService chatService,

@@ -43,6 +43,7 @@ partial class Application
         var configuration = serviceProvider.GetConfiguration();
         var timeZoneId = configuration["Agent:Message:TimeZoneId"];
         var maxTextLength = configuration.GetValue("Agent:Message:MaxTextLength", 2000);
+        var maxHistoryMessageCount = configuration.GetValue("Agent:Message:MaxHistoryMessageCount", 20);
 
         if (string.IsNullOrWhiteSpace(timeZoneId))
         {
@@ -54,7 +55,15 @@ partial class Application
             throw new InvalidOperationException("Agent message maximum text length must be positive");
         }
 
-        return new(TimeZoneInfo.FindSystemTimeZoneById(timeZoneId), maxTextLength);
+        if (maxHistoryMessageCount < 0)
+        {
+            throw new InvalidOperationException("Agent message maximum history message count must not be negative");
+        }
+
+        return new(TimeZoneInfo.FindSystemTimeZoneById(timeZoneId), maxTextLength)
+        {
+            MaxHistoryMessageCount = maxHistoryMessageCount
+        };
     }
 
     private static AgentFoundryOption ResolveAgentFoundryOption(IServiceProvider serviceProvider)
