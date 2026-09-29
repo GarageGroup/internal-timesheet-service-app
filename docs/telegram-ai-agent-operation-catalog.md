@@ -112,6 +112,8 @@ Adapter обязан:
 
 Для agent delete недостаточно принять `TimesheetId` от модели и положиться только на callback ownership. Prepare обязан повторно разрешить запись через read-функцию с доверенным `AgentUserContext`, убедиться, что ID присутствует в доступном пользователю результате, и сохранить серверный preview в action. Произвольный ID из prompt не считается разрешённым. Существующий `Timesheet.Delete` выделен в переиспользуемую `UseTimesheetDeleteFunc`; confirm должен вызывать её напрямую, без self-HTTP.
 
+Подготовленное удаление хранится в существующей `TimesheetAgentAction`, а не в отдельной таблице. Строки различаются обязательным свойством `ActionType`; delete payload содержит доверенный `TimesheetId` и серверный snapshot. До первого production-релиза обратная совместимость с тестовыми rows без discriminator намеренно не поддерживается: оба reader принимают только свой явный тип. Переходы состояния используют общий ETag optimistic concurrency.
+
 ### Текущий confirm/cancel boundary
 
 Core-функции создания списания принимают для confirm/cancel только доверенный `AgentUserContext` и серверный `ActionId`. Они не принимают дату, проект, длительность, комментарий, `CallerObjectId` или Telegram identifiers как изменяемые аргументы. Action storage повторно сравнивает полного владельца, а переход состояния защищён ETag и ожидаемым `Pending`.

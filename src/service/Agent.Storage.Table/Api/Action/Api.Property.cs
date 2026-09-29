@@ -7,6 +7,8 @@ partial class AgentActionTableApi
     private const string BindingIdPropertyName = "BindingId";
     private const string CrmSystemUserIdPropertyName = "CrmSystemUserId";
     private const string EntraObjectIdPropertyName = "EntraObjectId";
+    private const string ActionTypePropertyName = "ActionType";
+    private const string TimesheetIdPropertyName = "TimesheetId";
     private const string DatePropertyName = "Date";
     private const string ProjectIdPropertyName = "ProjectId";
     private const string ProjectNamePropertyName = "ProjectName";

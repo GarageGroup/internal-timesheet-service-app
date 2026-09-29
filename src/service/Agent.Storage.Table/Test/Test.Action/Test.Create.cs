@@ -35,6 +35,7 @@ partial class AgentActionTableApiTest
         Assert.Equal(SomeContext.BindingId, actualEntity.GetGuid("BindingId"));
         Assert.Equal(SomeContext.CrmSystemUserId, actualEntity.GetGuid("CrmSystemUserId"));
         Assert.Equal(SomeContext.EntraObjectId, actualEntity.GetGuid("EntraObjectId"));
+        Assert.Equal((int)AgentActionType.CreateTimesheet, actualEntity.GetInt32("ActionType"));
         Assert.Equal("2026-09-29", actualEntity.GetString("Date"));
         Assert.Equal("1.5", actualEntity.GetString("Duration"));
         Assert.Equal((int)AgentActionState.Pending, actualEntity.GetInt32("State"));
@@ -57,5 +58,34 @@ partial class AgentActionTableApiTest
         var failure = actual.FailureOrThrow();
         Assert.Equal(AgentActionStoreFailureCode.Conflict, failure.FailureCode);
         Assert.Same(exception, failure.SourceException);
+    }
+
+    [Fact]
+    public static async Task CreateAsync_DeleteActionIsValid_ExpectOwnedPendingEntity()
+    {
+        TableEntity? actualEntity = null;
+        var tableApi = new StubTableApi
+        {
+            AddAsyncStub = (entity, _) =>
+            {
+                actualEntity = entity;
+
+                return ValueTask.CompletedTask;
+            }
+        };
+
+        _ = (await new AgentActionTableApi(tableApi).CreateAsync(
+            SomeContext,
+            SomeDeleteAction,
+            TestContext.Current.CancellationToken)).SuccessOrThrow();
+
+        Assert.NotNull(actualEntity);
+        Assert.Equal("101", actualEntity.PartitionKey);
+        Assert.Equal("2c5964901917428c88b93e8dc55f835a", actualEntity.RowKey);
+        Assert.Equal((int)AgentActionType.DeleteTimesheet, actualEntity.GetInt32("ActionType"));
+        Assert.Equal(SomeDeleteAction.TimesheetId, actualEntity.GetGuid("TimesheetId"));
+        Assert.Equal("2026-09-30", actualEntity.GetString("Date"));
+        Assert.Equal("2.25", actualEntity.GetString("Duration"));
+        Assert.Equal((int)AgentActionState.Pending, actualEntity.GetInt32("State"));
     }
 }

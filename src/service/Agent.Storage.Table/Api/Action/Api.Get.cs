@@ -25,6 +25,11 @@ partial class AgentActionTableApi
                 return default(AgentTimesheetCreateAction?);
             }
 
+            if (entity.GetInt32(ActionTypePropertyName) is not (int)AgentActionType.CreateTimesheet)
+            {
+                return default(AgentTimesheetCreateAction?);
+            }
+
             var date = DateOnly.ParseExact(
                 GetRequiredString(entity.GetString(DatePropertyName), DatePropertyName),
                 "yyyy-MM-dd",
@@ -35,6 +40,49 @@ partial class AgentActionTableApi
                 GetRequiredValue(entity.GetGuid(ProjectIdPropertyName), ProjectIdPropertyName),
                 entity.GetString(ProjectNamePropertyName),
                 (ProjectType)GetRequiredValue(entity.GetInt32(ProjectTypePropertyName), ProjectTypePropertyName),
+                decimal.Parse(
+                    GetRequiredString(entity.GetString(DurationPropertyName), DurationPropertyName),
+                    CultureInfo.InvariantCulture),
+                entity.GetString(DescriptionPropertyName),
+                GetRequiredValue(entity.GetDateTimeOffset(CreatedAtPropertyName), CreatedAtPropertyName),
+                GetRequiredValue(entity.GetDateTimeOffset(ExpiresAtPropertyName), ExpiresAtPropertyName),
+                (AgentActionState)GetRequiredValue(entity.GetInt32(StatePropertyName), StatePropertyName),
+                entity.ETag.ToString());
+
+            return action;
+        }
+        catch (Exception exception) when (exception is RequestFailedException or FormatException or InvalidOperationException)
+        {
+            return Failure.Create(AgentActionStoreFailureCode.Unknown, "Failed to load agent action", exception);
+        }
+    }
+
+    public async ValueTask<Result<AgentTimesheetDeleteAction?, Failure<AgentActionStoreFailureCode>>> GetDeleteAsync(
+        AgentUserContext context,
+        Guid actionId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var entity = await tableApi.GetAsync(
+                GetPartitionKey(context),
+                GetRowKey(actionId),
+                cancellationToken).ConfigureAwait(false);
+
+            if (entity is null || IsAnotherOwner(entity, context) ||
+                entity.GetInt32(ActionTypePropertyName) is not (int)AgentActionType.DeleteTimesheet)
+            {
+                return default(AgentTimesheetDeleteAction?);
+            }
+
+            var action = new AgentTimesheetDeleteAction(
+                actionId,
+                GetRequiredValue(entity.GetGuid(TimesheetIdPropertyName), TimesheetIdPropertyName),
+                DateOnly.ParseExact(
+                    GetRequiredString(entity.GetString(DatePropertyName), DatePropertyName),
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture),
+                entity.GetString(ProjectNamePropertyName),
                 decimal.Parse(
                     GetRequiredString(entity.GetString(DurationPropertyName), DurationPropertyName),
                     CultureInfo.InvariantCulture),

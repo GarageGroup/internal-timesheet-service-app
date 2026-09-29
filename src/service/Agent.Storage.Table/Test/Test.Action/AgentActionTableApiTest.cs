@@ -26,4 +26,16 @@ public static partial class AgentActionTableApiTest
             description: "Some description",
             createdAt: new(2026, 09, 29, 12, 00, 00, TimeSpan.Zero),
             expiresAt: new(2026, 09, 29, 12, 10, 00, TimeSpan.Zero));
+
+    private static readonly AgentTimesheetDeleteAction SomeDeleteAction
+        =
+        new(
+            actionId: new("2c596490-1917-428c-88b9-3e8dc55f835a"),
+            timesheetId: new("46606dc6-335f-4271-86b7-ff9540e9f480"),
+            date: new(2026, 09, 30),
+            projectName: "Another project",
+            duration: 2.25m,
+            description: "Another description",
+            createdAt: new(2026, 09, 30, 13, 00, 00, TimeSpan.Zero),
+            expiresAt: new(2026, 09, 30, 13, 10, 00, TimeSpan.Zero));
 }

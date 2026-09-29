@@ -14,7 +14,9 @@ public sealed record class AgentTimesheetDeleteAction
         decimal duration,
         [AllowNull] string description,
         DateTimeOffset createdAt,
-        DateTimeOffset expiresAt)
+        DateTimeOffset expiresAt,
+        AgentActionState state = AgentActionState.Pending,
+        [AllowNull] string version = null)
     {
         ActionId = actionId;
         TimesheetId = timesheetId;
@@ -24,6 +26,8 @@ public sealed record class AgentTimesheetDeleteAction
         Description = description.OrEmpty();
         CreatedAt = createdAt;
         ExpiresAt = expiresAt;
+        State = state;
+        Version = version.OrNullIfEmpty();
     }
 
     public Guid ActionId { get; }
@@ -41,4 +45,8 @@ public sealed record class AgentTimesheetDeleteAction
     public DateTimeOffset CreatedAt { get; }
 
     public DateTimeOffset ExpiresAt { get; }
+
+    public AgentActionState State { get; init; }
+
+    public string? Version { get; init; }
 }

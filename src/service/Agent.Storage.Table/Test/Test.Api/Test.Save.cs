@@ -34,7 +34,8 @@ partial class AgentConversationTableApiTest
         Assert.NotNull(actualEntity);
         Assert.Equal("101", actualEntity.PartitionKey);
         Assert.Equal("202-303", actualEntity.RowKey);
-        Assert.Equal(messages, JsonSerializer.Deserialize<AgentChatMessage[]>(actualEntity.GetString("Messages")!));
+        var messagesJson = Assert.IsType<string>(actualEntity.GetString("Messages"));
+        Assert.Equal(messages, JsonSerializer.Deserialize<AgentChatMessage[]>(messagesJson));
     }
 
     [Theory]

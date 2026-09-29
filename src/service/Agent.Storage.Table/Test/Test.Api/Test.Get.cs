@@ -46,4 +46,31 @@ partial class AgentConversationTableApiTest
         Assert.Equal("version-1", actual.Version);
         Assert.Equal(new(AgentChatMessageRole.User, "Some question"), Assert.Single(actual.Messages.AsEnumerable()));
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("null")]
+    public static async Task GetAsync_MessagesAreMissingOrNull_ExpectUnknownFailure(string? messages)
+    {
+        var entity = new TableEntity("101", "202-303")
+        {
+            ETag = new ETag("version-1")
+        };
+        if (messages is not null)
+        {
+            entity["Messages"] = messages;
+        }
+
+        var api = new StubTableApi
+        {
+            GetAsyncStub = (_, _, _) => ValueTask.FromResult<TableEntity?>(entity)
+        };
+
+        var actual = await new AgentConversationTableApi(api).GetAsync(
+            SomeContext,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(AgentConversationStoreFailureCode.Unknown, actual.FailureOrThrow().FailureCode);
+    }
 }
