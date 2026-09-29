@@ -19,6 +19,10 @@ partial class Application
         .With(
             UseAgentTimesheetCreateCancelFunc())
         .With(
+            UseAgentTimesheetDeleteConfirmFunc())
+        .With(
+            UseAgentTimesheetDeleteCancelFunc())
+        .With(
             ResolveAgentActionDecideOption)
         .UseAgentActionDecideEndpoint();
 
@@ -33,6 +37,18 @@ partial class Application
     private static Dependency<IAgentTimesheetCreateCancelFunc> UseAgentTimesheetCreateCancelFunc()
         =>
         UseAgentActionStore().UseAgentTimesheetCreateCancelFunc();
+
+    private static Dependency<IAgentTimesheetDeleteConfirmFunc> UseAgentTimesheetDeleteConfirmFunc()
+        =>
+        Pipeline.Pipe(
+            UseAgentTimesheetDeleteActionStore())
+        .With(
+            UseDataverseApi().UseTimesheetDeleteFunc())
+        .UseAgentTimesheetDeleteConfirmFunc();
+
+    private static Dependency<IAgentTimesheetDeleteCancelFunc> UseAgentTimesheetDeleteCancelFunc()
+        =>
+        UseAgentTimesheetDeleteActionStore().UseAgentTimesheetDeleteCancelFunc();
 
     private static AgentActionDecideOption ResolveAgentActionDecideOption(IServiceProvider serviceProvider)
         =>

@@ -842,6 +842,19 @@ Resolver выполняет следующие проверки:
 
 Проверка: все 90 тестов service `Agent` и 16 тестов endpoint `Agent.Message.Send` прошли; полная Application-сборка завершилась без ошибок и предупреждений. Следующий инкремент — реализовать confirm/cancel удаления в общем decision endpoint; до этого бот не должен показывать рабочие кнопки для delete preview.
 
+### 30.09.2026 — confirm/cancel удаления через общий decision endpoint
+
+- Добавлены отдельные service-контракты и Core-модули `Timesheet.ConfirmDelete` и `Timesheet.CancelDelete`; create и delete не смешиваются на уровне типизированных action payload.
+- Confirm загружает только `DeleteTimesheet` action текущего владельца, проверяет TTL, состояние и ETag, затем атомарно переводит `Pending → Executing`.
+- Фактическое удаление выполняется существующим `ITimesheetDeleteFunc` напрямую, без self-HTTP. В `TimesheetDeleteIn.SystemUserId` передаётся доверенный `AgentUserContext.EntraObjectId`, который становится Dataverse `CallerObjectId`.
+- После результата Dataverse action переходит `Executing → Succeeded` либо `Executing → Failed`. Неизвестный результат, исключение или невозможность надёжно сохранить финальное состояние дают `Indeterminate`; автоматическое повторное исполнение запрещено.
+- Cancel не вызывает Dataverse и выполняет только conditional переход `Pending → Cancelled`; просроченное действие сначала фиксируется как `Expired`.
+- Один существующий `POST /internal/agent/actions/{actionId}/decision` обслуживает оба типа. Он обращается к delete handler только когда create handler вернул строго `NotFound`; storage error, конфликт, expiry и неверное состояние не маскируются fallback-диспетчеризацией.
+- Application composition использует общую action table, общий `TokenCredential` и переиспользуемый `UseTimesheetDeleteFunc`.
+- Azure-ресурсы, APIM, роли и настройки не изменялись.
+
+Проверка: все 93 теста service `Agent` и 31 тест endpoint `Agent.Action.Decide` прошли; полная Application-сборка завершилась без ошибок и предупреждений. Следующий инкремент — обновить Telegram-клиент под `PreparedCreateAction`/`PreparedDeleteAction`, добавить локализованный delete preview и использовать те же кнопки общего decision endpoint.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.

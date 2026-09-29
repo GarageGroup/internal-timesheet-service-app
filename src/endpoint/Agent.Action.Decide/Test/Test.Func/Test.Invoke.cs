@@ -65,6 +65,45 @@ partial class AgentActionDecideFuncTest
         confirmFunc.VerifyNoOtherCalls();
     }
 
+    [Fact]
+    public static async Task InvokeAsync_CreateConfirmDoesNotFindAction_ExpectDeleteConfirmCall()
+    {
+        var resolver = new Mock<IAgentUserContextResolver>();
+        _ = resolver.Setup(r => r.ResolveAsync(
+            It.IsAny<AgentUserIdentity>(),
+            It.IsAny<CancellationToken>())).ReturnsAsync(SomeContext);
+        var createConfirmFunc = new Mock<IAgentTimesheetCreateConfirmFunc>();
+        _ = createConfirmFunc.Setup(f => f.InvokeAsync(
+            SomeContext,
+            SomeActionId,
+            It.IsAny<CancellationToken>())).ReturnsAsync(
+                Failure.Create(AgentTimesheetCreateConfirmFailureCode.NotFound, "Create action not found"));
+        var createCancelFunc = new Mock<IAgentTimesheetCreateCancelFunc>(MockBehavior.Strict);
+        var deleteConfirmFunc = new Mock<IAgentTimesheetDeleteConfirmFunc>();
+        _ = deleteConfirmFunc.Setup(f => f.InvokeAsync(
+            SomeContext,
+            SomeActionId,
+            It.IsAny<CancellationToken>())).ReturnsAsync(new AgentTimesheetDeleteConfirmOut(SomeActionId));
+        var deleteCancelFunc = new Mock<IAgentTimesheetDeleteCancelFunc>(MockBehavior.Strict);
+        var func = new AgentActionDecideFunc(
+            resolver.Object,
+            createConfirmFunc.Object,
+            createCancelFunc.Object,
+            deleteConfirmFunc.Object,
+            deleteCancelFunc.Object,
+            new(true));
+
+        var actual = (await func.InvokeAsync(
+            SomeInput,
+            TestContext.Current.CancellationToken)).SuccessOrThrow();
+
+        Assert.Equal(new AgentActionDecideOut(SomeActionId, AgentActionDecision.Confirm), actual);
+        createConfirmFunc.VerifyAll();
+        deleteConfirmFunc.VerifyAll();
+        createCancelFunc.VerifyNoOtherCalls();
+        deleteCancelFunc.VerifyNoOtherCalls();
+    }
+
     [Theory]
     [InlineData(0, 303, AgentActionDecision.Confirm)]
     [InlineData(1, 0, AgentActionDecision.Confirm)]

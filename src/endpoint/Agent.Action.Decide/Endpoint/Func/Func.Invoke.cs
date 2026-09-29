@@ -48,24 +48,56 @@ partial class AgentActionDecideFunc
     {
         if (input.Decision is AgentActionDecision.Confirm)
         {
-            var confirmResult = await confirmFunc.InvokeAsync(
+            var createResult = await createConfirmFunc.InvokeAsync(
                 context,
                 input.ActionId,
                 cancellationToken).ConfigureAwait(false);
 
-            return confirmResult.Map(
+            if (createResult.IsSuccess)
+            {
+                return new AgentActionDecideOut(input.ActionId, input.Decision);
+            }
+
+            var createFailure = createResult.FailureOrThrow();
+            if (createFailure.FailureCode is not AgentTimesheetCreateConfirmFailureCode.NotFound)
+            {
+                return createFailure.MapFailureCode(MapCreateConfirmFailureCode);
+            }
+
+            var deleteResult = await deleteConfirmFunc.InvokeAsync(
+                context,
+                input.ActionId,
+                cancellationToken).ConfigureAwait(false);
+
+            return deleteResult.Map(
                 _ => new AgentActionDecideOut(input.ActionId, input.Decision),
-                static failure => failure.MapFailureCode(MapConfirmFailureCode));
+                static failure => failure.MapFailureCode(MapDeleteConfirmFailureCode));
         }
 
-        var cancelResult = await cancelFunc.InvokeAsync(
+        var createCancelResult = await createCancelFunc.InvokeAsync(
             context,
             input.ActionId,
             cancellationToken).ConfigureAwait(false);
 
-        return cancelResult.Map(
+        if (createCancelResult.IsSuccess)
+        {
+            return new AgentActionDecideOut(input.ActionId, input.Decision);
+        }
+
+        var createCancelFailure = createCancelResult.FailureOrThrow();
+        if (createCancelFailure.FailureCode is not AgentTimesheetCreateCancelFailureCode.NotFound)
+        {
+            return createCancelFailure.MapFailureCode(MapCreateCancelFailureCode);
+        }
+
+        var deleteCancelResult = await deleteCancelFunc.InvokeAsync(
+            context,
+            input.ActionId,
+            cancellationToken).ConfigureAwait(false);
+
+        return deleteCancelResult.Map(
             _ => new AgentActionDecideOut(input.ActionId, input.Decision),
-            static failure => failure.MapFailureCode(MapCancelFailureCode));
+            static failure => failure.MapFailureCode(MapDeleteCancelFailureCode));
     }
 
     private static AgentActionDecideFailureCode MapUserFailureCode(AgentUserContextResolveFailureCode failureCode)
@@ -82,7 +114,7 @@ partial class AgentActionDecideFunc
             _ => AgentActionDecideFailureCode.Unknown
         };
 
-    private static AgentActionDecideFailureCode MapConfirmFailureCode(AgentTimesheetCreateConfirmFailureCode failureCode)
+    private static AgentActionDecideFailureCode MapCreateConfirmFailureCode(AgentTimesheetCreateConfirmFailureCode failureCode)
         =>
         failureCode switch
         {
@@ -98,7 +130,7 @@ partial class AgentActionDecideFunc
             _ => AgentActionDecideFailureCode.Unknown
         };
 
-    private static AgentActionDecideFailureCode MapCancelFailureCode(AgentTimesheetCreateCancelFailureCode failureCode)
+    private static AgentActionDecideFailureCode MapCreateCancelFailureCode(AgentTimesheetCreateCancelFailureCode failureCode)
         =>
         failureCode switch
         {
@@ -107,6 +139,32 @@ partial class AgentActionDecideFunc
             AgentTimesheetCreateCancelFailureCode.Expired => AgentActionDecideFailureCode.ActionExpired,
             AgentTimesheetCreateCancelFailureCode.InvalidState => AgentActionDecideFailureCode.InvalidActionState,
             AgentTimesheetCreateCancelFailureCode.Conflict => AgentActionDecideFailureCode.ActionConflict,
+            _ => AgentActionDecideFailureCode.Unknown
+        };
+
+    private static AgentActionDecideFailureCode MapDeleteConfirmFailureCode(AgentTimesheetDeleteConfirmFailureCode failureCode)
+        =>
+        failureCode switch
+        {
+            AgentTimesheetDeleteConfirmFailureCode.InvalidActionId => AgentActionDecideFailureCode.InvalidDecision,
+            AgentTimesheetDeleteConfirmFailureCode.NotFound => AgentActionDecideFailureCode.ActionNotFound,
+            AgentTimesheetDeleteConfirmFailureCode.Expired => AgentActionDecideFailureCode.ActionExpired,
+            AgentTimesheetDeleteConfirmFailureCode.InvalidState => AgentActionDecideFailureCode.InvalidActionState,
+            AgentTimesheetDeleteConfirmFailureCode.Conflict => AgentActionDecideFailureCode.ActionConflict,
+            AgentTimesheetDeleteConfirmFailureCode.BadRequest => AgentActionDecideFailureCode.InvalidTimesheet,
+            AgentTimesheetDeleteConfirmFailureCode.Indeterminate => AgentActionDecideFailureCode.Indeterminate,
+            _ => AgentActionDecideFailureCode.Unknown
+        };
+
+    private static AgentActionDecideFailureCode MapDeleteCancelFailureCode(AgentTimesheetDeleteCancelFailureCode failureCode)
+        =>
+        failureCode switch
+        {
+            AgentTimesheetDeleteCancelFailureCode.InvalidActionId => AgentActionDecideFailureCode.InvalidDecision,
+            AgentTimesheetDeleteCancelFailureCode.NotFound => AgentActionDecideFailureCode.ActionNotFound,
+            AgentTimesheetDeleteCancelFailureCode.Expired => AgentActionDecideFailureCode.ActionExpired,
+            AgentTimesheetDeleteCancelFailureCode.InvalidState => AgentActionDecideFailureCode.InvalidActionState,
+            AgentTimesheetDeleteCancelFailureCode.Conflict => AgentActionDecideFailureCode.ActionConflict,
             _ => AgentActionDecideFailureCode.Unknown
         };
 }
