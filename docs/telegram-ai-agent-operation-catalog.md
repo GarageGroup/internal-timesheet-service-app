@@ -108,7 +108,7 @@ Adapter обязан:
 2. Является ли его текущее отсутствие недоработкой существующего API?
 3. Подтверждено ли, что для agent create/update/delete источником `SystemUserId` и `CallerObjectId` должен быть `AgentUserContext.EntraObjectId`?
 
-По решению владельца проекта от 29.09.2026 первый вопрос проверяется экспериментально: `CallerObjectId` добавлен только в существующий пользовательский `Timesheet.Update`. После успешной ручной проверки в test это поведение можно принять как единое правило для будущих agent create/update/delete. До результата проверки agent update остаётся заблокированным.
+По решению владельца проекта от 29.09.2026 `CallerObjectId` был сначала добавлен только в существующий пользовательский `Timesheet.Update`. Ручная проверка в test прошла успешно, поэтому `AgentUserContext.EntraObjectId` принят как единый источник caller identity для будущих agent create/update/delete. Agent update остаётся заблокированным до появления общего prepare/confirm flow, проверки ownership и защиты от повторного исполнения.
 
 ### `Project.GetSet`
 

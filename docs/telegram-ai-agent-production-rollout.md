@@ -138,6 +138,7 @@ resource. Роль должна получить identity API, а не бот.
 
 ```text
 TimesheetAgentConversation
+TimesheetAgentAction
 ```
 
 Приложение намеренно не создаёт таблицу автоматически.
@@ -154,6 +155,7 @@ table-level RBAC и организационного стандарта можн
 |---|---|
 | `Agent__Storage__TableServiceEndpoint` | `https://<storage>.table.core.windows.net/` |
 | `Agent__Storage__ConversationTableName` | `TimesheetAgentConversation` |
+| `Agent__Storage__ActionTableName` | `TimesheetAgentAction` |
 | `Agent__Message__MaxHistoryMessageCount` | согласованный лимит, test default `20` |
 | `Agent__Message__MaxTextLength` | согласованный лимит, test default `2000` |
 | `Agent__Message__TimeZoneId` | production business timezone |
