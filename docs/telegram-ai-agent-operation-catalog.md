@@ -118,6 +118,8 @@ Confirm переводит `Pending → Executing`, cancel — `Pending → Canc
 
 Execution boundary реализован в Core: `ITimesheetCreateFunc` получает `SystemUserId = AgentUserContext.EntraObjectId`, а остальные параметры — из action, уже прошедшего prepare и подтверждение. `Succeeded` устанавливается только после успешного результата. Известные бизнес-отказы становятся `Failed`; неизвестные ошибки, исключения и невозможность надёжно сохранить результат становятся `Indeterminate`. Для `Indeterminate` автоматический retry запрещён, так как текущий create не возвращает CRM ID и не принимает idempotency key.
 
+Внешняя граница confirm/cancel реализована одним endpoint `POST /internal/agent/actions/{actionId}/decision`. Она не является Semantic Kernel tool: решение поступает только из явного Telegram callback. Endpoint принимает `Confirm`/`Cancel`, повторно разрешает owner context и передаёт Core только доверенный контекст и `ActionId`. Write feature flag проверяется до любых зависимостей.
+
 ### `Project.GetSet`
 
 Пользовательский ID применяется к истории списаний проектов, но запросы Incident, Opportunity и Lead выглядят общими. До выдачи полного набора модели необходимо интеграционно подтвердить, что SQL/API слой не раскрывает пользователю недоступные записи.

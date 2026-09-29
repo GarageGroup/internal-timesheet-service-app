@@ -685,6 +685,22 @@ Resolver выполняет следующие проверки:
 
 Проверка: 85 тестов Agent Core прошли; полная solution-сборка завершилась без ошибок и предупреждений. Следующий инкремент — подключить confirm/cancel к Application и добавить защищённый callback endpoint, который повторно разрешает `AgentUserContext` по доверенным Telegram identifiers.
 
+### 29.09.2026 — защищённый endpoint решения по action
+
+- Добавлен endpoint-модуль `Agent.Action.Decide` в принятой структуре `Contract` / `Endpoint` / `Test`.
+- Маршрут `POST /internal/agent/actions/{actionId}/decision` принимает только Telegram update/user/chat и enum `Confirm`/`Cancel`; дата, проект, длительность, комментарий и caller identity отсутствуют во входном контракте.
+- `BotId` поступает из доверенного claim `timesheet_bot_id`, сформированного существующим app-only middleware после проверки токена, app role и allowlist клиента.
+- Перед confirm/cancel endpoint повторно разрешает полный `AgentUserContext` через текущий binding. Чужой action не раскрывается и отображается как `ActionNotFound`.
+- Confirm и cancel собраны через `Pipeline/Dependency`; confirm использует существующий `ITimesheetCreateFunc` напрямую, без self-HTTP.
+- Endpoint дополнительно закрыт `Agent:WritePreparation:Enabled`: при `false` отказ происходит до user resolver, Storage и Dataverse.
+- Добавлены типизированные HTTP failure codes для identity, binding, action state/TTL/conflict, бизнес-ошибок создания и `Indeterminate`.
+- Для `Timesheet.Modify` добавлен отдельный dependency `UseTimesheetCreateFunc`, чтобы переиспользовать существующую реализацию создания без endpoint set и service locator.
+- Проекты Contract/Endpoint/Test добавлены в solution, Application и `Program`.
+- APIM operation и Telegram callback пока не добавлены; deployed API/бот не изменились. Azure не изменялся.
+- В новом коде отсутствует оператор `!`.
+
+Проверка: 30 тестов `Agent.Action.Decide` прошли; полная solution-сборка завершилась без ошибок и предупреждений. Следующий инкремент — добавить typed callback client и inline keyboard в Telegram-бот, затем после deployment создать test APIM operation для decision route.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.

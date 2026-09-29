@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 
 namespace GarageGroup.Internal.Timesheet;
@@ -24,6 +24,7 @@ static class Program
         .UseNotificationEndpointSet()
         .UseSubscriptionSetGetEndpoint()
         .UseProfileGetEndpoint()
+        .UseAgentActionDecideEndpoint()
         .UseAgentMessageSendEndpoint()
         .UseAgentProfileGetEndpoint()
         .UseProfileUpdateEndpoint()

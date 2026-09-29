@@ -9,6 +9,21 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class TimesheetModifyDependency
 {
+    public static Dependency<ITimesheetCreateFunc> UseTimesheetCreateFunc(
+        this Dependency<IDataverseApiClient> dependency)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.Map<ITimesheetCreateFunc>(CreateApi);
+
+        static TimesheetModifyApi CreateApi(IDataverseApiClient dataverseApi)
+        {
+            ArgumentNullException.ThrowIfNull(dataverseApi);
+
+            return new(dataverseApi);
+        }
+    }
+
     public static Dependency<TimesheetModifyEndpointSet> UseTimesheetModifyEndpointSet(
         this Dependency<IDataverseApiClient> dependency)
     {

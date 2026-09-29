@@ -190,6 +190,16 @@ API-level policy должна:
 - не подменять пользовательские/Telegram identifiers;
 - применять стандартные ограничения размера, timeout и журналирование без payload/secrets.
 
+Для callback подтверждения создать вторую operation в том же защищённом agent API:
+
+| Параметр | Значение |
+|---|---|
+| Method | `POST` |
+| URL template | `/internal/agent/actions/{actionId}/decision` |
+| Authentication/policy | та же app-only policy и backend certificate, что у message operation |
+
+Не добавлять decision route в Mini App API и не ослаблять общую policy. До готовности Telegram-кнопок и smoke-теста оставлять `Agent__WritePreparation__Enabled=false`.
+
 Проверить:
 
 - запрос через APIM с корректным MI token проходит;

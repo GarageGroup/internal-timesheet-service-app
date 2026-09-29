@@ -115,4 +115,14 @@
     <Project Path="src/shared/ProjectType/ProjectType.csproj" />
     <Project Path="src/shared/StateCode/StateCode.csproj" />
   </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/src/endpoint/" />
+  <Folder Name="/src/endpoint/Agent.Action.Decide/">
+    <Project Path="src/endpoint/Agent.Action.Decide/Contract/Contract.csproj" />
+    <Project Path="src/endpoint/Agent.Action.Decide/Endpoint/Endpoint.csproj" />
+    <Project Path="src/endpoint/Agent.Action.Decide/Test/Test.csproj" />
+  </Folder>
+  <Folder Name="/src/service/" />
+  <Folder Name="/src/service/Agent.Identity/" />
+  <Folder Name="/src/service/Agent/" />
 </Solution>
