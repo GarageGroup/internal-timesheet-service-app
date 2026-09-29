@@ -349,6 +349,55 @@ project tool → Telegram response. Дополнительные Azure-изме�
 успешно проверено реальным Telegram-запросом чтения списаний за текущий день. Дополнительные Azure,
 APIM, Entra ID, Foundry или Storage изменения для исправления не потребовались.
 
+## 29.09.2026 — подготовка Action Table и выключенных write-настроек
+
+Среда: test. Подписка: `73a6f94e-bfb4-4926-a9dd-09228d53a2a5`.
+
+В существующем Storage Account `stinternalgtimesheettest` создана Azure Table
+`TimesheetAgentAction`. Таблица предназначена для подготовленных агентом действий, ожидающих
+подтверждения пользователя, и их дальнейших состояний. Новые Storage Account, Managed Identity и
+RBAC assignments не создавались: API уже имеет `Storage Table Data Contributor` на этом Storage
+Account.
+
+Изменение выполнено через Azure CLI с Entra-аутентификацией:
+
+```powershell
+az storage table create `
+  --account-name stinternalgtimesheettest `
+  --name TimesheetAgentAction `
+  --auth-mode login
+```
+
+В App Service `app-garage-timesheet-service-test`, resource group
+`rg-garage-timesheet-test`, добавлены настройки:
+
+| Настройка | Значение |
+|---|---|
+| `Agent__Storage__ActionTableName` | `TimesheetAgentAction` |
+| `Agent__WritePreparation__Enabled` | `false` |
+| `Agent__WritePreparation__ApprovalTtlMinutes` | `10` |
+| `Agent__WritePreparation__ProjectSearchTop` | `20` |
+
+Настройки применены через Azure CLI. Изменение App Settings вызывает recycle приложения; после
+применения App Service проверен в состоянии `Running`. Таблица повторно найдена через list-команду,
+а четыре настройки прочитаны из фактической конфигурации приложения.
+
+Feature flag оставлен выключенным намеренно. Текущее пользовательское поведение агента остаётся
+read-only; подготовка списания, подтверждение и запись в CRM этим изменением не активированы. APIM,
+Telegram-бот, Foundry, Entra ID и production не изменялись.
+
+Связанный код Application composition и feature flag находится в коммите
+`eed96a2 Wire write preparation behind feature flag`. На момент инфраструктурной подготовки его
+развёртывание через CI/CD отдельно не выполнялось.
+
+Откат:
+
+1. Оставить `Agent__WritePreparation__Enabled=false` либо удалить все четыре добавленные настройки.
+2. Удалять `TimesheetAgentAction` только после проверки отсутствия нужных записей; удаление таблицы
+   необратимо для содержащихся в ней данных.
+3. Для production создать отдельную таблицу в production Storage Account, назначить production API
+   минимальную роль `Storage Table Data Contributor` и сначала применить flag со значением `false`.
+
 ## Правила дальнейшего ведения
 
 После каждого изменения Azure необходимо до завершения инкремента записать:
