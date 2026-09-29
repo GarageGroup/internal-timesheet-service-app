@@ -20,12 +20,16 @@ internal sealed record class TimesheetJson
             CallerObjectId = callerObjectId
         };
 
-    internal static DataverseEntityUpdateIn<TimesheetJson> BuildDataverseUpdateInput(Guid timesheetId, TimesheetJson timesheet)
+    internal static DataverseEntityUpdateIn<TimesheetJson> BuildDataverseUpdateInput(
+        Guid timesheetId, TimesheetJson timesheet, Guid callerObjectId)
         =>
         new(
             entityPluralName: EntityPluralName,
             entityKey: new DataversePrimaryKey(timesheetId),
-            entityData: timesheet);
+            entityData: timesheet)
+        {
+            CallerObjectId = callerObjectId
+        };
 
     internal TimesheetJson(IProjectJson? project = null)
     {

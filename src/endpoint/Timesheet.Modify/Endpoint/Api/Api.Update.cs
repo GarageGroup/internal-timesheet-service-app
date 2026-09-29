@@ -15,7 +15,10 @@ partial class TimesheetModifyApi
         .PipeValue(
             BuildTimesheetJsonOrFailureAsync)
         .MapSuccess(
-            timesheet => TimesheetJson.BuildDataverseUpdateInput(input.TimesheetId, timesheet))
+            timesheet => TimesheetJson.BuildDataverseUpdateInput(
+                timesheetId: input.TimesheetId,
+                timesheet: timesheet,
+                callerObjectId: input.SystemUserId))
         .ForwardValue(
             dataverseApi.UpdateEntityAsync,
             static failure => failure.MapFailureCode(ToTimesheetUpdateFailureCode));
