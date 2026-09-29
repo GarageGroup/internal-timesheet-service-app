@@ -656,6 +656,21 @@ Resolver выполняет следующие проверки:
 
 Проверка: webhook HTTP 204, agent endpoint HTTP 200, Telegram send HTTP 200; содержимое conversation/action tables и отсутствие фактического списания проверены. Следующий инкремент — контракт confirm/cancel и Telegram inline keyboard, начиная с безопасного получения action только его владельцем.
 
+### 29.09.2026 — Core-функции confirm/cancel без CRM execution
+
+- В Agent Contract/Core/Test добавлены отдельные модули `Timesheet.ConfirmCreate` и `Timesheet.CancelCreate` с принятой папочной структурой.
+- Обе функции получают только доверенный `AgentUserContext` и `ActionId`; бизнес-аргументы подготовленного списания повторно не принимаются.
+- Action загружается через `IAgentActionStore`, который проверяет полного владельца: bot, Telegram user/chat, binding, CRM system user и Entra object ID. Чужое действие отображается как `NotFound`.
+- Confirm атомарно переводит только `Pending → Executing`, cancel — только `Pending → Cancelled`.
+- TTL проверяется серверным `DateProvider.UtcNow`. Истёкшее pending-действие атомарно переводится в `Expired` и не может стать `Executing`.
+- Переход выполняется с сохранённой ETag/version и ожидаемым состоянием `Pending`; повторный либо конкурентный вызов не может выполнить второй переход.
+- Добавлены отдельные failure codes для пустого Action ID, отсутствия, истечения, неверного состояния, конфликта и неизвестной storage-ошибки.
+- Функции зарегистрированы как `Dependency`-расширения Core, но не подключены к Application, HTTP endpoint или Telegram callback.
+- Реальный `ITimesheetCreateFunc` не вызывается; Dataverse и Azure-конфигурация не изменялись.
+- В новом коде отсутствует оператор `!`.
+
+Проверка: 77 тестов Agent Core и 17 тестов Action Table прошли; полная solution-сборка завершилась без ошибок и предупреждений. Следующий инкремент — execution orchestration после успешного `Pending → Executing` с использованием сохранённых аргументов и доверенного caller identity, включая конечные состояния `Succeeded`, `Failed` и `Indeterminate`.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.
