@@ -317,7 +317,7 @@ Execution orchestration реализован следующим инкремен
 
 ### 9.3. Текущее состояние реализации
 
-На 29.09.2026 реализованы prepare, Action Table, атомарные состояния, execution orchestration и защищённый endpoint решения. Endpoint повторно разрешает пользователя, принимает только `ActionId` и `Confirm`/`Cancel` и дополнительно закрыт write feature flag. Telegram callback и inline keyboard ещё не реализованы; APIM operation для decision route в test ещё не создана.
+На 30.09.2026 реализованы prepare, Action Table, атомарные состояния, execution orchestration, защищённый endpoint решения, Telegram inline keyboard и callback-команда. Endpoint повторно разрешает пользователя, принимает только `ActionId` и `Confirm`/`Cancel` и дополнительно закрыт write feature flag. Operation decision route создана в test APIM. Реальный callback `Cancel` проверен сквозным тестом: HTTP 200, `Pending → Cancelled`, корректный ответ пользователю. Ветка `Confirm` ещё требует отдельного контролируемого smoke-теста с последующей проверкой Dataverse.
 
 ## 10. HTTP-контракты и синхронное выполнение первой версии
 

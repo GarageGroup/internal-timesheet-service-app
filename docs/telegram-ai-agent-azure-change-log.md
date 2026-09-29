@@ -464,6 +464,80 @@ Foundry и production не изменялись.
 endpoint, сохранить обязательный route parameter и убедиться, что общая policy предъявляет production
 backend certificate и не удаляет Bearer header.
 
+## 29–30.09.2026 — ZIP deployment бота с inline-подтверждением
+
+В test Function App `func-internal-gtimesheet-test` напрямую развёрнут ZIP-пакет Telegram-бота из
+коммита `239f29f Add Telegram agent action confirmation`.
+
+Перед deployment выполнены Release-сборка и все 17 тестов бота; тесты прошли. Пакет создан из
+`dotnet publish` во временной директории вне Git-репозитория. До архивации проверено отсутствие
+`launchSettings.json` и `local.settings.json`; локальные Telegram-секреты в ZIP не вошли.
+
+Результат deployment:
+
+| Параметр | Значение |
+|---|---|
+| Deployment ID | `11fc58dd-c1c8-427b-9b68-c070c6cfd664` |
+| Status | `4` / successful |
+| Function App state | `Running` |
+| Availability | `Normal` |
+| Обнаруженные функции | `HandleBotEntity`, `HandleBotHttp`, `HealthCheck` |
+
+После ZIP deployment Function App один раз перезапущен через Azure CLI без изменения App Settings.
+Причина: первый update ожидал запуска Durable Entity около 82 секунд и потерял оставшийся бюджет
+выполнения; вызов agent API завершился `499` во время обращения к Foundry. После restart последующие
+два agent message вызова завершились HTTP 200 и создали два тестовых `Pending` action.
+
+Проверено:
+
+- новый APIM decision route без JWT возвращает `401`, то есть публичный обход защиты отсутствует;
+- два prepare-запроса прошли через webhook, Durable Entity, Managed Identity, APIM, API, Semantic
+  Kernel и Foundry;
+- оба action имеют проект `Test 01`, длительность `0.5` и состояние `Pending`; Dataverse write до
+  подтверждения не выполнялся;
+- Telegram API за период проверки принял семь вызовов с HTTP 200, включая agent-ответы;
+- синтетические callback updates были приняты ingress с HTTP 204, но не дошли до decision endpoint
+  и не изменили состояние actions. Они не считаются успешной проверкой callback; требуется реальное
+  нажатие Telegram-кнопки пользователем;
+- при формировании первого тестового сообщения PowerShell отправил русский текст с неверной
+  кодировкой. Это дефект локального smoke-скрипта, а не приложения; следующие JSON body передавались
+  как UTF-8 bytes.
+
+App Settings, Managed Identity, RBAC, Entra ID, Storage schema, Foundry, webhook, API App Service и
+production не изменялись. Два тестовых action необходимо отменить кнопками либо дождаться их TTL;
+повторно подтверждать их нельзя.
+
+Откат: повторно выполнить ZIP deployment предыдущего bot package. Restart не требует отдельного
+отката. Для production использовать штатный CI/CD deployment и отдельно проверить cold start Durable
+Entity до включения write feature flag.
+
+### Исправление строкового enum в decision response
+
+Первое реальное нажатие «Отменить» вызвало decision endpoint с HTTP 200 и корректно перевело action
+в `Cancelled`, но бот показал общий текст ошибки. Application Insights зафиксировал
+`System.Text.Json.JsonException` на `$.decision`: API сериализует enum ответа строкой (`Cancel`), а
+клиент бота ожидал стандартное числовое представление.
+
+В `AgentActionApi` добавлены отдельные настройки только для десериализации response с
+`JsonStringEnumConverter`. Сериализация request не менялась: уже проверенный числовой `decision`
+сохранён. Unit-тест изменён так, чтобы использовать фактическое строковое представление ответа.
+
+Исправленный бот повторно развёрнут ZIP-пакетом:
+
+| Параметр | Значение |
+|---|---|
+| Deployment ID | `bc528e4e-75cf-4335-81a4-d1e124ee2a1e` |
+| Status | `4` / successful |
+| Function App state | `Running` / `Normal` |
+
+После deployment test Function App один раз перезапущен без изменения настроек. Повторная реальная
+отмена свежего action завершилась HTTP 200; action перешёл `Pending → Cancelled`, бот ответил
+«Списание отменено.», исключения в коррелированной операции отсутствуют. Dataverse write не
+выполнялся.
+
+Production и остальные Azure-ресурсы не изменялись. Для production исправление должно попасть в
+обычный bot artifact; дополнительных настроек или ресурсов не требуется.
+
 ## Правила дальнейшего ведения
 
 После каждого изменения Azure необходимо до завершения инкремента записать:

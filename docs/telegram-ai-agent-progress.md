@@ -727,6 +727,34 @@ Resolver выполняет следующие проверки:
 
 Проверка: operation повторно прочитана из APIM с ожидаемыми ID, HTTP method, URL template и обязательным `actionId`. Следующий шаг — deployment API пользователем, после чего ZIP deployment бота и сквозной smoke test confirm/cancel.
 
+### 29–30.09.2026 — deployment бота и prepare smoke test
+
+- Пользовательский CI/CD deployment API подтверждён на коммите `b95db9a`; decision endpoint присутствует в test App Service.
+- Telegram-бот с inline-кнопками развёрнут ZIP-пакетом из коммита `239f29f`; deployment `11fc58dd-c1c8-427b-9b68-c070c6cfd664` завершён успешно.
+- Перед deployment прошли все 17 Release-тестов. Publish-пакет не содержал `launchSettings.json` и `local.settings.json`.
+- Function App находится в `Running/Normal`, обнаружены `HandleBotEntity`, `HandleBotHttp` и `HealthCheck`.
+- Test APIM decision route без токена вернул `401`, подтвердив сохранение app-only защиты.
+- Первый update после deployment опоздал к Durable Entity и завершил agent request с `499`; выполнен один restart только test Function App без изменения настроек.
+- После прогрева два prepare-запроса завершились через agent API с HTTP 200 и создали два `Pending` action. До подтверждения Dataverse write отсутствует.
+- Telegram dependencies завершились HTTP 200; реальные сообщения с preview и кнопками должны быть доставлены пользователю.
+- Синтетический callback с тестовым message ID не дошёл до decision endpoint, поэтому callback flow пока не считается проверенным. Оба action остались `Pending` и должны быть отменены реальной Telegram-кнопкой либо истечь по TTL.
+- Неверная кодировка комментария в первых тестовых action вызвана локальным PowerShell smoke payload; приложение получило уже искажённую строку и корректно сохранило переданное значение.
+
+Проверка: API deployment, APIM authentication boundary, bot ZIP deployment, prepare path, Action Table и Telegram send подтверждены. Следующий шаг — одно ручное нажатие «Отменить» на реальной кнопке, затем проверить decision request, переход `Pending → Cancelled`, удаление клавиатуры и пользовательский ответ.
+
+### 30.09.2026 — реальный callback отмены и исправление response enum
+
+- Пользователь нажал реальную кнопку «Отменить» на свежем action.
+- Первый callback дошёл до decision endpoint с HTTP 200 и фактически перевёл action в `Cancelled`, но бот показал общий текст ошибки.
+- Причина подтверждена телеметрией: API возвращает `decision` как строковый enum, а typed client пытался десериализовать его без `JsonStringEnumConverter`.
+- В боте добавлены отдельные response serializer options со string-enum converter. Формат request не менялся.
+- Unit-тест теперь использует фактический JSON `"decision":"Confirm"`; все 17 Release-тестов и проверка форматирования прошли.
+- Исправленный бот развёрнут повторным ZIP deployment `bc528e4e-75cf-4335-81a4-d1e124ee2a1e`; Function App перезапущен и подтверждён в состоянии `Running/Normal`.
+- На втором свежем action пользователь снова нажал «Отменить». Decision endpoint вернул HTTP 200 за 391 мс, action перешёл в `Cancelled`, бот ответил «Списание отменено.», коррелированных исключений нет.
+- Ни один cancel smoke test не выполнял запись в Dataverse.
+
+Проверка: реальный Telegram callback → Durable Entity → Managed Identity → APIM → decision endpoint → Action Table → Telegram response подтверждён полностью для ветки Cancel. Осталось подтвердить удаление inline-клавиатуры в клиенте и отдельно безопасно проверить ветку Confirm на контролируемом тестовом списании.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.
