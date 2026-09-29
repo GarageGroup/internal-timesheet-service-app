@@ -118,6 +118,8 @@ Confirm переводит `Pending → Executing`, cancel — `Pending → Canc
 
 Execution boundary реализован в Core: `ITimesheetCreateFunc` получает `SystemUserId = AgentUserContext.EntraObjectId`, а остальные параметры — из action, уже прошедшего prepare и подтверждение. `Succeeded` устанавливается только после успешного результата. Известные бизнес-отказы становятся `Failed`; неизвестные ошибки, исключения и невозможность надёжно сохранить результат становятся `Indeterminate`. Для `Indeterminate` автоматический retry запрещён, так как текущий create не возвращает CRM ID и не принимает idempotency key.
 
+Реальный Confirm smoke 30.09.2026 подтвердил execution boundary: callback с `ActionId` выполнил сохранённый payload, Dataverse create вернул HTTP 204, action стал `Succeeded`. Отдельно обнаружена бизнес-дата: около полуночи `Europe/Moscow` агент считает локальную дату текущей, но Dataverse отвергает её как будущую, пока не сменился UTC-день. До согласования единого правила не маскировать это автоматическим сдвигом даты; пользователь должен видеть понятную бизнес-ошибку, а не общий retry.
+
 Внешняя граница confirm/cancel реализована одним endpoint `POST /internal/agent/actions/{actionId}/decision`. Она не является Semantic Kernel tool: решение поступает только из явного Telegram callback. Endpoint принимает `Confirm`/`Cancel`, повторно разрешает owner context и передаёт Core только доверенный контекст и `ActionId`. Write feature flag проверяется до любых зависимостей.
 
 ### `Project.GetSet`
