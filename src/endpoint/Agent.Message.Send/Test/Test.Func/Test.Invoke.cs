@@ -129,7 +129,7 @@ partial class AgentMessageSendFuncTest
             SomeInput,
             TestContext.Current.CancellationToken)).SuccessOrThrow();
 
-        var expectedAction = new AgentMessageSendActionOut
+        var expectedAction = new AgentMessageSendCreateActionOut
         {
             ActionId = preparedAction.ActionId,
             Date = preparedAction.Date,
@@ -141,5 +141,41 @@ partial class AgentMessageSendFuncTest
             ExpiresAt = preparedAction.ExpiresAt
         };
         Assert.Equal(new AgentMessageSendOut("Confirm action", expectedAction), actual);
+    }
+
+    [Fact]
+    public static async Task InvokeAsync_DeleteActionWasPrepared_ExpectStructuredPreview()
+    {
+        var resolver = BuildResolver();
+        var preparedAction = new AgentTimesheetDeletePrepareOut(
+            new("2c596490-1917-428c-88b9-3e8dc55f835a"),
+            new("46606dc6-335f-4271-86b7-ff9540e9f480"),
+            new(2026, 09, 30),
+            "Another project",
+            2.25m,
+            "Another description",
+            new(2026, 09, 30, 13, 10, 00, TimeSpan.Zero));
+        var messageFunc = new Mock<IAgentConversationMessageFunc>();
+        _ = messageFunc.Setup(static f => f.InvokeAsync(
+            It.IsAny<AgentUserContext>(),
+            It.IsAny<AgentConversationMessageIn>(),
+            It.IsAny<CancellationToken>()))
+        .ReturnsAsync(new AgentMessageOut("Confirm delete", PreparedDeleteAction: preparedAction));
+
+        var actual = (await new AgentMessageSendFunc(resolver.Object, messageFunc.Object).InvokeAsync(
+            SomeInput,
+            TestContext.Current.CancellationToken)).SuccessOrThrow();
+
+        var expectedAction = new AgentMessageSendDeleteActionOut
+        {
+            ActionId = preparedAction.ActionId,
+            TimesheetId = preparedAction.TimesheetId,
+            Date = preparedAction.Date,
+            ProjectName = preparedAction.ProjectName,
+            Duration = preparedAction.Duration,
+            Description = preparedAction.Description,
+            ExpiresAt = preparedAction.ExpiresAt
+        };
+        Assert.Equal(new AgentMessageSendOut("Confirm delete", preparedDeleteAction: expectedAction), actual);
     }
 }

@@ -62,7 +62,10 @@ partial class AgentMessageFunc
                 return Failure.Create(AgentMessageFailureCode.EmptyResponse, "AI response must not be empty");
             }
 
-            return new AgentMessageOut(result.Content.Trim(), kernelScope.PreparedAction);
+            return new AgentMessageOut(
+                result.Content.Trim(),
+                kernelScope.PreparedCreateAction,
+                kernelScope.PreparedDeleteAction);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -112,8 +115,9 @@ partial class AgentMessageFunc
             ? "русский"
             : "язык сообщения пользователя";
         var toolRule = option.WritePreparationEnabled
-            ? "Используй TimesheetRead для чтения и TimesheetWritePreparation только для подготовки одного создания. " +
-                "После подготовки покажи точные параметры и попроси подтвердить кнопкой; не заявляй, что списание уже создано."
+            ? "Используй TimesheetRead для чтения и TimesheetWritePreparation только для подготовки одного создания или удаления. " +
+                "Для удаления используй только Timesheet ID и дату из get_timesheets. " +
+                "После подготовки покажи точные параметры и попроси подтвердить кнопкой; не заявляй, что списание уже создано или удалено."
             : "Используй только доступные функции TimesheetRead и только когда для ответа нужны данные сервиса. " +
                 "Сейчас разрешено только чтение. Не заявляй, что создал, изменил или удалил списание времени.";
 

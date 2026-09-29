@@ -13,7 +13,7 @@ partial class AgentWritePluginTest
     {
         var prepareFunc = BuildPrepareFunc(SomeOutput);
         var capture = new AgentPreparedActionCapture();
-        var plugin = CreatePlugin(prepareFunc, capture);
+        var plugin = CreatePlugin(prepareFunc, capture: capture);
 
         var actual = await plugin.PrepareCreateTimesheetAsync(
             "2026-09-29",
@@ -27,7 +27,7 @@ partial class AgentWritePluginTest
         var result = Assert.IsType<AgentWriteToolResult<AgentTimesheetCreatePrepareOut>>(actual);
         Assert.True(result.IsSuccess);
         Assert.Equal(SomeOutput, result.Data);
-        Assert.Equal(SomeOutput, capture.Action);
+        Assert.Equal(SomeOutput, capture.CreateAction);
         prepareFunc.Verify(
             f => f.InvokeAsync(
                 SomeContext,
@@ -40,6 +40,31 @@ partial class AgentWritePluginTest
                     SomeOutput.Description),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public static async Task PrepareDeleteTimesheetAsync_InputIsValid_ExpectTrustedTypedInputAndCapture()
+    {
+        var createPrepareFunc = new Mock<IAgentTimesheetCreatePrepareFunc>(MockBehavior.Strict);
+        var deletePrepareFunc = BuildDeletePrepareFunc(SomeDeleteOutput);
+        var capture = new AgentPreparedActionCapture();
+        var plugin = CreatePlugin(createPrepareFunc, deletePrepareFunc, capture);
+
+        var actual = await plugin.PrepareDeleteTimesheetAsync(
+            SomeDeleteOutput.TimesheetId,
+            "2026-09-30",
+            TestContext.Current.CancellationToken);
+
+        Assert.True(actual.IsSuccess);
+        Assert.Equal(SomeDeleteOutput, actual.Data);
+        Assert.Equal(SomeDeleteOutput, capture.DeleteAction);
+        deletePrepareFunc.Verify(
+            f => f.InvokeAsync(
+                SomeContext,
+                new AgentTimesheetDeletePrepareIn(SomeDeleteOutput.TimesheetId, SomeDeleteOutput.Date),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        createPrepareFunc.VerifyNoOtherCalls();
     }
 
     [Theory]

@@ -29,7 +29,8 @@ public static partial class AgentMessageFuncTest
         IChatCompletionService chatService,
         Mock<IAgentKernelFactory>? kernelFactory = null,
         DateOnly? today = null,
-        AgentTimesheetCreatePrepareOut? preparedAction = null)
+        AgentTimesheetCreatePrepareOut? preparedAction = null,
+        AgentTimesheetDeletePrepareOut? preparedDeleteAction = null)
     {
         var builder = Kernel.CreateBuilder();
         builder.Services.AddSingleton(chatService);
@@ -39,6 +40,11 @@ public static partial class AgentMessageFuncTest
         if (preparedAction is not null)
         {
             capture.Complete(preparedAction);
+        }
+
+        if (preparedDeleteAction is not null)
+        {
+            capture.Complete(preparedDeleteAction);
         }
 
         kernelFactory ??= new();

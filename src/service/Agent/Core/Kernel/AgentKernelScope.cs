@@ -18,7 +18,11 @@ public sealed class AgentKernelScope
 
     public Kernel Kernel { get; }
 
-    public AgentTimesheetCreatePrepareOut? PreparedAction
+    public AgentTimesheetCreatePrepareOut? PreparedCreateAction
         =>
-        actionCapture.Action;
+        actionCapture.CreateAction;
+
+    public AgentTimesheetDeletePrepareOut? PreparedDeleteAction
+        =>
+        actionCapture.DeleteAction;
 }

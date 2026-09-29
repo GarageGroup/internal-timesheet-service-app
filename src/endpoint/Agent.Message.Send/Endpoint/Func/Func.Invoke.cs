@@ -22,7 +22,10 @@ partial class AgentMessageSendFunc
         .ForwardValue(
             (context, token) => SendMessageAsync(context, input, token))
         .MapSuccess(
-            static result => new AgentMessageSendOut(result.Text, MapPreparedAction(result.PreparedAction)));
+            static result => new AgentMessageSendOut(
+                result.Text,
+                MapPreparedCreateAction(result.PreparedCreateAction),
+                MapPreparedDeleteAction(result.PreparedDeleteAction)));
 
     private ValueTask<Result<AgentMessageOut, Failure<AgentMessageSendFailureCode>>> SendMessageAsync(
         AgentUserContext context,
@@ -50,7 +53,7 @@ partial class AgentMessageSendFunc
             _ => AgentMessageSendFailureCode.Unknown
         };
 
-    private static AgentMessageSendActionOut? MapPreparedAction(AgentTimesheetCreatePrepareOut? action)
+    private static AgentMessageSendCreateActionOut? MapPreparedCreateAction(AgentTimesheetCreatePrepareOut? action)
         =>
         action is null
             ? null
@@ -61,6 +64,21 @@ partial class AgentMessageSendFunc
                 ProjectId = action.ProjectId,
                 ProjectName = action.ProjectName,
                 ProjectType = (int)action.ProjectType,
+                Duration = action.Duration,
+                Description = action.Description,
+                ExpiresAt = action.ExpiresAt
+            };
+
+    private static AgentMessageSendDeleteActionOut? MapPreparedDeleteAction(AgentTimesheetDeletePrepareOut? action)
+        =>
+        action is null
+            ? null
+            : new()
+            {
+                ActionId = action.ActionId,
+                TimesheetId = action.TimesheetId,
+                Date = action.Date,
+                ProjectName = action.ProjectName,
                 Duration = action.Duration,
                 Description = action.Description,
                 ExpiresAt = action.ExpiresAt

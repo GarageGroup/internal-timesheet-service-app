@@ -160,7 +160,8 @@ public static class AgentDependency
             IAgentLastProjectSetGetFunc,
             IAgentPeriodSetGetFunc,
             IAgentTagSetGetFunc,
-            IAgentTimesheetCreatePrepareFunc> dependency)
+            IAgentTimesheetCreatePrepareFunc,
+            IAgentTimesheetDeletePrepareFunc> dependency)
     {
         ArgumentNullException.ThrowIfNull(dependency);
 
@@ -170,13 +171,15 @@ public static class AgentDependency
                 lastProjectSetGetFunc,
                 periodSetGetFunc,
                 tagSetGetFunc,
-                timesheetCreatePrepareFunc) => new(
+                timesheetCreatePrepareFunc,
+                timesheetDeletePrepareFunc) => new(
                     timesheetSetGetFunc,
                     projectSetSearchFunc,
                     lastProjectSetGetFunc,
                     periodSetGetFunc,
                     tagSetGetFunc,
-                    timesheetCreatePrepareFunc));
+                    timesheetCreatePrepareFunc,
+                    timesheetDeletePrepareFunc));
     }
 
     public static Dependency<IAgentTagSetGetFunc> UseAgentTagSetGetFunc(

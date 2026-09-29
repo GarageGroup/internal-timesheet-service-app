@@ -97,7 +97,37 @@ partial class AgentMessageFuncTest
             TestContext.Current.CancellationToken)).SuccessOrThrow();
 
         Assert.Equal("Подтвердите списание", actual.Text);
-        Assert.Equal(preparedAction, actual.PreparedAction);
+        Assert.Equal(preparedAction, actual.PreparedCreateAction);
+    }
+
+    [Fact]
+    public static async Task InvokeAsync_DeleteActionWasPrepared_ExpectStructuredActionInResult()
+    {
+        var chatService = new Mock<IChatCompletionService>();
+        _ = chatService.Setup(
+            f => f.GetChatMessageContentsAsync(
+                It.IsAny<ChatHistory>(),
+                It.IsAny<PromptExecutionSettings>(),
+                It.IsAny<Kernel>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync([new ChatMessageContent(AuthorRole.Assistant, "Подтвердите удаление")]);
+        var preparedAction = new AgentTimesheetDeletePrepareOut(
+            new("2c596490-1917-428c-88b9-3e8dc55f835a"),
+            new("46606dc6-335f-4271-86b7-ff9540e9f480"),
+            new(2026, 09, 30),
+            "Another project",
+            2.25m,
+            "Another description",
+            new(2026, 09, 30, 13, 10, 00, System.TimeSpan.Zero));
+        var func = CreateFunc(chatService.Object, preparedDeleteAction: preparedAction);
+
+        var actual = (await func.InvokeAsync(
+            SomeContext,
+            new("Удали списание", "ru"),
+            TestContext.Current.CancellationToken)).SuccessOrThrow();
+
+        Assert.Equal("Подтвердите удаление", actual.Text);
+        Assert.Equal(preparedAction, actual.PreparedDeleteAction);
     }
 
     [Fact]

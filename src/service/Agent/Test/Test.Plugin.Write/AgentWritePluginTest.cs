@@ -29,11 +29,23 @@ public static partial class AgentWritePluginTest
             Description: "Some description",
             ExpiresAt: new(2026, 09, 29, 12, 10, 00, TimeSpan.Zero));
 
+    private static readonly AgentTimesheetDeletePrepareOut SomeDeleteOutput
+        =
+        new(
+            ActionId: new("2c596490-1917-428c-88b9-3e8dc55f835a"),
+            TimesheetId: new("46606dc6-335f-4271-86b7-ff9540e9f480"),
+            Date: new(2026, 09, 30),
+            ProjectName: "Another project",
+            Duration: 2.25m,
+            Description: "Another description",
+            ExpiresAt: new(2026, 09, 30, 13, 10, 00, TimeSpan.Zero));
+
     private static AgentWritePlugin CreatePlugin(
         Mock<IAgentTimesheetCreatePrepareFunc> prepareFunc,
+        Mock<IAgentTimesheetDeletePrepareFunc>? deletePrepareFunc = null,
         AgentPreparedActionCapture? capture = null)
         =>
-        new(SomeContext, prepareFunc.Object, capture ?? new());
+        new(SomeContext, prepareFunc.Object, (deletePrepareFunc ?? new()).Object, capture ?? new());
 
     private static Mock<IAgentTimesheetCreatePrepareFunc> BuildPrepareFunc(
         in Result<AgentTimesheetCreatePrepareOut, Failure<AgentTimesheetCreatePrepareFailureCode>> result)
@@ -43,6 +55,20 @@ public static partial class AgentWritePluginTest
             .Setup(static f => f.InvokeAsync(
                 It.IsAny<AgentUserContext>(),
                 It.IsAny<AgentTimesheetCreatePrepareIn>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
+
+        return mock;
+    }
+
+    private static Mock<IAgentTimesheetDeletePrepareFunc> BuildDeletePrepareFunc(
+        in Result<AgentTimesheetDeletePrepareOut, Failure<AgentTimesheetDeletePrepareFailureCode>> result)
+    {
+        var mock = new Mock<IAgentTimesheetDeletePrepareFunc>();
+        _ = mock
+            .Setup(static f => f.InvokeAsync(
+                It.IsAny<AgentUserContext>(),
+                It.IsAny<AgentTimesheetDeletePrepareIn>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(result);
 

@@ -6,7 +6,9 @@ internal sealed class AgentPreparedActionCapture
 {
     private int state;
 
-    internal AgentTimesheetCreatePrepareOut? Action { get; private set; }
+    internal AgentTimesheetCreatePrepareOut? CreateAction { get; private set; }
+
+    internal AgentTimesheetDeletePrepareOut? DeleteAction { get; private set; }
 
     internal bool TryStart()
         =>
@@ -14,7 +16,13 @@ internal sealed class AgentPreparedActionCapture
 
     internal void Complete(AgentTimesheetCreatePrepareOut action)
     {
-        Action = action;
+        CreateAction = action;
+        _ = Interlocked.Exchange(ref state, 2);
+    }
+
+    internal void Complete(AgentTimesheetDeletePrepareOut action)
+    {
+        DeleteAction = action;
         _ = Interlocked.Exchange(ref state, 2);
     }
 

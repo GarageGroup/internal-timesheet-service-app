@@ -3,7 +3,7 @@ using GarageGroup.Infra;
 
 namespace GarageGroup.Internal.Timesheet;
 
-public sealed record class AgentMessageSendActionOut
+public sealed record class AgentMessageSendCreateActionOut
 {
     [JsonBodyOut]
     public required Guid ActionId { get; init; }

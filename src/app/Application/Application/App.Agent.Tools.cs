@@ -17,6 +17,16 @@ partial class Application
             ResolveAgentTimesheetCreatePrepareOption)
         .UseAgentTimesheetCreatePrepareFunc();
 
+    private static Dependency<IAgentTimesheetDeletePrepareFunc> UseAgentTimesheetDeletePrepareFunc()
+        =>
+        Pipeline.Pipe(
+            UseAgentTimesheetSetGetFunc())
+        .With(
+            UseAgentTimesheetDeleteActionStore())
+        .With(
+            ResolveAgentTimesheetDeletePrepareOption)
+        .UseAgentTimesheetDeletePrepareFunc();
+
     private static Dependency<IAgentTimesheetSetGetFunc> UseAgentTimesheetSetGetFunc()
         =>
         Pipeline.Pipe(
@@ -120,4 +130,11 @@ partial class Application
             ProjectSearchTop = projectSearchTop
         };
     }
+
+    private static AgentTimesheetDeletePrepareOption ResolveAgentTimesheetDeletePrepareOption(IServiceProvider serviceProvider)
+        =>
+        new()
+        {
+            ApprovalTtl = ResolveAgentTimesheetCreatePrepareOption(serviceProvider).ApprovalTtl
+        };
 }

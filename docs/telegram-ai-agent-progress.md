@@ -829,6 +829,19 @@ Resolver выполняет следующие проверки:
 
 Проверка: все 24 теста `Agent.Storage.Table` прошли; полная Application-сборка завершилась без ошибок и предупреждений; `git diff --check` успешен. Следующий инкремент — подключить delete store в application composition и зарегистрировать prepare-delete как отдельную write-функцию Semantic Kernel без выполнения удаления до подтверждения.
 
+### 30.09.2026 — Semantic Kernel prepare-delete tool
+
+- `IAgentTimesheetDeleteActionStore` подключён к application composition через тот же `TokenCredential`, endpoint и `TimesheetAgentAction`, что и create actions.
+- `AgentTimesheetDeletePrepareFunc` добавлен в общий `AgentKernelToolSet` и write plugin как `prepare_delete_timesheet`.
+- Tool принимает только `TimesheetId` и дату, которые модель должна получить из `get_timesheets`. Trusted user context не входит в аргументы модели.
+- Prepare-функция по-прежнему повторно читает списание от имени пользователя, проверяет ID, дату и доступность, а затем сохраняет серверный snapshot. Знания ID моделью недостаточно для удаления.
+- Общий capture допускает не более одного подготовленного create или delete action за один ход модели. Kernel не содержит функций confirm, execute или прямого Dataverse delete.
+- Системная инструкция разрешает только подготовку создания или удаления и запрещает сообщать об исполнении до пользовательского подтверждения.
+- HTTP-ответ `/internal/agent/messages` использует симметричные поля `PreparedCreateAction` и `PreparedDeleteAction`; delete preview содержит `ActionId`, `TimesheetId`, дату, проект, длительность, комментарий и TTL. Для будущего update зарезервирован тот же явный принцип именования без общего неоднозначного `PreparedAction`.
+- Azure-ресурсы, роли и настройки на этом шаге не изменялись.
+
+Проверка: все 90 тестов service `Agent` и 16 тестов endpoint `Agent.Message.Send` прошли; полная Application-сборка завершилась без ошибок и предупреждений. Следующий инкремент — реализовать confirm/cancel удаления в общем decision endpoint; до этого бот не должен показывать рабочие кнопки для delete preview.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.

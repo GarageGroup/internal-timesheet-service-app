@@ -114,6 +114,8 @@ Adapter обязан:
 
 Подготовленное удаление хранится в существующей `TimesheetAgentAction`, а не в отдельной таблице. Строки различаются обязательным свойством `ActionType`; delete payload содержит доверенный `TimesheetId` и серверный snapshot. До первого production-релиза обратная совместимость с тестовыми rows без discriminator намеренно не поддерживается: оба reader принимают только свой явный тип. Переходы состояния используют общий ETag optimistic concurrency.
 
+Semantic Kernel write plugin публикует `prepare_delete_timesheet(timesheetId, date)`. Функция не выполняет удаление и не принимает identity; доверенный `AgentUserContext` замкнут внутри plugin instance. Модель должна сначала получить ID и дату через `get_timesheets`, после чего application layer повторно проверяет запись и возвращает отдельный `PreparedDeleteAction` в HTTP-ответе. Capture разрешает только одно подготовленное create или delete действие за ход.
+
 ### Текущий confirm/cancel boundary
 
 Core-функции создания списания принимают для confirm/cancel только доверенный `AgentUserContext` и серверный `ActionId`. Они не принимают дату, проект, длительность, комментарий, `CallerObjectId` или Telegram identifiers как изменяемые аргументы. Action storage повторно сравнивает полного владельца, а переход состояния защищён ETag и ожидаемым `Pending`.

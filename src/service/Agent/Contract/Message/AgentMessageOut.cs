@@ -1,3 +1,6 @@
 namespace GarageGroup.Internal.Timesheet;
 
-public sealed record class AgentMessageOut(string Text, AgentTimesheetCreatePrepareOut? PreparedAction = null);
+public sealed record class AgentMessageOut(
+    string Text,
+    AgentTimesheetCreatePrepareOut? PreparedCreateAction = null,
+    AgentTimesheetDeletePrepareOut? PreparedDeleteAction = null);

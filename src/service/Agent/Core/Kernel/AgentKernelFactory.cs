@@ -44,7 +44,11 @@ public sealed class AgentKernelFactory(
         if (writePreparationOption.Enabled)
         {
             kernel.Plugins.AddFromObject(
-                new AgentWritePlugin(context, toolSet.TimesheetCreatePrepareFunc, actionCapture),
+                new AgentWritePlugin(
+                    context,
+                    toolSet.TimesheetCreatePrepareFunc,
+                    toolSet.TimesheetDeletePrepareFunc,
+                    actionCapture),
                 AgentWritePlugin.PluginName);
         }
 
