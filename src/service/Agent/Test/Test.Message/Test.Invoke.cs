@@ -70,6 +70,37 @@ partial class AgentMessageFuncTest
     }
 
     [Fact]
+    public static async Task InvokeAsync_ActionWasPrepared_ExpectStructuredActionInResult()
+    {
+        var chatService = new Mock<IChatCompletionService>();
+        _ = chatService.Setup(
+            f => f.GetChatMessageContentsAsync(
+                It.IsAny<ChatHistory>(),
+                It.IsAny<PromptExecutionSettings>(),
+                It.IsAny<Kernel>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync([new ChatMessageContent(AuthorRole.Assistant, "Подтвердите списание")]);
+        var preparedAction = new AgentTimesheetCreatePrepareOut(
+            new("84e6c5b8-1597-4a2e-821a-f392c8c0ae3d"),
+            new(2026, 09, 29),
+            new("d9cb8306-dd0c-499b-ad90-44b9a324e30c"),
+            "Some project",
+            ProjectType.Project,
+            1.5m,
+            "Some description",
+            new(2026, 09, 29, 12, 10, 00, System.TimeSpan.Zero));
+        var func = CreateFunc(chatService.Object, preparedAction: preparedAction);
+
+        var actual = (await func.InvokeAsync(
+            SomeContext,
+            new("Спиши время", "ru"),
+            TestContext.Current.CancellationToken)).SuccessOrThrow();
+
+        Assert.Equal("Подтвердите списание", actual.Text);
+        Assert.Equal(preparedAction, actual.PreparedAction);
+    }
+
+    [Fact]
     public static async Task InvokeAsync_HistoryIsTooLong_ExpectInvalidMessageFailure()
     {
         var kernelFactory = new Mock<IAgentKernelFactory>();

@@ -15,7 +15,7 @@ public sealed class AgentKernelFactory(
     TokenCredential tokenCredential,
     AgentFoundryOption option) : IAgentKernelFactory
 {
-    public Kernel Create(AgentUserContext context)
+    public AgentKernelScope Create(AgentUserContext context)
     {
         var builder = Kernel.CreateBuilder();
         var tokenPolicy = new BearerTokenPolicy(tokenCredential, option.TokenScope);
@@ -43,6 +43,6 @@ public sealed class AgentKernelFactory(
                 tagSetGetFunc),
             AgentReadPlugin.PluginName);
 
-        return kernel;
+        return new(kernel, new AgentPreparedActionCapture());
     }
 }

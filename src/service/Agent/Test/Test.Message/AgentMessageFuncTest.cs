@@ -28,14 +28,21 @@ public static partial class AgentMessageFuncTest
     private static AgentMessageFunc CreateFunc(
         IChatCompletionService chatService,
         Mock<IAgentKernelFactory>? kernelFactory = null,
-        DateOnly? today = null)
+        DateOnly? today = null,
+        AgentTimesheetCreatePrepareOut? preparedAction = null)
     {
         var builder = Kernel.CreateBuilder();
         builder.Services.AddSingleton(chatService);
 
         var kernel = builder.Build();
+        var capture = new AgentPreparedActionCapture();
+        if (preparedAction is not null)
+        {
+            capture.Complete(preparedAction);
+        }
+
         kernelFactory ??= new();
-        _ = kernelFactory.Setup(f => f.Create(SomeContext)).Returns(kernel);
+        _ = kernelFactory.Setup(f => f.Create(SomeContext)).Returns(new AgentKernelScope(kernel, capture));
 
         return new(kernelFactory.Object, new TestDateProvider(today ?? new DateOnly(2026, 9, 28)), SomeOption);
     }

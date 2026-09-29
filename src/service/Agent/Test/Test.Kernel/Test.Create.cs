@@ -14,7 +14,7 @@ partial class AgentKernelFactoryTest
     [Fact]
     public static void Create_ExpectFoundryChatServiceAndReadPlugin()
     {
-        var kernel = CreateFactory().Create(SomeContext);
+        var kernel = CreateFactory().Create(SomeContext).Kernel;
 
         var chatService = kernel.GetRequiredService<IChatCompletionService>();
         var functions = kernel.Plugins[AgentReadPlugin.PluginName].Select(static function => function.Name).Order().ToArray();
@@ -35,7 +35,7 @@ partial class AgentKernelFactoryTest
             f => f.InvokeAsync(SomeContext, It.IsAny<CancellationToken>()))
         .ReturnsAsync(source);
 
-        var kernel = CreateFactory(mockPeriodFunc).Create(SomeContext);
+        var kernel = CreateFactory(mockPeriodFunc).Create(SomeContext).Kernel;
         var actual = await kernel.InvokeAsync<AgentReadToolResult<AgentPeriodSetGetOut>>(
             AgentReadPlugin.PluginName,
             "get_periods",
@@ -57,7 +57,7 @@ partial class AgentKernelFactoryTest
             f => f.InvokeAsync(SomeContext, new(dateFrom, dateFrom), It.IsAny<CancellationToken>()))
         .ReturnsAsync(source);
 
-        var kernel = CreateFactory(timesheetFunc: mockTimesheetFunc).Create(SomeContext);
+        var kernel = CreateFactory(timesheetFunc: mockTimesheetFunc).Create(SomeContext).Kernel;
         var arguments = new KernelArguments
         {
             ["dateFrom"] = "2026-09-28",

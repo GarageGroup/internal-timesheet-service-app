@@ -104,4 +104,42 @@ partial class AgentMessageSendFuncTest
 
         Assert.Equal(new AgentMessageSendOut("Some response"), actual.SuccessOrThrow());
     }
+
+    [Fact]
+    public static async Task InvokeAsync_ActionWasPrepared_ExpectStructuredPreview()
+    {
+        var resolver = BuildResolver();
+        var preparedAction = new AgentTimesheetCreatePrepareOut(
+            new("84e6c5b8-1597-4a2e-821a-f392c8c0ae3d"),
+            new(2026, 09, 29),
+            new("d9cb8306-dd0c-499b-ad90-44b9a324e30c"),
+            "Some project",
+            ProjectType.Project,
+            1.5m,
+            "Some description",
+            new(2026, 09, 29, 12, 10, 00, TimeSpan.Zero));
+        var messageFunc = new Mock<IAgentConversationMessageFunc>();
+        _ = messageFunc.Setup(static f => f.InvokeAsync(
+            It.IsAny<AgentUserContext>(),
+            It.IsAny<AgentConversationMessageIn>(),
+            It.IsAny<CancellationToken>()))
+        .ReturnsAsync(new AgentMessageOut("Confirm action", preparedAction));
+
+        var actual = (await new AgentMessageSendFunc(resolver.Object, messageFunc.Object).InvokeAsync(
+            SomeInput,
+            TestContext.Current.CancellationToken)).SuccessOrThrow();
+
+        var expectedAction = new AgentMessageSendActionOut
+        {
+            ActionId = preparedAction.ActionId,
+            Date = preparedAction.Date,
+            ProjectId = preparedAction.ProjectId,
+            ProjectName = preparedAction.ProjectName,
+            ProjectType = (int)preparedAction.ProjectType,
+            Duration = preparedAction.Duration,
+            Description = preparedAction.Description,
+            ExpiresAt = preparedAction.ExpiresAt
+        };
+        Assert.Equal(new AgentMessageSendOut("Confirm action", expectedAction), actual);
+    }
 }

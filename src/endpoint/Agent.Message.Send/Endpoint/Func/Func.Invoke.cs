@@ -22,7 +22,7 @@ partial class AgentMessageSendFunc
         .ForwardValue(
             (context, token) => SendMessageAsync(context, input, token))
         .MapSuccess(
-            static result => new AgentMessageSendOut(result.Text));
+            static result => new AgentMessageSendOut(result.Text, MapPreparedAction(result.PreparedAction)));
 
     private ValueTask<Result<AgentMessageOut, Failure<AgentMessageSendFailureCode>>> SendMessageAsync(
         AgentUserContext context,
@@ -49,6 +49,22 @@ partial class AgentMessageSendFunc
             AgentUserContextResolveFailureCode.MissingEntraObjectId => AgentMessageSendFailureCode.UserUnavailable,
             _ => AgentMessageSendFailureCode.Unknown
         };
+
+    private static AgentMessageSendActionOut? MapPreparedAction(AgentTimesheetCreatePrepareOut? action)
+        =>
+        action is null
+            ? null
+            : new()
+            {
+                ActionId = action.ActionId,
+                Date = action.Date,
+                ProjectId = action.ProjectId,
+                ProjectName = action.ProjectName,
+                ProjectType = (int)action.ProjectType,
+                Duration = action.Duration,
+                Description = action.Description,
+                ExpiresAt = action.ExpiresAt
+            };
 
     private static AgentMessageSendFailureCode MapMessageFailureCode(AgentConversationMessageFailureCode failureCode)
         =>

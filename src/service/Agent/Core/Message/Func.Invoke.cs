@@ -27,7 +27,8 @@ partial class AgentMessageFunc
         AgentMessageIn input,
         CancellationToken cancellationToken)
     {
-        var kernel = kernelFactory.Create(context);
+        var kernelScope = kernelFactory.Create(context);
+        var kernel = kernelScope.Kernel;
         var history = new ChatHistory(BuildSystemPrompt(input.Locale));
 
         foreach (var message in input.History)
@@ -61,7 +62,7 @@ partial class AgentMessageFunc
                 return Failure.Create(AgentMessageFailureCode.EmptyResponse, "AI response must not be empty");
             }
 
-            return new AgentMessageOut(result.Content.Trim());
+            return new AgentMessageOut(result.Content.Trim(), kernelScope.PreparedAction);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
