@@ -92,6 +92,22 @@ Adapter обязан:
 
 Перед началом реализации write-инструментов обязательно напомнить владельцу проекта уточнить у руководства: отсутствие `CallerObjectId` является осознанной частью текущей CRM-авторизации или недоработкой, которую следует исправить передачей caller identity. До ответа `Timesheet.Update` остаётся заблокированным для агента.
 
+### Результат повторного аудита write-операций от 29.09.2026
+
+- `Timesheet.Modify.CreateAsync` передаёт `TimesheetCreateIn.SystemUserId` и при проверке выбранного проекта, и в `DataverseEntityCreateIn.CallerObjectId`.
+- `Timesheet.Delete.InvokeAsync` передаёт `TimesheetDeleteIn.SystemUserId` в `DataverseEntityDeleteIn.CallerObjectId`.
+- `Timesheet.Modify.UpdateAsync` передаёт `TimesheetUpdateIn.SystemUserId` только в запрос чтения проекта, если проект изменяется.
+- Итоговый `DataverseEntityUpdateIn<TimesheetJson>` не получает `CallerObjectId` ни при изменении проекта, ни при изменении только даты, длительности или комментария.
+- Контракт update при этом уже принимает `SystemUserId` из claim `oid`, поэтому технически identity доступна до построения Dataverse-запроса.
+
+Это подтверждает асимметрию существующей реализации, но само по себе не доказывает ошибку авторизации: итоговое поведение может зависеть от Dataverse plugin и внутренних правил CRM. До решения владельца API агенту нельзя предоставлять `prepare_update_timesheet` и исполнение update.
+
+Нужно получить явный ответ на три вопроса:
+
+1. Должен ли `CallerObjectId` передаваться в Dataverse update при любом наборе изменяемых полей?
+2. Является ли его текущее отсутствие недоработкой существующего API?
+3. Подтверждено ли, что для agent create/update/delete источником `SystemUserId` и `CallerObjectId` должен быть `AgentUserContext.EntraObjectId`?
+
 ### `Project.GetSet`
 
 Пользовательский ID применяется к истории списаний проектов, но запросы Incident, Opportunity и Lead выглядят общими. До выдачи полного набора модели необходимо интеграционно подтвердить, что SQL/API слой не раскрывает пользователю недоступные записи.
