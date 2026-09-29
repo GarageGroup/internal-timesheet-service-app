@@ -345,6 +345,10 @@ project tool → Telegram response. Дополнительные Azure-изме�
 
 Исправление маршрутизации бота зафиксировано коммитом `eace3c6 Fix agent message command routing`.
 
+Исправление binding дат `14ecd63 Fix timesheet tool date binding` развёрнуто штатным CI/CD API и
+успешно проверено реальным Telegram-запросом чтения списаний за текущий день. Дополнительные Azure,
+APIM, Entra ID, Foundry или Storage изменения для исправления не потребовались.
+
 ## Правила дальнейшего ведения
 
 После каждого изменения Azure необходимо до завершения инкремента записать:
