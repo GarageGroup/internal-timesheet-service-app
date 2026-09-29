@@ -538,6 +538,27 @@ Entity до включения write feature flag.
 Production и остальные Azure-ресурсы не изменялись. Для production исправление должно попасть в
 обычный bot artifact; дополнительных настроек или ресурсов не требуется.
 
+### Обработка Problem Details decision endpoint
+
+Для диагностики и исправления пользовательских сообщений выполнены последовательные ZIP deployment
+только test Function App `func-internal-gtimesheet-test`:
+
+| Deployment ID | Результат |
+|---|---|
+| `b11892e2` | первоначальный разбор стандартных `title/detail` |
+| `39512f51` | проверка гипотезы о строковом `failureCode` |
+| `4d1db760-9942-489d-9d2d-c9a48c302ba9` | проверка числового `failureCode` |
+| `e37e4fa2-a6cb-4a69-bf74-9491177181cd` | итоговый разбор фактического `detail`; status `4` / successful |
+
+Проверка сгенерированного кода endpoint framework показала, что ответ имеет поля `type`, `title`,
+`status`, `detail`; смысловая безопасная причина находится в `detail`, а `failureCode` не публикуется.
+Итоговый реальный callback вернул безопасное сообщение о некорректных параметрах списания, удалил
+inline-клавиатуру и оставил action в `Failed`. Dataverse write не выполнялся.
+
+App Settings, Managed Identity, RBAC, Entra ID, APIM policies/routes, Storage schema, Foundry и webhook
+не изменялись. Production не затронут. Для переноса на production нужен только обычный bot artifact;
+отдельные Azure-настройки не требуются. Откат — ZIP/CI deployment предыдущего bot artifact.
+
 ### Сквозной Confirm smoke test
 
 Первое подтверждение action на московскую дату `2026-09-30` было отклонено существующим Dataverse
