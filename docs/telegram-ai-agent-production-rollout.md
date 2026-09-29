@@ -259,6 +259,8 @@ API-level policy должна:
 - [ ] Telegram/CRM binding разрешается сервером.
 - [ ] API key и storage key отсутствуют.
 - [ ] API MI имеет только `Cognitive Services User` и `Storage Table Data Contributor` на нужных scopes.
+- [ ] Исходящие Telegram Bot API URL редактируются или не записываются в telemetry; bot token отсутствует в traces, requests и exceptions.
+- [ ] После проверки telemetry создан новый production bot token, а использовавшиеся при проверках токены отозваны.
 - [ ] APIM предъявляет backend certificate и сохраняет Bearer token.
 - [ ] Mini App policy не ослаблена.
 - [ ] Foundry deployment доступен и имеет квоту.

@@ -398,6 +398,45 @@ Telegram-бот, Foundry, Entra ID и production не изменялись.
 3. Для production создать отдельную таблицу в production Storage Account, назначить production API
    минимальную роль `Storage Table Data Contributor` и сначала применить flag со значением `false`.
 
+## 29.09.2026 — включение и smoke-тест write preparation в test
+
+После успешного CI/CD deployment коммита `0e9a6b4` в App Service
+`app-garage-timesheet-service-test` настройка `Agent__WritePreparation__Enabled` изменена с `false`
+на `true` через Azure CLI. Изменение App Settings вызвало recycle; после него приложение проверено в
+состоянии `Running`. Другие App Settings, APIM, Managed Identity, RBAC, Foundry, Entra ID и production
+не изменялись.
+
+Для проверки через реальный контур бота сформированы тестовые Telegram updates и переданы напрямую
+в защищённую функцию `HandleBotHttp` с Function key. Персональные Telegram ID, Function key и
+Storage key не выводились и не сохранялись. Дальнейший путь оставался штатным: Durable Entity,
+Managed Identity бота, APIM, agent API, Semantic Kernel, Foundry и Telegram send API.
+
+Проверено:
+
+- read-only запрос завершился через `/internal/agent/messages` с HTTP 200, а отправка ответа в
+  Telegram — с HTTP 200;
+- корректный запрос создал одну запись в `TimesheetAgentAction` со статусом `Pending`, каноническим
+  проектом, датой `2026-09-29`, длительностью `0.5`, исходным комментарием и TTL 10 минут;
+- повторное чтение фактических списаний подтвердило, что подготовленное действие не появилось в
+  Dataverse;
+- неизвестный проект и пустой комментарий не создали новых action;
+- запрос двух списаний за один model turn создал только первое действие; второе не было сохранено;
+- после теста в таблице находились две подготовленные записи, обе в статусе `Pending`; функций
+  confirm/execute в развёрнутой версии нет.
+
+Feature flag оставлен равным `true` для следующего этапа разработки callback. Текущий риск ограничен
+test-средой: агент может создавать только истекающие preview-записи в Table Storage и не может
+выполнять CRM write.
+
+Во время проверки обнаружено, что текущая HTTP-телеметрия бота записывает полный URL исходящего
+Telegram Bot API запроса. Поскольку токен является частью Telegram URL, секрет попадает в trace
+Application Insights. Значение секрета в документацию не переносилось. До production необходимо
+настроить redaction/suppression таких URL и ротировать токен после исправления логирования. Это
+отдельная security-задача; конфигурация логирования и токен в данном инкременте не изменялись.
+
+Откат write preparation: установить `Agent__WritePreparation__Enabled=false`. Удалять тестовые
+`Pending`-записи для отката не требуется: без confirm/execute они не могут изменить Dataverse.
+
 ## Правила дальнейшего ведения
 
 После каждого изменения Azure необходимо до завершения инкремента записать:
