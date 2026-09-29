@@ -615,6 +615,19 @@ Resolver выполняет следующие проверки:
 
 Проверка: 58 тестов Agent Core и 15 тестов `Agent.Message.Send` прошли. Следующий инкремент — подключить action storage и prepare-функцию в Application под отдельным feature flag, не включая исполнение или callback.
 
+### 29.09.2026 — Application composition и feature flag подготовки
+
+- Action Table provider и `AgentTimesheetCreatePrepareFunc` подключены в Application через существующие `Pipeline/Dependency` composition roots.
+- Из-за ограничения `Dependency` в семь типов Kernel-инструменты объединены в типизированный `AgentKernelToolSet`; service locator и ручное получение зависимостей не используются.
+- `AgentKernelFactory` регистрирует `TimesheetWritePreparation` только при `Agent:WritePreparation:Enabled = true`; значение по умолчанию в `appsettings.json` — `false`.
+- Системный prompt синхронизирован с flag: при выключенном flag он сохраняет read-only правила, при включённом разрешает только prepare создания и запрещает заявлять о фактической записи до подтверждения.
+- Добавлены настройки `Agent:Storage:ActionTableName`, `Agent:WritePreparation:ApprovalTtlMinutes` и `Agent:WritePreparation:ProjectSearchTop` с проверкой HTTPS endpoint, имени таблицы, положительного TTL и лимита поиска.
+- Создание `TableClient` не обращается к Azure; при выключенном flag action table не используется. Поэтому код можно развернуть без изменения текущего поведения, оставив flag выключенным.
+- Таблица `TimesheetAgentAction` в Azure не создавалась, app settings Azure не менялись, confirm/cancel и CRM execution отсутствуют.
+- В новом коде отсутствует оператор `!`.
+
+Проверка: 59 тестов Agent Core и 15 тестов `Agent.Message.Send` прошли; полная сборка завершилась без ошибок и предупреждений. Следующий инфраструктурный шаг перед включением — создать таблицу в test и добавить настройки с flag `false`, затем отдельно включить prepare-only smoke test.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.

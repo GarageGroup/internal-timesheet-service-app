@@ -25,14 +25,19 @@ public static partial class AgentKernelFactoryTest
 
     private static AgentKernelFactory CreateFactory(
         Mock<IAgentPeriodSetGetFunc>? periodFunc = null,
-        Mock<IAgentTimesheetSetGetFunc>? timesheetFunc = null)
+        Mock<IAgentTimesheetSetGetFunc>? timesheetFunc = null,
+        Mock<IAgentTimesheetCreatePrepareFunc>? prepareFunc = null,
+        bool writePreparationEnabled = false)
         =>
         new(
-            (timesheetFunc ?? new()).Object,
-            new Mock<IAgentProjectSetSearchFunc>().Object,
-            new Mock<IAgentLastProjectSetGetFunc>().Object,
-            (periodFunc ?? new()).Object,
-            new Mock<IAgentTagSetGetFunc>().Object,
+            new(
+                (timesheetFunc ?? new()).Object,
+                new Mock<IAgentProjectSetSearchFunc>().Object,
+                new Mock<IAgentLastProjectSetGetFunc>().Object,
+                (periodFunc ?? new()).Object,
+                new Mock<IAgentTagSetGetFunc>().Object,
+                (prepareFunc ?? new()).Object),
             TokenCredential.Object,
-            SomeOption);
+            SomeOption,
+            new(writePreparationEnabled));
 }

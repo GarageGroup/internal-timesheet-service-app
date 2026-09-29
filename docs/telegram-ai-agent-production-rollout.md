@@ -156,6 +156,9 @@ table-level RBAC и организационного стандарта можн
 | `Agent__Storage__TableServiceEndpoint` | `https://<storage>.table.core.windows.net/` |
 | `Agent__Storage__ConversationTableName` | `TimesheetAgentConversation` |
 | `Agent__Storage__ActionTableName` | `TimesheetAgentAction` |
+| `Agent__WritePreparation__Enabled` | сначала `false`; включать только после проверки таблицы и preview flow |
+| `Agent__WritePreparation__ApprovalTtlMinutes` | `10` либо согласованное значение |
+| `Agent__WritePreparation__ProjectSearchTop` | не больше `Agent__Tools__Project__MaxTop` |
 | `Agent__Message__MaxHistoryMessageCount` | согласованный лимит, test default `20` |
 | `Agent__Message__MaxTextLength` | согласованный лимит, test default `2000` |
 | `Agent__Message__TimeZoneId` | production business timezone |

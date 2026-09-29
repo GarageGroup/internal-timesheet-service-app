@@ -7,13 +7,10 @@ using OpenAI;
 namespace GarageGroup.Internal.Timesheet;
 
 public sealed class AgentKernelFactory(
-    IAgentTimesheetSetGetFunc timesheetSetGetFunc,
-    IAgentProjectSetSearchFunc projectSetSearchFunc,
-    IAgentLastProjectSetGetFunc lastProjectSetGetFunc,
-    IAgentPeriodSetGetFunc periodSetGetFunc,
-    IAgentTagSetGetFunc tagSetGetFunc,
+    AgentKernelToolSet toolSet,
     TokenCredential tokenCredential,
-    AgentFoundryOption option) : IAgentKernelFactory
+    AgentFoundryOption option,
+    AgentWritePreparationOption writePreparationOption) : IAgentKernelFactory
 {
     public AgentKernelScope Create(AgentUserContext context)
     {
@@ -33,16 +30,24 @@ public sealed class AgentKernelFactory(
         builder.AddOpenAIChatCompletion(option.ModelId, openAiClient);
 
         var kernel = builder.Build();
+        var actionCapture = new AgentPreparedActionCapture();
         kernel.Plugins.AddFromObject(
             new AgentReadPlugin(
                 context,
-                timesheetSetGetFunc,
-                projectSetSearchFunc,
-                lastProjectSetGetFunc,
-                periodSetGetFunc,
-                tagSetGetFunc),
+                toolSet.TimesheetSetGetFunc,
+                toolSet.ProjectSetSearchFunc,
+                toolSet.LastProjectSetGetFunc,
+                toolSet.PeriodSetGetFunc,
+                toolSet.TagSetGetFunc),
             AgentReadPlugin.PluginName);
 
-        return new(kernel, new AgentPreparedActionCapture());
+        if (writePreparationOption.Enabled)
+        {
+            kernel.Plugins.AddFromObject(
+                new AgentWritePlugin(context, toolSet.TimesheetCreatePrepareFunc, actionCapture),
+                AgentWritePlugin.PluginName);
+        }
+
+        return new(kernel, actionCapture);
     }
 }

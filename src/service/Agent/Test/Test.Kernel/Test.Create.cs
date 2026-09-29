@@ -23,6 +23,17 @@ partial class AgentKernelFactoryTest
         Assert.Equal(
             ["get_periods", "get_project_tags", "get_recent_projects", "get_timesheets", "search_projects"],
             functions);
+        Assert.DoesNotContain(AgentWritePlugin.PluginName, kernel.Plugins.Select(static plugin => plugin.Name));
+    }
+
+    [Fact]
+    public static void Create_WritePreparationIsEnabled_ExpectPreparePluginWithoutExecutionFunction()
+    {
+        var kernel = CreateFactory(writePreparationEnabled: true).Create(SomeContext).Kernel;
+
+        var functions = kernel.Plugins[AgentWritePlugin.PluginName].Select(static function => function.Name).ToArray();
+
+        Assert.Equal(["prepare_create_timesheet"], functions);
     }
 
     [Fact]

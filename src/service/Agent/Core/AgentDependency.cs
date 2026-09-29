@@ -69,44 +69,58 @@ public static class AgentDependency
 
     public static Dependency<IAgentKernelFactory> UseAgentKernelFactory(
         this Dependency<
-            IAgentTimesheetSetGetFunc,
-            IAgentProjectSetSearchFunc,
-            IAgentLastProjectSetGetFunc,
-            IAgentPeriodSetGetFunc,
-            IAgentTagSetGetFunc,
+            AgentKernelToolSet,
             TokenCredential,
-            AgentFoundryOption> dependency)
+            AgentFoundryOption,
+            AgentWritePreparationOption> dependency)
     {
         ArgumentNullException.ThrowIfNull(dependency);
 
         return dependency.Fold<IAgentKernelFactory>(CreateFactory);
 
         static AgentKernelFactory CreateFactory(
-            IAgentTimesheetSetGetFunc timesheetSetGetFunc,
-            IAgentProjectSetSearchFunc projectSetSearchFunc,
-            IAgentLastProjectSetGetFunc lastProjectSetGetFunc,
-            IAgentPeriodSetGetFunc periodSetGetFunc,
-            IAgentTagSetGetFunc tagSetGetFunc,
+            AgentKernelToolSet toolSet,
             TokenCredential tokenCredential,
-            AgentFoundryOption option)
+            AgentFoundryOption option,
+            AgentWritePreparationOption writePreparationOption)
         {
-            ArgumentNullException.ThrowIfNull(timesheetSetGetFunc);
-            ArgumentNullException.ThrowIfNull(projectSetSearchFunc);
-            ArgumentNullException.ThrowIfNull(lastProjectSetGetFunc);
-            ArgumentNullException.ThrowIfNull(periodSetGetFunc);
-            ArgumentNullException.ThrowIfNull(tagSetGetFunc);
+            ArgumentNullException.ThrowIfNull(toolSet);
             ArgumentNullException.ThrowIfNull(tokenCredential);
             ArgumentNullException.ThrowIfNull(option);
+            ArgumentNullException.ThrowIfNull(writePreparationOption);
 
             return new(
-                timesheetSetGetFunc,
+                toolSet,
+                tokenCredential,
+                option,
+                writePreparationOption);
+        }
+    }
+
+    public static Dependency<AgentKernelToolSet> UseAgentKernelToolSet(
+        this Dependency<
+            IAgentTimesheetSetGetFunc,
+            IAgentProjectSetSearchFunc,
+            IAgentLastProjectSetGetFunc,
+            IAgentPeriodSetGetFunc,
+            IAgentTagSetGetFunc,
+            IAgentTimesheetCreatePrepareFunc> dependency)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.Fold<AgentKernelToolSet>(
+            static (timesheetSetGetFunc,
                 projectSetSearchFunc,
                 lastProjectSetGetFunc,
                 periodSetGetFunc,
                 tagSetGetFunc,
-                tokenCredential,
-                option);
-        }
+                timesheetCreatePrepareFunc) => new(
+                    timesheetSetGetFunc,
+                    projectSetSearchFunc,
+                    lastProjectSetGetFunc,
+                    periodSetGetFunc,
+                    tagSetGetFunc,
+                    timesheetCreatePrepareFunc));
     }
 
     public static Dependency<IAgentTagSetGetFunc> UseAgentTagSetGetFunc(

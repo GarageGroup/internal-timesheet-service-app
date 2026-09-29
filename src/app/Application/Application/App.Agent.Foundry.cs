@@ -27,6 +27,14 @@ partial class Application
             ResolveAgentConversationTableOption)
         .UseAgentConversationTableStore();
 
+    private static Dependency<IAgentActionStore> UseAgentActionStore()
+        =>
+        Dependency.From(
+            ResolveTokenCredential)
+        .With(
+            ResolveAgentActionTableOption)
+        .UseAgentActionTableStore();
+
     private static Dependency<IAgentMessageFunc> UseAgentMessageFunc()
         =>
         Pipeline.Pipe(
@@ -36,6 +44,18 @@ partial class Application
         .UseAgentMessageFunc();
 
     private static Dependency<IAgentKernelFactory> UseAgentKernelFactory()
+        =>
+        Pipeline.Pipe(
+            UseAgentKernelToolSet())
+        .With(
+            ResolveTokenCredential)
+        .With(
+            ResolveAgentFoundryOption)
+        .With(
+            ResolveAgentWritePreparationOption)
+        .UseAgentKernelFactory();
+
+    private static Dependency<AgentKernelToolSet> UseAgentKernelToolSet()
         =>
         Pipeline.Pipe(
             UseAgentTimesheetSetGetFunc())
@@ -48,10 +68,8 @@ partial class Application
         .With(
             UseAgentTagSetGetFunc())
         .With(
-            ResolveTokenCredential)
-        .With(
-            ResolveAgentFoundryOption)
-        .UseAgentKernelFactory();
+            UseAgentTimesheetCreatePrepareFunc())
+        .UseAgentKernelToolSet();
 
     private static TokenCredential ResolveTokenCredential(IServiceProvider serviceProvider)
         =>
@@ -81,7 +99,8 @@ partial class Application
 
         return new(TimeZoneInfo.FindSystemTimeZoneById(timeZoneId), maxTextLength)
         {
-            MaxHistoryMessageCount = maxHistoryMessageCount
+            MaxHistoryMessageCount = maxHistoryMessageCount,
+            WritePreparationEnabled = configuration.GetValue<bool>("Agent:WritePreparation:Enabled")
         };
     }
 
@@ -111,6 +130,33 @@ partial class Application
 
         return new(endpoint, tableName.Trim());
     }
+
+    private static AgentActionTableOption ResolveAgentActionTableOption(IServiceProvider serviceProvider)
+    {
+        var configuration = serviceProvider.GetConfiguration();
+        var endpointValue = configuration["Agent:Storage:TableServiceEndpoint"];
+        var tableName = configuration["Agent:Storage:ActionTableName"];
+
+        if (Uri.TryCreate(endpointValue, UriKind.Absolute, out var endpoint) is false ||
+            endpoint.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) is false)
+        {
+            throw new InvalidOperationException("Agent storage table service endpoint must be an absolute HTTPS URL");
+        }
+
+        if (string.IsNullOrWhiteSpace(tableName) ||
+            tableName.Length is < 3 or > 63 ||
+            char.IsLetter(tableName[0]) is false ||
+            tableName.Any(static c => char.IsLetterOrDigit(c) is false))
+        {
+            throw new InvalidOperationException("Agent storage action table name must be specified");
+        }
+
+        return new(endpoint, tableName.Trim());
+    }
+
+    private static AgentWritePreparationOption ResolveAgentWritePreparationOption(IServiceProvider serviceProvider)
+        =>
+        new(serviceProvider.GetConfiguration().GetValue<bool>("Agent:WritePreparation:Enabled"));
 
     private static AgentFoundryOption ResolveAgentFoundryOption(IServiceProvider serviceProvider)
     {

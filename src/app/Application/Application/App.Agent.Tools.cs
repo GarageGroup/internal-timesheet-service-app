@@ -7,6 +7,16 @@ namespace GarageGroup.Internal.Timesheet;
 
 partial class Application
 {
+    private static Dependency<IAgentTimesheetCreatePrepareFunc> UseAgentTimesheetCreatePrepareFunc()
+        =>
+        Pipeline.Pipe(
+            UseAgentProjectSetSearchFunc())
+        .With(
+            UseAgentActionStore())
+        .With(
+            ResolveAgentTimesheetCreatePrepareOption)
+        .UseAgentTimesheetCreatePrepareFunc();
+
     private static Dependency<IAgentTimesheetSetGetFunc> UseAgentTimesheetSetGetFunc()
         =>
         Pipeline.Pipe(
@@ -87,4 +97,27 @@ partial class Application
         {
             MaxTags = serviceProvider.GetConfiguration().GetValue("Agent:Tools:Tag:MaxTags", 20)
         };
+
+    private static AgentTimesheetCreatePrepareOption ResolveAgentTimesheetCreatePrepareOption(IServiceProvider serviceProvider)
+    {
+        var configuration = serviceProvider.GetConfiguration();
+        var approvalTtlMinutes = configuration.GetValue("Agent:WritePreparation:ApprovalTtlMinutes", 10);
+        var projectSearchTop = configuration.GetValue("Agent:WritePreparation:ProjectSearchTop", 20);
+
+        if (approvalTtlMinutes <= 0)
+        {
+            throw new InvalidOperationException("Agent action approval TTL must be positive");
+        }
+
+        if (projectSearchTop <= 0 || projectSearchTop > configuration.GetValue("Agent:Tools:Project:MaxTop", 20))
+        {
+            throw new InvalidOperationException("Agent action project search top must be within the configured project search limit");
+        }
+
+        return new()
+        {
+            ApprovalTtl = TimeSpan.FromMinutes(approvalTtlMinutes),
+            ProjectSearchTop = projectSearchTop
+        };
+    }
 }

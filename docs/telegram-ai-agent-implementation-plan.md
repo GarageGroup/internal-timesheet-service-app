@@ -295,7 +295,7 @@ Callback передаёт только `ActionId`, решение и факти�
 
 Pending actions хранить отдельно от истории диалога, даже если используется тот же Azure Table account. Предлагаемая таблица: `TimesheetAgentAction`. Partition key должен начинаться с доверенного `BotId`, row key — с непрогнозируемого `ActionId`; проверка владельца обязательна независимо от ключа.
 
-Стартовый TTL — `Agent:ApprovalTtlMinutes = 10`. Истёкшее действие не исполняется и переводится в `Expired`. Повторный confirm не вызывает CRM второй раз, а возвращает сохранённое состояние/результат. Cancel допустим только из `Pending` и также идемпотентен.
+Стартовый TTL — `Agent:WritePreparation:ApprovalTtlMinutes = 10`. Истёкшее действие не исполняется и переводится в `Expired`. Повторный confirm не вызывает CRM второй раз, а возвращает сохранённое состояние/результат. Cancel допустим только из `Pending` и также идемпотентен.
 
 Создание списания нельзя автоматически повторять после timeout Dataverse. Пока не выбран CRM-side механизм идемпотентности, такое действие переходит в `Indeterminate`; пользователю предлагается проверить списания, а не повторить запись одной кнопкой. Это ограничение должно быть покрыто тестом до включения write feature flag.
 
@@ -435,8 +435,9 @@ Pending actions хранить отдельно от истории диалог
 | `Agent:Storage:ActionTableName` | Имя заранее созданной таблицы ожидающих подтверждения действий; предлагается `TimesheetAgentAction` |
 | `Agent:Storage:*` | Зарезервировано для будущих Queue/outbox только если синхронная схема окажется недостаточной; production доступ по MI |
 | `Agent:DefaultTimeZone` | Часовой пояс для относительных дат; начально `Europe/Moscow` |
-| `Agent:ApprovalTtlMinutes` | Срок preview; начально 10 минут |
-| `Agent:PrepareCreate:ProjectSearchTop` | Верхняя граница повторного поиска проекта при подготовке; должна укладываться в лимит project search |
+| `Agent:WritePreparation:Enabled` | Отдельный feature flag регистрации prepare-only plugin; по умолчанию `false` |
+| `Agent:WritePreparation:ApprovalTtlMinutes` | Срок preview; начально 10 минут |
+| `Agent:WritePreparation:ProjectSearchTop` | Верхняя граница повторного поиска проекта при подготовке; должна укладываться в лимит project search |
 | `Agent:MaxModelSteps`, `Agent:RequestTimeoutSeconds` | Предельная длина цикла и время задания, выставить после измерений |
 | `Agent:HistoryRetentionDays` | Утверждённый срок хранения разговоров, не хранить бессрочно по умолчанию |
 | `Agent:AllowedUserIds` | Временный серверный allowlist пилота; указать, что это CRM ID, не Telegram ID |
