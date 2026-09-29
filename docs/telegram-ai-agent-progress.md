@@ -806,6 +806,17 @@ Resolver выполняет следующие проверки:
 
 Проверка: все 17 тестов endpoint `Timesheet.Delete` прошли; полная Application-сборка завершилась без ошибок и предупреждений; форматирование endpoint и `git diff --check` успешны. Инкремент не закоммичен.
 
+### 30.09.2026 — безопасный application layer подготовки удаления
+
+- Добавлены отдельные контракты `Timesheet.PrepareDelete`, не смешанные с create: input содержит только `TimesheetId` и дату, output — серверный preview и `ActionId`.
+- `AgentTimesheetDeletePrepareFunc` повторно вызывает доверенный `IAgentTimesheetSetGetFunc` за один указанный день и принимает ID только из фактически доступного пользователю результата.
+- Пустой, отсутствующий и read-only timesheet отклоняются до записи action. Произвольный ID из prompt не сохраняется.
+- В action сохраняется канонический snapshot: ID списания, дата, проект, длительность, комментарий, время создания и TTL.
+- Добавлен отдельный контракт `IAgentTimesheetDeleteActionStore`; конкретный Azure Table provider и discriminator будут следующим инкрементом. Semantic Kernel tool, confirm и endpoint пока не подключены.
+- Composition построена через `AsyncPipeline` и `Dependency`; в новом коде отсутствует оператор `!`.
+
+Проверка: все 88 тестов service `Agent` прошли; Core собирается без ошибок и предупреждений; форматирование и `git diff --check` успешны. Инкремент не закоммичен и не изменяет Azure.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.

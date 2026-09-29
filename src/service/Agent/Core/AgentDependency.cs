@@ -9,6 +9,29 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class AgentDependency
 {
+    public static Dependency<IAgentTimesheetDeletePrepareFunc> UseAgentTimesheetDeletePrepareFunc(
+        this Dependency<
+            IAgentTimesheetSetGetFunc,
+            IAgentTimesheetDeleteActionStore,
+            AgentTimesheetDeletePrepareOption> dependency)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.Fold<IAgentTimesheetDeletePrepareFunc>(CreateFunc);
+
+        static AgentTimesheetDeletePrepareFunc CreateFunc(
+            IAgentTimesheetSetGetFunc timesheetSetGetFunc,
+            IAgentTimesheetDeleteActionStore actionStore,
+            AgentTimesheetDeletePrepareOption option)
+        {
+            ArgumentNullException.ThrowIfNull(timesheetSetGetFunc);
+            ArgumentNullException.ThrowIfNull(actionStore);
+            ArgumentNullException.ThrowIfNull(option);
+
+            return new(timesheetSetGetFunc, actionStore, new DateProvider(TimeZoneInfo.Utc), option);
+        }
+    }
+
     public static Dependency<IAgentTimesheetCreateConfirmFunc> UseAgentTimesheetCreateConfirmFunc(
         this Dependency<IAgentActionStore, ITimesheetCreateFunc> dependency)
     {
