@@ -42,6 +42,10 @@ public static partial class AgentMessageFuncTest
 
     private sealed class TestDateProvider(DateOnly today) : IDateProvider
     {
+        public DateTimeOffset UtcNow
+            =>
+            new(Today, TimeOnly.MinValue, TimeSpan.Zero);
+
         public DateOnly Today { get; } = today;
     }
 }

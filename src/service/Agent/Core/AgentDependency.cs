@@ -9,6 +9,26 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class AgentDependency
 {
+    public static Dependency<IAgentTimesheetCreatePrepareFunc> UseAgentTimesheetCreatePrepareFunc(
+        this Dependency<IAgentProjectSetSearchFunc, IAgentActionStore, AgentTimesheetCreatePrepareOption> dependency)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.Fold<IAgentTimesheetCreatePrepareFunc>(CreateFunc);
+
+        static AgentTimesheetCreatePrepareFunc CreateFunc(
+            IAgentProjectSetSearchFunc projectSetSearchFunc,
+            IAgentActionStore actionStore,
+            AgentTimesheetCreatePrepareOption option)
+        {
+            ArgumentNullException.ThrowIfNull(projectSetSearchFunc);
+            ArgumentNullException.ThrowIfNull(actionStore);
+            ArgumentNullException.ThrowIfNull(option);
+
+            return new(projectSetSearchFunc, actionStore, new DateProvider(TimeZoneInfo.Utc), option);
+        }
+    }
+
     public static Dependency<IAgentConversationMessageFunc> UseAgentConversationMessageFunc(
         this Dependency<IAgentMessageFunc, IAgentConversationStore, AgentConversationMessageOption> dependency)
     {

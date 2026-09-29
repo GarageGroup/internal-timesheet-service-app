@@ -436,6 +436,7 @@ Pending actions хранить отдельно от истории диалог
 | `Agent:Storage:*` | Зарезервировано для будущих Queue/outbox только если синхронная схема окажется недостаточной; production доступ по MI |
 | `Agent:DefaultTimeZone` | Часовой пояс для относительных дат; начально `Europe/Moscow` |
 | `Agent:ApprovalTtlMinutes` | Срок preview; начально 10 минут |
+| `Agent:PrepareCreate:ProjectSearchTop` | Верхняя граница повторного поиска проекта при подготовке; должна укладываться в лимит project search |
 | `Agent:MaxModelSteps`, `Agent:RequestTimeoutSeconds` | Предельная длина цикла и время задания, выставить после измерений |
 | `Agent:HistoryRetentionDays` | Утверждённый срок хранения разговоров, не хранить бессрочно по умолчанию |
 | `Agent:AllowedUserIds` | Временный серверный allowlist пилота; указать, что это CRM ID, не Telegram ID |
