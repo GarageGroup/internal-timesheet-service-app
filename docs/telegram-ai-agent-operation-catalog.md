@@ -118,6 +118,8 @@ Semantic Kernel write plugin публикует `prepare_delete_timesheet(timesh
 
 Confirm/cancel удаления подключены к тому же decision endpoint, что и создание. Endpoint сначала ищет типизированный create action и переходит к delete handler только при `NotFound`; каждый storage reader требует свой `ActionType`. Confirm вызывает общий `ITimesheetDeleteFunc` с `AgentUserContext.EntraObjectId` как caller identity и сохраняет финальное состояние через ETag. Cancel выполняет только `Pending → Cancelled`. Ни action payload, ни callback не позволяют клиенту заменить `TimesheetId` после prepare.
 
+Telegram-клиент получает отдельные `PreparedCreateAction` и `PreparedDeleteAction` и строит локализованный preview из серверного snapshot. Callback содержит тип только для выбора UI-текста; сервер не доверяет этому типу и разрешает action через обязательный storage `ActionType`. До первого production-релиза старые JSON-поля и callback без типа не поддерживаются.
+
 ### Текущий confirm/cancel boundary
 
 Core-функции создания списания принимают для confirm/cancel только доверенный `AgentUserContext` и серверный `ActionId`. Они не принимают дату, проект, длительность, комментарий, `CallerObjectId` или Telegram identifiers как изменяемые аргументы. Action storage повторно сравнивает полного владельца, а переход состояния защищён ETag и ожидаемым `Pending`.
