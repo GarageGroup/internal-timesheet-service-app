@@ -718,6 +718,15 @@ Resolver выполняет следующие проверки:
 
 Проверка: все 17 тестов bot solution прошли; сборка завершилась без ошибок и предупреждений. Следующий шаг после review и коммита — развернуть API с endpoint решения, добавить его operation в test APIM, развернуть бот и вручную проверить confirm/cancel/repeated callback.
 
+### 29.09.2026 — test APIM route для решения
+
+- В test agent API добавлена operation `post-agent-action-decision`: `POST /internal/agent/actions/{actionId}/decision`.
+- Operation не имеет собственной policy и наследует существующие backend certificate и JWT forwarding общей agent API policy.
+- Другие Azure-ресурсы и production не изменялись; изменение подробно записано в Azure change log с шагами отката и переноса.
+- API endpoint и новая версия бота на момент добавления operation ещё не развёрнуты, поэтому сквозная проверка ожидает deployment API.
+
+Проверка: operation повторно прочитана из APIM с ожидаемыми ID, HTTP method, URL template и обязательным `actionId`. Следующий шаг — deployment API пользователем, после чего ZIP deployment бота и сквозной smoke test confirm/cancel.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.

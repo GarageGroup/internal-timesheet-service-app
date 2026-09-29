@@ -437,6 +437,33 @@ Application Insights. Значение секрета в документаци�
 Откат write preparation: установить `Agent__WritePreparation__Enabled=false`. Удалять тестовые
 `Pending`-записи для отката не требуется: без confirm/execute они не могут изменить Dataverse.
 
+## 29.09.2026 — APIM operation подтверждения agent action
+
+В test APIM `apim-integration-platform-test-01` в subscription
+`106dd084-8190-453f-87c9-cd2cb714b1d6`, API `garage-timesheet-agent-api`, добавлена операция:
+
+| Параметр | Значение |
+|---|---|
+| Operation ID | `post-agent-action-decision` |
+| Display name | `Decide agent action` |
+| Method | `POST` |
+| URL template | `/internal/agent/actions/{actionId}/decision` |
+| Template parameter | `actionId`, required, string |
+
+Отдельная operation policy не добавлялась. Операция наследует общую policy `garage-timesheet-agent-api`:
+backend test Timesheet API, backend client certificate и неизменённый Bearer JWT Managed Identity бота.
+Существующие profile/message operations, Mini App API, App Service, Function App, Entra ID, Storage,
+Foundry и production не изменялись.
+
+На момент создания operation новый API endpoint ещё не развёрнут в test App Service, поэтому
+сквозной вызов не выполнялся. До deployment API маршрут может закономерно вернуть backend `404`.
+
+Откат: удалить только operation `post-agent-action-decision` из API `garage-timesheet-agent-api`.
+
+Для production: добавить эту operation декларативно в production agent API после/вместе с deployment
+endpoint, сохранить обязательный route parameter и убедиться, что общая policy предъявляет production
+backend certificate и не удаляет Bearer header.
+
 ## Правила дальнейшего ведения
 
 После каждого изменения Azure необходимо до завершения инкремента записать:
