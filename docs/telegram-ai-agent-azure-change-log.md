@@ -559,6 +559,28 @@ App Settings, Managed Identity, RBAC, Entra ID, APIM policies/routes, Storage sc
 не изменялись. Production не затронут. Для переноса на production нужен только обычный bot artifact;
 отдельные Azure-настройки не требуются. Откат — ZIP/CI deployment предыдущего bot artifact.
 
+### Deployment локализованного agent UI
+
+Коммит бота `8eaad61` развёрнут прямым ZIP deployment в test Function App
+`func-internal-gtimesheet-test`:
+
+| Параметр | Значение |
+|---|---|
+| Deployment ID | `45da0db1-9ccc-450e-bd02-bee00fc2fce7` |
+| Status | `4` / successful |
+| Итоговое состояние | `Running` / `Normal` |
+
+Первый `/profile` был принят ingress, но `HandleBotEntity` попал в момент замены сборок работающего
+процесса и завершился ошибкой metadata token в `ChatContext.GetLocalizer`. Выполнен один restart
+только test Function App. App Settings и остальные Azure-ресурсы не менялись.
+
+После restart повторный `/profile` успешно прошёл через `HandleBotHttp` и `HandleBotEntity`.
+Telegram update намеренно содержал язык `en`, профиль — `ru`; бот вернул русский текст, подтвердив
+приоритет языка профиля. Для production локализация переносится обычным bot artifact. После прямого
+ZIP deployment рекомендуется контролируемый restart до приёма update либо deployment slot/swap,
+чтобы исключить обработку Durable Entity во время замены DLL. Откат — deployment предыдущего
+артефакта бота; отдельный откат конфигурации не требуется.
+
 ### Сквозной Confirm smoke test
 
 Первое подтверждение action на московскую дату `2026-09-30` было отклонено существующим Dataverse
