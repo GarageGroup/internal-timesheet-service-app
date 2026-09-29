@@ -110,6 +110,8 @@ Adapter обязан:
 
 По решению владельца проекта от 29.09.2026 `CallerObjectId` был сначала добавлен только в существующий пользовательский `Timesheet.Update`. Ручная проверка в test прошла успешно, поэтому `AgentUserContext.EntraObjectId` принят как единый источник caller identity для будущих agent create/update/delete. Agent update остаётся заблокированным до появления общего prepare/confirm flow, проверки ownership и защиты от повторного исполнения.
 
+Для agent delete недостаточно принять `TimesheetId` от модели и положиться только на callback ownership. Prepare обязан повторно разрешить запись через read-функцию с доверенным `AgentUserContext`, убедиться, что ID присутствует в доступном пользователю результате, и сохранить серверный preview в action. Произвольный ID из prompt не считается разрешённым. Существующий `Timesheet.Delete` выделен в переиспользуемую `UseTimesheetDeleteFunc`; confirm должен вызывать её напрямую, без self-HTTP.
+
 ### Текущий confirm/cancel boundary
 
 Core-функции создания списания принимают для confirm/cancel только доверенный `AgentUserContext` и серверный `ActionId`. Они не принимают дату, проект, длительность, комментарий, `CallerObjectId` или Telegram identifiers как изменяемые аргументы. Action storage повторно сравнивает полного владельца, а переход состояния защищён ETag и ожидаемым `Pending`.

@@ -9,17 +9,28 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class TimesheetDeleteDependency
 {
+    public static Dependency<ITimesheetDeleteFunc> UseTimesheetDeleteFunc<TDataverseApi>(
+        this Dependency<TDataverseApi> dependency)
+        where TDataverseApi : IDataverseEntityDeleteSupplier
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.Map<ITimesheetDeleteFunc>(CreateFunc);
+
+        static TimesheetDeleteFunc CreateFunc(TDataverseApi dataverseApi)
+        {
+            ArgumentNullException.ThrowIfNull(dataverseApi);
+
+            return new(dataverseApi);
+        }
+    }
+
     public static Dependency<TimesheetDeleteEndpoint> UseTimesheetDeleteEndpoint<TDataverseApi>(
         this Dependency<TDataverseApi> dependency)
         where TDataverseApi : IDataverseEntityDeleteSupplier
     {
         ArgumentNullException.ThrowIfNull(dependency);
-        return dependency.Map(CreateFunc).Map(TimesheetDeleteEndpoint.Resolve);
 
-        static TimesheetDeleteFunc CreateFunc(TDataverseApi dataverseApi)
-        {
-            ArgumentNullException.ThrowIfNull(dataverseApi);
-            return new(dataverseApi);
-        }
+        return dependency.UseTimesheetDeleteFunc().Map(TimesheetDeleteEndpoint.Resolve);
     }
 }
