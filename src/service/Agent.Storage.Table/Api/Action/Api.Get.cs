@@ -20,7 +20,7 @@ partial class AgentActionTableApi
                 GetRowKey(actionId),
                 cancellationToken).ConfigureAwait(false);
 
-            if (entity is null || IsAnotherOwner())
+            if (entity is null || IsAnotherOwner(entity, context))
             {
                 return default(AgentTimesheetCreateAction?);
             }
@@ -45,14 +45,6 @@ partial class AgentActionTableApi
                 entity.ETag.ToString());
 
             return action;
-
-            bool IsAnotherOwner()
-                =>
-                entity.GetInt64(TelegramUserIdPropertyName).Equals(context.TelegramUserId) is false ||
-                entity.GetInt64(TelegramChatIdPropertyName).Equals(context.TelegramChatId) is false ||
-                entity.GetGuid(BindingIdPropertyName).Equals(context.BindingId) is false ||
-                entity.GetGuid(CrmSystemUserIdPropertyName).Equals(context.CrmSystemUserId) is false ||
-                entity.GetGuid(EntraObjectIdPropertyName).Equals(context.EntraObjectId) is false;
         }
         catch (Exception exception) when (exception is RequestFailedException or FormatException or InvalidOperationException)
         {
