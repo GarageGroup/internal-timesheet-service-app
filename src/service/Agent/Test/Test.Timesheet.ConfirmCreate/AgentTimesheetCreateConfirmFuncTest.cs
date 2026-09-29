@@ -43,8 +43,23 @@ public static partial class AgentTimesheetCreateConfirmFuncTest
         in Result<AgentTimesheetCreateAction?, Failure<AgentActionStoreFailureCode>> getResult,
         in Result<Unit, Failure<AgentActionStoreFailureCode>> updateResult,
         out Mock<IAgentActionStore> actionStore)
+        =>
+        BuildFunc(
+            getResult,
+            updateResult,
+            Result.Success<Unit>(default),
+            out actionStore,
+            out _);
+
+    private static AgentTimesheetCreateConfirmFunc BuildFunc(
+        in Result<AgentTimesheetCreateAction?, Failure<AgentActionStoreFailureCode>> getResult,
+        in Result<Unit, Failure<AgentActionStoreFailureCode>> updateResult,
+        in Result<Unit, Failure<TimesheetCreateFailureCode>> createResult,
+        out Mock<IAgentActionStore> actionStore,
+        out Mock<ITimesheetCreateFunc> timesheetCreateFunc)
     {
         actionStore = new();
+        timesheetCreateFunc = new();
 
         _ = actionStore
             .Setup(static s => s.GetAsync(
@@ -63,7 +78,13 @@ public static partial class AgentTimesheetCreateConfirmFuncTest
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(updateResult);
 
-        return new(actionStore.Object, new TestDateProvider(SomeUtcNow));
+        _ = timesheetCreateFunc
+            .Setup(static f => f.CreateAsync(
+                It.IsAny<TimesheetCreateIn>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(createResult);
+
+        return new(actionStore.Object, timesheetCreateFunc.Object, new TestDateProvider(SomeUtcNow));
     }
 
     private sealed class TestDateProvider(DateTimeOffset utcNow) : IDateProvider

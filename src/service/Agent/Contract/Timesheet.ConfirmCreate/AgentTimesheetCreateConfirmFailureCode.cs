@@ -7,5 +7,9 @@ public enum AgentTimesheetCreateConfirmFailureCode
     NotFound,
     Expired,
     InvalidState,
-    Conflict
+    Conflict,
+    BadRequest,
+    Forbidden,
+    ProjectNotFound,
+    Indeterminate
 }

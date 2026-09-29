@@ -10,17 +10,20 @@ namespace GarageGroup.Internal.Timesheet;
 public static class AgentDependency
 {
     public static Dependency<IAgentTimesheetCreateConfirmFunc> UseAgentTimesheetCreateConfirmFunc(
-        this Dependency<IAgentActionStore> dependency)
+        this Dependency<IAgentActionStore, ITimesheetCreateFunc> dependency)
     {
         ArgumentNullException.ThrowIfNull(dependency);
 
-        return dependency.Map<IAgentTimesheetCreateConfirmFunc>(CreateFunc);
+        return dependency.Fold<IAgentTimesheetCreateConfirmFunc>(CreateFunc);
 
-        static AgentTimesheetCreateConfirmFunc CreateFunc(IAgentActionStore actionStore)
+        static AgentTimesheetCreateConfirmFunc CreateFunc(
+            IAgentActionStore actionStore,
+            ITimesheetCreateFunc timesheetCreateFunc)
         {
             ArgumentNullException.ThrowIfNull(actionStore);
+            ArgumentNullException.ThrowIfNull(timesheetCreateFunc);
 
-            return new(actionStore, new DateProvider(TimeZoneInfo.Utc));
+            return new(actionStore, timesheetCreateFunc, new DateProvider(TimeZoneInfo.Utc));
         }
     }
 

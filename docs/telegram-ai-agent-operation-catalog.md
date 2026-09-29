@@ -114,7 +114,9 @@ Adapter обязан:
 
 Core-функции создания списания принимают для confirm/cancel только доверенный `AgentUserContext` и серверный `ActionId`. Они не принимают дату, проект, длительность, комментарий, `CallerObjectId` или Telegram identifiers как изменяемые аргументы. Action storage повторно сравнивает полного владельца, а переход состояния защищён ETag и ожидаемым `Pending`.
 
-На текущем промежуточном этапе confirm переводит `Pending → Executing`, cancel — `Pending → Cancelled`, истёкшее действие — `Pending → Expired`. Эти функции ещё не подключены к внешнему endpoint и не выполняют Dataverse write. Следующий execution boundary должен строить `TimesheetCreateIn` исключительно из сохранённого action и доверенного `AgentUserContext`, после чего фиксировать одно из конечных состояний.
+Confirm переводит `Pending → Executing`, cancel — `Pending → Cancelled`, истёкшее действие — `Pending → Expired`. Эти функции ещё не подключены к внешнему endpoint.
+
+Execution boundary реализован в Core: `ITimesheetCreateFunc` получает `SystemUserId = AgentUserContext.EntraObjectId`, а остальные параметры — из action, уже прошедшего prepare и подтверждение. `Succeeded` устанавливается только после успешного результата. Известные бизнес-отказы становятся `Failed`; неизвестные ошибки, исключения и невозможность надёжно сохранить результат становятся `Indeterminate`. Для `Indeterminate` автоматический retry запрещён, так как текущий create не возвращает CRM ID и не принимает idempotency key.
 
 ### `Project.GetSet`
 

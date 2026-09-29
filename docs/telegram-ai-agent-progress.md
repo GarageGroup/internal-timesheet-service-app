@@ -671,6 +671,20 @@ Resolver выполняет следующие проверки:
 
 Проверка: 77 тестов Agent Core и 17 тестов Action Table прошли; полная solution-сборка завершилась без ошибок и предупреждений. Следующий инкремент — execution orchestration после успешного `Pending → Executing` с использованием сохранённых аргументов и доверенного caller identity, включая конечные состояния `Succeeded`, `Failed` и `Indeterminate`.
 
+### 29.09.2026 — execution orchestration создания списания
+
+- Confirm после атомарного `Pending → Executing` вызывает существующий `ITimesheetCreateFunc` напрямую, без HTTP к собственному API и без повторного участия модели.
+- `TimesheetCreateIn` строится только из сохранённого action; caller identity берётся из `AgentUserContext.EntraObjectId`. Вход confirm по-прежнему содержит только `ActionId`.
+- Успешный CRM-вызов переводит action `Executing → Succeeded`.
+- Детерминированные бизнес-ошибки (`BadRequest`, неверный тип, пустое описание, `Forbidden`, отсутствующий проект) переводят action `Executing → Failed` и возвращают безопасный код.
+- Неизвестная ошибка либо исключение во время CRM-вызова переводит action `Executing → Indeterminate`; автоматический retry запрещён, потому что существующий create-контракт возвращает `Unit` и не позволяет доказать, была ли запись создана до потери ответа.
+- Терминальный переход использует повторно загруженную ETag версии `Executing` и выполняется с `CancellationToken.None`, чтобы разрыв клиентского запроса после начала CRM write не отменил фиксацию результата.
+- Если результат CRM известен, но терминальное состояние не удалось сохранить, confirm возвращает `Indeterminate`. Action может остаться `Executing` и потребует будущей процедуры reconciliation; повторное создание автоматически не выполняется.
+- Application, HTTP endpoint, Telegram callback и Azure не изменялись; развернутый агент пока не может вызвать confirm.
+- В новом коде отсутствует оператор `!`.
+
+Проверка: 85 тестов Agent Core прошли; полная solution-сборка завершилась без ошибок и предупреждений. Следующий инкремент — подключить confirm/cancel к Application и добавить защищённый callback endpoint, который повторно разрешает `AgentUserContext` по доверенным Telegram identifiers.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.

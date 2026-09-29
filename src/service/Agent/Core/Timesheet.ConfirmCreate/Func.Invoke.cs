@@ -88,7 +88,117 @@ partial class AgentTimesheetCreateConfirmFunc
             return updateResult.FailureOrThrow().MapFailureCode(MapStoreFailureCode);
         }
 
-        return new AgentTimesheetCreateConfirmOut(action.ActionId);
+        return await ExecuteAsync(context, action, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask<Result<AgentTimesheetCreateConfirmOut, Failure<AgentTimesheetCreateConfirmFailureCode>>> ExecuteAsync(
+        AgentUserContext context,
+        AgentTimesheetCreateAction action,
+        CancellationToken cancellationToken)
+    {
+        Result<Unit, Failure<TimesheetCreateFailureCode>> createResult;
+        try
+        {
+            createResult = await timesheetCreateFunc.CreateAsync(
+                new(
+                    context.EntraObjectId,
+                    action.Date,
+                    new(action.ProjectId, action.ProjectType),
+                    action.Duration,
+                    action.Description),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            _ = await TryUpdateFinalStateAsync(
+                context,
+                action.ActionId,
+                AgentActionState.Indeterminate,
+                CancellationToken.None).ConfigureAwait(false);
+
+            return Failure.Create(
+                AgentTimesheetCreateConfirmFailureCode.Indeterminate,
+                "Timesheet execution result is indeterminate",
+                exception);
+        }
+
+        if (createResult.IsSuccess)
+        {
+            var successUpdateResult = await TryUpdateFinalStateAsync(
+                context,
+                action.ActionId,
+                AgentActionState.Succeeded,
+                CancellationToken.None).ConfigureAwait(false);
+
+            if (successUpdateResult.IsFailure)
+            {
+                return successUpdateResult.FailureOrThrow();
+            }
+
+            return new AgentTimesheetCreateConfirmOut(action.ActionId);
+        }
+
+        var createFailure = createResult.FailureOrThrow();
+        var failureCode = MapCreateFailureCode(createFailure.FailureCode);
+        var finalState = failureCode is AgentTimesheetCreateConfirmFailureCode.Indeterminate
+            ? AgentActionState.Indeterminate
+            : AgentActionState.Failed;
+        var failureUpdateResult = await TryUpdateFinalStateAsync(
+            context,
+            action.ActionId,
+            finalState,
+            CancellationToken.None).ConfigureAwait(false);
+
+        if (failureUpdateResult.IsFailure)
+        {
+            return failureUpdateResult.FailureOrThrow();
+        }
+
+        return createFailure.MapFailureCode(MapCreateFailureCode);
+    }
+
+    private async ValueTask<Result<Unit, Failure<AgentTimesheetCreateConfirmFailureCode>>> TryUpdateFinalStateAsync(
+        AgentUserContext context,
+        Guid actionId,
+        AgentActionState finalState,
+        CancellationToken cancellationToken)
+    {
+        var executingResult = await actionStore.GetAsync(context, actionId, cancellationToken).ConfigureAwait(false);
+        if (executingResult.IsFailure)
+        {
+            return Failure.Create(
+                AgentTimesheetCreateConfirmFailureCode.Indeterminate,
+                "Failed to load executing agent action",
+                executingResult.FailureOrThrow().SourceException);
+        }
+
+        var executingAction = executingResult.SuccessOrThrow();
+        if (executingAction is null ||
+            executingAction.State is not AgentActionState.Executing ||
+            string.IsNullOrEmpty(executingAction.Version))
+        {
+            return Failure.Create(
+                AgentTimesheetCreateConfirmFailureCode.Indeterminate,
+                "Executing agent action state is unavailable");
+        }
+
+        var updateResult = await actionStore.UpdateStateAsync(
+            context,
+            actionId,
+            executingAction.Version,
+            AgentActionState.Executing,
+            finalState,
+            cancellationToken).ConfigureAwait(false);
+
+        if (updateResult.IsFailure)
+        {
+            return Failure.Create(
+                AgentTimesheetCreateConfirmFailureCode.Indeterminate,
+                "Failed to persist agent action execution result",
+                updateResult.FailureOrThrow().SourceException);
+        }
+
+        return Unit.Value;
     }
 
     private static AgentTimesheetCreateConfirmFailureCode MapStoreFailureCode(AgentActionStoreFailureCode failureCode)
@@ -97,5 +207,17 @@ partial class AgentTimesheetCreateConfirmFunc
         {
             AgentActionStoreFailureCode.Conflict => AgentTimesheetCreateConfirmFailureCode.Conflict,
             _ => AgentTimesheetCreateConfirmFailureCode.Unknown
+        };
+
+    private static AgentTimesheetCreateConfirmFailureCode MapCreateFailureCode(TimesheetCreateFailureCode failureCode)
+        =>
+        failureCode switch
+        {
+            TimesheetCreateFailureCode.BadRequest => AgentTimesheetCreateConfirmFailureCode.BadRequest,
+            TimesheetCreateFailureCode.UnexpectedProjectType => AgentTimesheetCreateConfirmFailureCode.BadRequest,
+            TimesheetCreateFailureCode.EmptyDescription => AgentTimesheetCreateConfirmFailureCode.BadRequest,
+            TimesheetCreateFailureCode.Forbidden => AgentTimesheetCreateConfirmFailureCode.Forbidden,
+            TimesheetCreateFailureCode.ProjectNotFound => AgentTimesheetCreateConfirmFailureCode.ProjectNotFound,
+            _ => AgentTimesheetCreateConfirmFailureCode.Indeterminate
         };
 }
