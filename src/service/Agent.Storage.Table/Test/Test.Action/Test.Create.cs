@@ -88,4 +88,37 @@ partial class AgentActionTableApiTest
         Assert.Equal("2.25", actualEntity.GetString("Duration"));
         Assert.Equal((int)AgentActionState.Pending, actualEntity.GetInt32("State"));
     }
+
+    [Fact]
+    public static async Task CreateAsync_UpdateActionIsValid_ExpectOwnedPendingEntity()
+    {
+        TableEntity? actualEntity = null;
+        var tableApi = new StubTableApi
+        {
+            AddAsyncStub = (entity, _) =>
+            {
+                actualEntity = entity;
+
+                return ValueTask.CompletedTask;
+            }
+        };
+
+        _ = (await new AgentActionTableApi(tableApi).CreateAsync(
+            SomeContext,
+            SomeUpdateAction,
+            TestContext.Current.CancellationToken)).SuccessOrThrow();
+
+        Assert.NotNull(actualEntity);
+        Assert.Equal("101", actualEntity.PartitionKey);
+        Assert.Equal("da7d99f3939c484294f0329157a061c8", actualEntity.RowKey);
+        Assert.Equal((int)AgentActionType.UpdateTimesheet, actualEntity.GetInt32("ActionType"));
+        Assert.Equal(SomeUpdateAction.TimesheetId, actualEntity.GetGuid("TimesheetId"));
+        Assert.Equal("2026-09-28", actualEntity.GetString("Date"));
+        Assert.Equal(SomeUpdateAction.ProjectId, actualEntity.GetGuid("ProjectId"));
+        Assert.Equal(SomeUpdateAction.ProjectName, actualEntity.GetString("ProjectName"));
+        Assert.Equal((int)SomeUpdateAction.ProjectType, actualEntity.GetInt32("ProjectType"));
+        Assert.Equal("3.75", actualEntity.GetString("Duration"));
+        Assert.Equal(SomeUpdateAction.Description, actualEntity.GetString("Description"));
+        Assert.Equal((int)AgentActionState.Pending, actualEntity.GetInt32("State"));
+    }
 }

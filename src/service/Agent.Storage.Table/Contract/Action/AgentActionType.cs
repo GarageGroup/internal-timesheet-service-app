@@ -2,6 +2,7 @@ namespace GarageGroup.Internal.Timesheet;
 
 public enum AgentActionType
 {
-    CreateTimesheet,
-    DeleteTimesheet
+    CreateTimesheet = 0,
+    DeleteTimesheet = 1,
+    UpdateTimesheet = 2
 }

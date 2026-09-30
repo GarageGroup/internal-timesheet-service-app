@@ -7,6 +7,22 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class AgentActionTableDependency
 {
+    public static Dependency<IAgentTimesheetUpdateActionStore> UseAgentTimesheetUpdateActionTableStore(
+        this Dependency<TokenCredential, AgentActionTableOption> dependency)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.Fold<IAgentTimesheetUpdateActionStore>(CreateStore);
+
+        static AgentActionTableApi CreateStore(TokenCredential credential, AgentActionTableOption option)
+        {
+            ArgumentNullException.ThrowIfNull(credential);
+            ArgumentNullException.ThrowIfNull(option);
+
+            return new(new TableApi(new TableClient(option.ServiceEndpoint, option.TableName, credential)));
+        }
+    }
+
     public static Dependency<IAgentTimesheetDeleteActionStore> UseAgentTimesheetDeleteActionTableStore(
         this Dependency<TokenCredential, AgentActionTableOption> dependency)
     {

@@ -898,6 +898,18 @@ Resolver выполняет следующие проверки:
 
 Проверка: 101 тест service `Agent` прошёл; полная сборка `Internal.Timesheet.Service.slnx` завершилась без ошибок и предупреждений; `git diff --check` успешен; оператор `!` в новый код не добавлялся. Инкремент не закоммичен.
 
+### 30.09.2026 — хранение подготовленного изменения в общей action table
+
+- `AgentTimesheetUpdateAction` подключён к существующей `TimesheetAgentAction`; новая Azure Table не создаётся.
+- В `AgentActionType` добавлен строгий discriminator `UpdateTimesheet = 2`. Значения существующих типов зафиксированы явно как create `0` и delete `1`, поэтому формат уже сохранённых строк не меняется.
+- Update row хранит владельца, доверенный `TimesheetId`, полный целевой snapshot даты, проекта, длительности и комментария, TTL, состояние и ETag.
+- Добавлены create/read операции `IAgentTimesheetUpdateActionStore`; reader принимает только `UpdateTimesheet`, проверяет полного владельца и не интерпретирует create/delete rows как update.
+- Общий conditional `UpdateStateAsync` переиспользуется без отдельной таблицы или механизма конкурентности.
+- Добавлена dependency composition `UseAgentTimesheetUpdateActionTableStore`; application и Semantic Kernel пока к ней не подключены.
+- Azure-ресурсы, схема таблицы как инфраструктурного ресурса, APIM, роли и настройки не менялись: Azure Table является schemaless, новые свойства появятся только в update rows после будущего подключения tool.
+
+Проверка: все 27 тестов `Agent.Storage.Table` прошли. Следующий инкремент — подключить store и prepare-update к application composition, затем опубликовать отдельный Semantic Kernel tool без выполнения Dataverse update до подтверждения. Инкремент не закоммичен.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.

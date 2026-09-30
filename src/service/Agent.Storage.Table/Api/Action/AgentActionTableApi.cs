@@ -1,3 +1,6 @@
 namespace GarageGroup.Internal.Timesheet;
 
-internal sealed partial class AgentActionTableApi(ITableApi tableApi) : IAgentActionStore, IAgentTimesheetDeleteActionStore;
+internal sealed partial class AgentActionTableApi(ITableApi tableApi) :
+    IAgentActionStore,
+    IAgentTimesheetDeleteActionStore,
+    IAgentTimesheetUpdateActionStore;

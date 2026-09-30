@@ -38,4 +38,18 @@ public static partial class AgentActionTableApiTest
             description: "Another description",
             createdAt: new(2026, 09, 30, 13, 00, 00, TimeSpan.Zero),
             expiresAt: new(2026, 09, 30, 13, 10, 00, TimeSpan.Zero));
+
+    private static readonly AgentTimesheetUpdateAction SomeUpdateAction
+        =
+        new(
+            actionId: new("da7d99f3-939c-4842-94f0-329157a061c8"),
+            timesheetId: new("53478fc6-5d80-4148-9b93-f6b65457cf6d"),
+            date: new(2026, 09, 28),
+            projectId: new("7712b133-f72f-4b52-a0cc-78d0882ba84f"),
+            projectName: "Updated project",
+            projectType: ProjectType.Incident,
+            duration: 3.75m,
+            description: "Updated description",
+            createdAt: new(2026, 09, 30, 14, 00, 00, TimeSpan.Zero),
+            expiresAt: new(2026, 09, 30, 14, 10, 00, TimeSpan.Zero));
 }

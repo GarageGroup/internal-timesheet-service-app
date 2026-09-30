@@ -107,6 +107,45 @@ partial class AgentActionTableApiTest
         Assert.Equal(SomeDeleteAction with { Version = "version-2" }, actual);
     }
 
+    [Fact]
+    public static async Task GetUpdateAsync_EntityIsFoundForOwner_ExpectMappedAction()
+    {
+        var entity = BuildUpdateEntity();
+        var tableApi = new StubTableApi
+        {
+            GetAsyncStub = (partitionKey, rowKey, _) =>
+            {
+                Assert.Equal("101", partitionKey);
+                Assert.Equal("da7d99f3939c484294f0329157a061c8", rowKey);
+
+                return ValueTask.FromResult<TableEntity?>(entity);
+            }
+        };
+
+        var actual = (await new AgentActionTableApi(tableApi).GetUpdateAsync(
+            SomeContext,
+            SomeUpdateAction.ActionId,
+            TestContext.Current.CancellationToken)).SuccessOrThrow();
+
+        Assert.Equal(SomeUpdateAction with { Version = "version-3" }, actual);
+    }
+
+    [Fact]
+    public static async Task GetUpdateAsync_EntityIsCreateAction_ExpectNotFound()
+    {
+        var tableApi = new StubTableApi
+        {
+            GetAsyncStub = (_, _, _) => ValueTask.FromResult<TableEntity?>(BuildEntity())
+        };
+
+        var actual = (await new AgentActionTableApi(tableApi).GetUpdateAsync(
+            SomeContext,
+            SomeUpdateAction.ActionId,
+            TestContext.Current.CancellationToken)).SuccessOrThrow();
+
+        Assert.Null(actual);
+    }
+
     private static TableEntity BuildEntity()
         =>
         new("101", "84e6c5b815974a2e821af392c8c0ae3d")
@@ -147,6 +186,29 @@ partial class AgentActionTableApiTest
             ["Description"] = SomeDeleteAction.Description,
             ["CreatedAt"] = SomeDeleteAction.CreatedAt,
             ["ExpiresAt"] = SomeDeleteAction.ExpiresAt,
+            ["State"] = (int)AgentActionState.Pending
+        };
+
+    private static TableEntity BuildUpdateEntity()
+        =>
+        new("101", "da7d99f3939c484294f0329157a061c8")
+        {
+            ETag = new ETag("version-3"),
+            ["TelegramUserId"] = SomeContext.TelegramUserId,
+            ["TelegramChatId"] = SomeContext.TelegramChatId,
+            ["BindingId"] = SomeContext.BindingId,
+            ["CrmSystemUserId"] = SomeContext.CrmSystemUserId,
+            ["EntraObjectId"] = SomeContext.EntraObjectId,
+            ["ActionType"] = (int)AgentActionType.UpdateTimesheet,
+            ["TimesheetId"] = SomeUpdateAction.TimesheetId,
+            ["Date"] = "2026-09-28",
+            ["ProjectId"] = SomeUpdateAction.ProjectId,
+            ["ProjectName"] = SomeUpdateAction.ProjectName,
+            ["ProjectType"] = (int)SomeUpdateAction.ProjectType,
+            ["Duration"] = "3.75",
+            ["Description"] = SomeUpdateAction.Description,
+            ["CreatedAt"] = SomeUpdateAction.CreatedAt,
+            ["ExpiresAt"] = SomeUpdateAction.ExpiresAt,
             ["State"] = (int)AgentActionState.Pending
         };
 }
