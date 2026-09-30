@@ -124,6 +124,8 @@ Confirm/cancel update реализованы через тот же общий d
 
 Telegram UI для update использует отдельный `PreparedUpdateAction`, локализованный полный целевой preview и те же кнопки общего decision endpoint. Callback type `u` влияет только на текст ответа бота; security boundary остаётся в API и Action Table. API и бот готовы к совместному test deployment и ручной матрице update cancel/confirm.
 
+Ручная матрица update в test пройдена 30.09.2026: Cancel сохранил исходную запись без изменений, Confirm применил подготовленный целевой snapshot в Dataverse, в обеих ветках бот показал локализованный результат и удалил inline-клавиатуру. Полный create/delete/update write flow подтверждён сквозным тестом.
+
 Для agent delete недостаточно принять `TimesheetId` от модели и положиться только на callback ownership. Prepare обязан повторно разрешить запись через read-функцию с доверенным `AgentUserContext`, убедиться, что ID присутствует в доступном пользователю результате, и сохранить серверный preview в action. Произвольный ID из prompt не считается разрешённым. Существующий `Timesheet.Delete` выделен в переиспользуемую `UseTimesheetDeleteFunc`; confirm должен вызывать её напрямую, без self-HTTP.
 
 Подготовленное удаление хранится в существующей `TimesheetAgentAction`, а не в отдельной таблице. Строки различаются обязательным свойством `ActionType`; delete payload содержит доверенный `TimesheetId` и серверный snapshot. До первого production-релиза обратная совместимость с тестовыми rows без discriminator намеренно не поддерживается: оба reader принимают только свой явный тип. Переходы состояния используют общий ETag optimistic concurrency.

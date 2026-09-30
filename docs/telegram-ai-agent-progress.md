@@ -945,6 +945,12 @@ Resolver выполняет следующие проверки:
 
 Проверка: bot solution собирается без ошибок и предупреждений. Следующий шаг после review и коммита — согласованно развернуть API и бот, затем вручную пройти update cancel и update confirm с проверкой записи в Dataverse.
 
+После запуска пользовательского CI/CD deployment API бот из коммита `93a60f0` развёрнут в test Function App `func-internal-gtimesheet-test` через ZIP deployment `06641d95-8a4f-43ef-a6c8-0b779487842a`. Пакет предварительно собран в Release и проверен на наличие русской satellite assembly. Deployment завершился со статусом Success; Function App осталась `Running/Normal`, функции `HandleBotEntity`, `HandleBotHttp` и `HealthCheck` доступны. Настройки приложения, Managed Identity, роли, APIM и production-ресурсы не изменялись.
+
+После завершения deployment API пользователь вручную проверил обе ветки изменения списания в Telegram. При Cancel бот показал локализованный результат, удалил кнопки, а запись в Dataverse осталась без изменений. При Confirm бот показал успешный локализованный результат, удалил кнопки, а целевые значения сохранились в Dataverse. Тем самым сквозной поток `Telegram → bot → Managed Identity → APIM → API → Action Table → Timesheet.Update → Dataverse` подтверждён для update cancel и update confirm.
+
+Полная ручная матрица write-операций теперь пройдена для create, delete и update: у каждой операции Cancel не изменяет Dataverse, Confirm выполняет ровно сохранённое подготовленное действие, а inline-клавиатура после решения исчезает.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.
