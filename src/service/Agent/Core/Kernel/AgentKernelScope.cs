@@ -25,4 +25,8 @@ public sealed class AgentKernelScope
     public AgentTimesheetDeletePrepareOut? PreparedDeleteAction
         =>
         actionCapture.DeleteAction;
+
+    public AgentTimesheetUpdatePrepareOut? PreparedUpdateAction
+        =>
+        actionCapture.UpdateAction;
 }

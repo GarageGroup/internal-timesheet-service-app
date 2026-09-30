@@ -65,7 +65,8 @@ partial class AgentMessageFunc
             return new AgentMessageOut(
                 result.Content.Trim(),
                 kernelScope.PreparedCreateAction,
-                kernelScope.PreparedDeleteAction);
+                kernelScope.PreparedDeleteAction,
+                kernelScope.PreparedUpdateAction);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -115,8 +116,8 @@ partial class AgentMessageFunc
             ? "русский"
             : "язык сообщения пользователя";
         var toolRule = option.WritePreparationEnabled
-            ? "Используй TimesheetRead для чтения и TimesheetWritePreparation только для подготовки одного создания или удаления. " +
-                "Для удаления используй только Timesheet ID и дату из get_timesheets. " +
+            ? "Используй TimesheetRead для чтения и TimesheetWritePreparation только для подготовки одного создания, изменения или удаления. " +
+                "Для изменения или удаления используй только Timesheet ID и исходную дату из get_timesheets. " +
                 "После подготовки покажи точные параметры и попроси подтвердить кнопкой; не заявляй, что списание уже создано или удалено."
             : "Используй только доступные функции TimesheetRead и только когда для ответа нужны данные сервиса. " +
                 "Сейчас разрешено только чтение. Не заявляй, что создал, изменил или удалил списание времени.";

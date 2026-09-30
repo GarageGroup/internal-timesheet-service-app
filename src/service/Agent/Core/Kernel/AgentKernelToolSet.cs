@@ -11,7 +11,8 @@ public sealed record class AgentKernelToolSet
         IAgentPeriodSetGetFunc periodSetGetFunc,
         IAgentTagSetGetFunc tagSetGetFunc,
         IAgentTimesheetCreatePrepareFunc timesheetCreatePrepareFunc,
-        IAgentTimesheetDeletePrepareFunc timesheetDeletePrepareFunc)
+        IAgentTimesheetDeletePrepareFunc timesheetDeletePrepareFunc,
+        IAgentTimesheetUpdatePrepareFunc timesheetUpdatePrepareFunc)
     {
         ArgumentNullException.ThrowIfNull(timesheetSetGetFunc);
         ArgumentNullException.ThrowIfNull(projectSetSearchFunc);
@@ -20,6 +21,7 @@ public sealed record class AgentKernelToolSet
         ArgumentNullException.ThrowIfNull(tagSetGetFunc);
         ArgumentNullException.ThrowIfNull(timesheetCreatePrepareFunc);
         ArgumentNullException.ThrowIfNull(timesheetDeletePrepareFunc);
+        ArgumentNullException.ThrowIfNull(timesheetUpdatePrepareFunc);
 
         TimesheetSetGetFunc = timesheetSetGetFunc;
         ProjectSetSearchFunc = projectSetSearchFunc;
@@ -28,6 +30,7 @@ public sealed record class AgentKernelToolSet
         TagSetGetFunc = tagSetGetFunc;
         TimesheetCreatePrepareFunc = timesheetCreatePrepareFunc;
         TimesheetDeletePrepareFunc = timesheetDeletePrepareFunc;
+        TimesheetUpdatePrepareFunc = timesheetUpdatePrepareFunc;
     }
 
     public IAgentTimesheetSetGetFunc TimesheetSetGetFunc { get; }
@@ -43,4 +46,6 @@ public sealed record class AgentKernelToolSet
     public IAgentTimesheetCreatePrepareFunc TimesheetCreatePrepareFunc { get; }
 
     public IAgentTimesheetDeletePrepareFunc TimesheetDeletePrepareFunc { get; }
+
+    public IAgentTimesheetUpdatePrepareFunc TimesheetUpdatePrepareFunc { get; }
 }

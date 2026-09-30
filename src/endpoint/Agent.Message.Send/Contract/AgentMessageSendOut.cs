@@ -9,11 +9,13 @@ public sealed record class AgentMessageSendOut
     public AgentMessageSendOut(
         [AllowNull] string text,
         AgentMessageSendCreateActionOut? preparedCreateAction = null,
-        AgentMessageSendDeleteActionOut? preparedDeleteAction = null)
+        AgentMessageSendDeleteActionOut? preparedDeleteAction = null,
+        AgentMessageSendUpdateActionOut? preparedUpdateAction = null)
     {
         Text = text.OrEmpty();
         PreparedCreateAction = preparedCreateAction;
         PreparedDeleteAction = preparedDeleteAction;
+        PreparedUpdateAction = preparedUpdateAction;
     }
 
     [JsonBodyOut]
@@ -24,4 +26,7 @@ public sealed record class AgentMessageSendOut
 
     [JsonBodyOut]
     public AgentMessageSendDeleteActionOut? PreparedDeleteAction { get; }
+
+    [JsonBodyOut]
+    public AgentMessageSendUpdateActionOut? PreparedUpdateAction { get; }
 }

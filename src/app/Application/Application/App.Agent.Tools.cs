@@ -27,6 +27,18 @@ partial class Application
             ResolveAgentTimesheetDeletePrepareOption)
         .UseAgentTimesheetDeletePrepareFunc();
 
+    private static Dependency<IAgentTimesheetUpdatePrepareFunc> UseAgentTimesheetUpdatePrepareFunc()
+        =>
+        Pipeline.Pipe(
+            UseAgentTimesheetSetGetFunc())
+        .With(
+            UseSqlApi().UseProjectSetGetFunc())
+        .With(
+            UseAgentTimesheetUpdateActionStore())
+        .With(
+            ResolveAgentTimesheetUpdatePrepareOption)
+        .UseAgentTimesheetUpdatePrepareFunc();
+
     private static Dependency<IAgentTimesheetSetGetFunc> UseAgentTimesheetSetGetFunc()
         =>
         Pipeline.Pipe(
@@ -125,6 +137,13 @@ partial class Application
     }
 
     private static AgentTimesheetDeletePrepareOption ResolveAgentTimesheetDeletePrepareOption(IServiceProvider serviceProvider)
+        =>
+        new()
+        {
+            ApprovalTtl = ResolveAgentTimesheetCreatePrepareOption(serviceProvider).ApprovalTtl
+        };
+
+    private static AgentTimesheetUpdatePrepareOption ResolveAgentTimesheetUpdatePrepareOption(IServiceProvider serviceProvider)
         =>
         new()
         {

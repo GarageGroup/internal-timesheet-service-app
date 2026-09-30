@@ -44,7 +44,7 @@ partial class AgentWritePluginTest
         var createPrepareFunc = new Mock<IAgentTimesheetCreatePrepareFunc>(MockBehavior.Strict);
         var deletePrepareFunc = BuildDeletePrepareFunc(SomeDeleteOutput);
         var capture = new AgentPreparedActionCapture();
-        var plugin = CreatePlugin(createPrepareFunc, deletePrepareFunc, capture);
+        var plugin = CreatePlugin(createPrepareFunc, deletePrepareFunc, capture: capture);
 
         var actual = await plugin.PrepareDeleteTimesheetAsync(
             SomeDeleteOutput.TimesheetId,
@@ -61,6 +61,63 @@ partial class AgentWritePluginTest
                 It.IsAny<CancellationToken>()),
             Times.Once);
         createPrepareFunc.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public static async Task PrepareUpdateTimesheetAsync_InputIsValid_ExpectTrustedTypedInputAndCapture()
+    {
+        var createPrepareFunc = new Mock<IAgentTimesheetCreatePrepareFunc>(MockBehavior.Strict);
+        var updatePrepareFunc = BuildUpdatePrepareFunc(SomeUpdateOutput);
+        var capture = new AgentPreparedActionCapture();
+        var plugin = CreatePlugin(createPrepareFunc, updatePrepareFunc: updatePrepareFunc, capture: capture);
+
+        var actual = await plugin.PrepareUpdateTimesheetAsync(
+            SomeUpdateOutput.TimesheetId,
+            "2026-09-30",
+            "2026-09-28",
+            SomeUpdateOutput.ProjectId,
+            SomeUpdateOutput.Duration,
+            SomeUpdateOutput.Description,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(actual.IsSuccess);
+        Assert.Equal(SomeUpdateOutput, actual.Data);
+        Assert.Equal(SomeUpdateOutput, capture.UpdateAction);
+        updatePrepareFunc.Verify(
+            f => f.InvokeAsync(
+                SomeContext,
+                new AgentTimesheetUpdatePrepareIn(
+                    SomeUpdateOutput.TimesheetId,
+                    new(2026, 09, 30),
+                    SomeUpdateOutput.Date,
+                    SomeUpdateOutput.ProjectId,
+                    SomeUpdateOutput.Duration,
+                    SomeUpdateOutput.Description),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        createPrepareFunc.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData("30.09.2026", null)]
+    [InlineData("2026-09-30", "28.09.2026")]
+    public static async Task PrepareUpdateTimesheetAsync_DateIsInvalid_ExpectSafeFailure(string sourceDate, string? date)
+    {
+        var createPrepareFunc = new Mock<IAgentTimesheetCreatePrepareFunc>(MockBehavior.Strict);
+        var updatePrepareFunc = new Mock<IAgentTimesheetUpdatePrepareFunc>(MockBehavior.Strict);
+
+        var actual = await CreatePlugin(createPrepareFunc, updatePrepareFunc: updatePrepareFunc).PrepareUpdateTimesheetAsync(
+            SomeUpdateOutput.TimesheetId,
+            sourceDate,
+            date,
+            null,
+            2m,
+            null,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(actual.IsSuccess);
+        Assert.Equal(nameof(AgentWriteToolFailureCode.InvalidDateFormat), actual.ErrorCode);
+        updatePrepareFunc.VerifyNoOtherCalls();
     }
 
     [Theory]

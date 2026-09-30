@@ -10,6 +10,8 @@ internal sealed class AgentPreparedActionCapture
 
     internal AgentTimesheetDeletePrepareOut? DeleteAction { get; private set; }
 
+    internal AgentTimesheetUpdatePrepareOut? UpdateAction { get; private set; }
+
     internal bool TryStart()
         =>
         Interlocked.CompareExchange(ref state, 1, 0) is 0;
@@ -23,6 +25,12 @@ internal sealed class AgentPreparedActionCapture
     internal void Complete(AgentTimesheetDeletePrepareOut action)
     {
         DeleteAction = action;
+        _ = Interlocked.Exchange(ref state, 2);
+    }
+
+    internal void Complete(AgentTimesheetUpdatePrepareOut action)
+    {
+        UpdateAction = action;
         _ = Interlocked.Exchange(ref state, 2);
     }
 

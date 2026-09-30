@@ -178,4 +178,44 @@ partial class AgentMessageSendFuncTest
         };
         Assert.Equal(new AgentMessageSendOut("Confirm delete", preparedDeleteAction: expectedAction), actual);
     }
+
+    [Fact]
+    public static async Task InvokeAsync_UpdateActionWasPrepared_ExpectStructuredPreview()
+    {
+        var resolver = BuildResolver();
+        var preparedAction = new AgentTimesheetUpdatePrepareOut(
+            new("da7d99f3-939c-4842-94f0-329157a061c8"),
+            new("53478fc6-5d80-4148-9b93-f6b65457cf6d"),
+            new(2026, 09, 28),
+            new("7712b133-f72f-4b52-a0cc-78d0882ba84f"),
+            "Updated project",
+            ProjectType.Incident,
+            3.75m,
+            "Updated description",
+            new(2026, 09, 30, 14, 10, 00, TimeSpan.Zero));
+        var messageFunc = new Mock<IAgentConversationMessageFunc>();
+        _ = messageFunc.Setup(static f => f.InvokeAsync(
+            It.IsAny<AgentUserContext>(),
+            It.IsAny<AgentConversationMessageIn>(),
+            It.IsAny<CancellationToken>()))
+        .ReturnsAsync(new AgentMessageOut("Confirm update", PreparedUpdateAction: preparedAction));
+
+        var actual = (await new AgentMessageSendFunc(resolver.Object, messageFunc.Object).InvokeAsync(
+            SomeInput,
+            TestContext.Current.CancellationToken)).SuccessOrThrow();
+
+        var expectedAction = new AgentMessageSendUpdateActionOut
+        {
+            ActionId = preparedAction.ActionId,
+            TimesheetId = preparedAction.TimesheetId,
+            Date = preparedAction.Date,
+            ProjectId = preparedAction.ProjectId,
+            ProjectName = preparedAction.ProjectName,
+            ProjectType = (int)preparedAction.ProjectType,
+            Duration = preparedAction.Duration,
+            Description = preparedAction.Description,
+            ExpiresAt = preparedAction.ExpiresAt
+        };
+        Assert.Equal(new AgentMessageSendOut("Confirm update", preparedUpdateAction: expectedAction), actual);
+    }
 }

@@ -40,12 +40,31 @@ public static partial class AgentWritePluginTest
             Description: "Another description",
             ExpiresAt: new(2026, 09, 30, 13, 10, 00, TimeSpan.Zero));
 
+    private static readonly AgentTimesheetUpdatePrepareOut SomeUpdateOutput
+        =
+        new(
+            ActionId: new("da7d99f3-939c-4842-94f0-329157a061c8"),
+            TimesheetId: new("53478fc6-5d80-4148-9b93-f6b65457cf6d"),
+            Date: new(2026, 09, 28),
+            ProjectId: new("7712b133-f72f-4b52-a0cc-78d0882ba84f"),
+            ProjectName: "Updated project",
+            ProjectType: ProjectType.Incident,
+            Duration: 3.75m,
+            Description: "Updated description",
+            ExpiresAt: new(2026, 09, 30, 14, 10, 00, TimeSpan.Zero));
+
     private static AgentWritePlugin CreatePlugin(
         Mock<IAgentTimesheetCreatePrepareFunc> prepareFunc,
         Mock<IAgentTimesheetDeletePrepareFunc>? deletePrepareFunc = null,
+        Mock<IAgentTimesheetUpdatePrepareFunc>? updatePrepareFunc = null,
         AgentPreparedActionCapture? capture = null)
         =>
-        new(SomeContext, prepareFunc.Object, (deletePrepareFunc ?? new()).Object, capture ?? new());
+        new(
+            SomeContext,
+            prepareFunc.Object,
+            (deletePrepareFunc ?? new()).Object,
+            (updatePrepareFunc ?? new()).Object,
+            capture ?? new());
 
     private static Mock<IAgentTimesheetCreatePrepareFunc> BuildPrepareFunc(
         in Result<AgentTimesheetCreatePrepareOut, Failure<AgentTimesheetCreatePrepareFailureCode>> result)
@@ -69,6 +88,20 @@ public static partial class AgentWritePluginTest
             .Setup(static f => f.InvokeAsync(
                 It.IsAny<AgentUserContext>(),
                 It.IsAny<AgentTimesheetDeletePrepareIn>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
+
+        return mock;
+    }
+
+    private static Mock<IAgentTimesheetUpdatePrepareFunc> BuildUpdatePrepareFunc(
+        in Result<AgentTimesheetUpdatePrepareOut, Failure<AgentTimesheetUpdatePrepareFailureCode>> result)
+    {
+        var mock = new Mock<IAgentTimesheetUpdatePrepareFunc>();
+        _ = mock
+            .Setup(static f => f.InvokeAsync(
+                It.IsAny<AgentUserContext>(),
+                It.IsAny<AgentTimesheetUpdatePrepareIn>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(result);
 

@@ -910,6 +910,19 @@ Resolver выполняет следующие проверки:
 
 Проверка: все 27 тестов `Agent.Storage.Table` прошли. Следующий инкремент — подключить store и prepare-update к application composition, затем опубликовать отдельный Semantic Kernel tool без выполнения Dataverse update до подтверждения. Инкремент не закоммичен.
 
+### 30.09.2026 — Semantic Kernel prepare-update tool
+
+- Update action store и `AgentTimesheetUpdatePrepareFunc` подключены к application composition через существующие `Dependency` и общую `TimesheetAgentAction`.
+- В `TimesheetWritePreparation` добавлена функция `prepare_update_timesheet`. Она принимает доверенно перепроверяемые `TimesheetId`/исходную дату и необязательные новые дату, `ProjectId`, длительность и непустой комментарий; имя и тип проекта не являются аргументами модели.
+- Tool только подготавливает action. В Kernel по-прежнему отсутствуют confirm, execute и прямой `Timesheet.Update`.
+- Общий `AgentPreparedActionCapture` разрешает не более одного create/delete/update action за model turn и отдельно выдаёт `PreparedUpdateAction`.
+- `/internal/agent/messages` получил отдельный типизированный `PreparedUpdateAction` с полным серверным preview. Create/delete поля и их поведение не изменены.
+- Системная инструкция разрешает подготовку одного создания, изменения или удаления и требует явного подтверждения.
+- Текущий Telegram-бот ещё не обрабатывает update preview. Поэтому данный API-инкремент нельзя разворачивать отдельно до реализации confirm/cancel и согласованного bot UI.
+- Azure-ресурсы, APIM, роли и настройки не менялись.
+
+Проверка: 104 теста service `Agent` и 17 тестов endpoint `Agent.Message.Send` прошли. Следующий инкремент — реализовать типизированные confirm/cancel update через общий decision endpoint; после него добавить локализованный Telegram preview и кнопки. Инкремент не закоммичен.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.

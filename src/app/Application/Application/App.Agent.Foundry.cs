@@ -43,6 +43,14 @@ partial class Application
             ResolveAgentActionTableOption)
         .UseAgentTimesheetDeleteActionTableStore();
 
+    private static Dependency<IAgentTimesheetUpdateActionStore> UseAgentTimesheetUpdateActionStore()
+        =>
+        Dependency.From(
+            ResolveTokenCredential)
+        .With(
+            ResolveAgentActionTableOption)
+        .UseAgentTimesheetUpdateActionTableStore();
+
     private static Dependency<IAgentMessageFunc> UseAgentMessageFunc()
         =>
         Pipeline.Pipe(
@@ -79,6 +87,8 @@ partial class Application
             UseAgentTimesheetCreatePrepareFunc())
         .With(
             UseAgentTimesheetDeletePrepareFunc())
+        .With(
+            UseAgentTimesheetUpdatePrepareFunc())
         .UseAgentKernelToolSet();
 
     private static TokenCredential ResolveTokenCredential(IServiceProvider serviceProvider)

@@ -33,7 +33,9 @@ partial class AgentKernelFactoryTest
 
         var functions = kernel.Plugins[AgentWritePlugin.PluginName].Select(static function => function.Name).ToArray();
 
-        Assert.Equal(["prepare_create_timesheet", "prepare_delete_timesheet"], functions.Order().ToArray());
+        Assert.Equal(
+            ["prepare_create_timesheet", "prepare_delete_timesheet", "prepare_update_timesheet"],
+            functions.Order().ToArray());
     }
 
     [Fact]

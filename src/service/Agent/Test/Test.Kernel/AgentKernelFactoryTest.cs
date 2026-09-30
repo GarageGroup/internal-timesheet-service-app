@@ -37,7 +37,8 @@ public static partial class AgentKernelFactoryTest
                 (periodFunc ?? new()).Object,
                 new Mock<IAgentTagSetGetFunc>().Object,
                 (prepareFunc ?? new()).Object,
-                new Mock<IAgentTimesheetDeletePrepareFunc>().Object),
+                new Mock<IAgentTimesheetDeletePrepareFunc>().Object,
+                new Mock<IAgentTimesheetUpdatePrepareFunc>().Object),
             TokenCredential.Object,
             SomeOption,
             new(writePreparationEnabled));

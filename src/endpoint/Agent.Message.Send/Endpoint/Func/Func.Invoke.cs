@@ -25,7 +25,8 @@ partial class AgentMessageSendFunc
             static result => new AgentMessageSendOut(
                 result.Text,
                 MapPreparedCreateAction(result.PreparedCreateAction),
-                MapPreparedDeleteAction(result.PreparedDeleteAction)));
+                MapPreparedDeleteAction(result.PreparedDeleteAction),
+                MapPreparedUpdateAction(result.PreparedUpdateAction)));
 
     private ValueTask<Result<AgentMessageOut, Failure<AgentMessageSendFailureCode>>> SendMessageAsync(
         AgentUserContext context,
@@ -79,6 +80,23 @@ partial class AgentMessageSendFunc
                 TimesheetId = action.TimesheetId,
                 Date = action.Date,
                 ProjectName = action.ProjectName,
+                Duration = action.Duration,
+                Description = action.Description,
+                ExpiresAt = action.ExpiresAt
+            };
+
+    private static AgentMessageSendUpdateActionOut? MapPreparedUpdateAction(AgentTimesheetUpdatePrepareOut? action)
+        =>
+        action is null
+            ? null
+            : new()
+            {
+                ActionId = action.ActionId,
+                TimesheetId = action.TimesheetId,
+                Date = action.Date,
+                ProjectId = action.ProjectId,
+                ProjectName = action.ProjectName,
+                ProjectType = (int)action.ProjectType,
                 Duration = action.Duration,
                 Description = action.Description,
                 ExpiresAt = action.ExpiresAt

@@ -15,7 +15,7 @@ partial class AgentWritePluginTest
 
         Assert.Equal(AgentWritePlugin.PluginName, plugin.Name);
         Assert.Equal(
-            ["prepare_create_timesheet", "prepare_delete_timesheet"],
+            ["prepare_create_timesheet", "prepare_delete_timesheet", "prepare_update_timesheet"],
             plugin.Select(static function => function.Name).Order().ToArray());
         Assert.DoesNotContain(plugin, static item => item.Name.Contains("confirm", System.StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(plugin, static item => item.Name.Contains("execute", System.StringComparison.OrdinalIgnoreCase));

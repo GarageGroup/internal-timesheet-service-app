@@ -48,6 +48,7 @@ public sealed class AgentKernelFactory(
                     context,
                     toolSet.TimesheetCreatePrepareFunc,
                     toolSet.TimesheetDeletePrepareFunc,
+                    toolSet.TimesheetUpdatePrepareFunc,
                     actionCapture),
                 AgentWritePlugin.PluginName);
         }
