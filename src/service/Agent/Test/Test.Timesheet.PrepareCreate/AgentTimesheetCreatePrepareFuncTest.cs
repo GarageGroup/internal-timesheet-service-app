@@ -22,8 +22,6 @@ public static partial class AgentTimesheetCreatePrepareFuncTest
         new(
             date: new(2026, 09, 29),
             projectId: new("d9cb8306-dd0c-499b-ad90-44b9a324e30c"),
-            projectName: "Requested project name",
-            projectType: ProjectType.Project,
             duration: 1.5m,
             description: "Some description");
 
@@ -31,14 +29,13 @@ public static partial class AgentTimesheetCreatePrepareFuncTest
 
     private static readonly AgentTimesheetCreatePrepareOption SomeOption = new()
     {
-        ApprovalTtl = TimeSpan.FromMinutes(10),
-        ProjectSearchTop = 20
+        ApprovalTtl = TimeSpan.FromMinutes(10)
     };
 
     private static AgentTimesheetCreatePrepareFunc BuildFunc(
-        in Result<AgentProjectSetSearchOut, Failure<AgentProjectSetSearchFailureCode>> projectResult,
+        in Result<ProjectSetGetOut, Failure<Unit>> projectResult,
         in Result<Unit, Failure<AgentActionStoreFailureCode>> storeResult,
-        out Mock<IAgentProjectSetSearchFunc> projectFunc,
+        out Mock<IProjectSetGetFunc> projectFunc,
         out Mock<IAgentActionStore> actionStore)
     {
         projectFunc = new();
@@ -46,8 +43,7 @@ public static partial class AgentTimesheetCreatePrepareFuncTest
 
         _ = projectFunc
             .Setup(static f => f.InvokeAsync(
-                It.IsAny<AgentUserContext>(),
-                It.IsAny<AgentProjectSetSearchIn>(),
+                It.IsAny<ProjectSetGetIn>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(projectResult);
 

@@ -1,9 +1,12 @@
+extern alias ProjectGetContract;
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using GarageGroup.Infra;
 using Moq;
 using Xunit;
+using ProjectGetItem = ProjectGetContract::GarageGroup.Internal.Timesheet.ProjectItem;
 
 namespace GarageGroup.Internal.Timesheet.Service.Agent.Test;
 
@@ -12,8 +15,8 @@ partial class AgentTimesheetCreatePrepareFuncTest
     [Fact]
     public static async Task InvokeAsync_InputIsValid_ExpectCanonicalPendingAction()
     {
-        var canonicalProject = new AgentProjectItem(SomeInput.ProjectId, "Canonical project name", SomeInput.ProjectType);
-        var projectOut = new AgentProjectSetSearchOut
+        var canonicalProject = new ProjectGetItem(SomeInput.ProjectId, "Canonical project name", ProjectType.Incident);
+        var projectOut = new ProjectSetGetOut
         {
             Projects = new[] { canonicalProject }
         };
@@ -42,14 +45,14 @@ partial class AgentTimesheetCreatePrepareFuncTest
         Assert.Equal(SomeUtcNow.AddMinutes(10), storedAction.ExpiresAt);
         Assert.Equal(AgentActionState.Pending, storedAction.State);
         Assert.Equal("Canonical project name", storedAction.ProjectName);
+        Assert.Equal(ProjectType.Incident, storedAction.ProjectType);
         Assert.Equal(storedAction.ActionId, actual.ActionId);
         Assert.Equal(storedAction.ExpiresAt, actual.ExpiresAt);
         Assert.Equal(storedAction.ProjectName, actual.ProjectName);
 
         projectFunc.Verify(
             f => f.InvokeAsync(
-                SomeContext,
-                new AgentProjectSetSearchIn(SomeInput.ProjectName, 20),
+                new ProjectSetGetIn(SomeContext.EntraObjectId),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -60,15 +63,13 @@ partial class AgentTimesheetCreatePrepareFuncTest
     public static async Task InvokeAsync_DurationIsInvalid_ExpectInvalidDuration(decimal duration)
     {
         var func = BuildFunc(
-            default(AgentProjectSetSearchOut),
+            default(ProjectSetGetOut),
             Result.Success<Unit>(default),
             out var projectFunc,
             out var actionStore);
         var input = new AgentTimesheetCreatePrepareIn(
             SomeInput.Date,
             SomeInput.ProjectId,
-            SomeInput.ProjectName,
-            SomeInput.ProjectType,
             duration,
             SomeInput.Description);
 
@@ -83,7 +84,7 @@ partial class AgentTimesheetCreatePrepareFuncTest
     public static async Task InvokeAsync_ProjectIsNotReturned_ExpectInvalidProject()
     {
         var func = BuildFunc(
-            new AgentProjectSetSearchOut { Projects = default },
+            new ProjectSetGetOut { Projects = default },
             Result.Success<Unit>(default),
             out _,
             out var actionStore);
@@ -97,9 +98,9 @@ partial class AgentTimesheetCreatePrepareFuncTest
     [Fact]
     public static async Task InvokeAsync_StoreReturnsConflict_ExpectConflict()
     {
-        var projectOut = new AgentProjectSetSearchOut
+        var projectOut = new ProjectSetGetOut
         {
-            Projects = new[] { new AgentProjectItem(SomeInput.ProjectId, "Some project", SomeInput.ProjectType) }
+            Projects = new[] { new ProjectGetItem(SomeInput.ProjectId, "Some project", ProjectType.Project) }
         };
         var func = BuildFunc(
             projectOut,

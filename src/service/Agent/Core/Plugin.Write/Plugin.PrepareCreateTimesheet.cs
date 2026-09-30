@@ -15,8 +15,6 @@ partial class AgentWritePlugin
     public async Task<AgentWriteToolResult<AgentTimesheetCreatePrepareOut>> PrepareCreateTimesheetAsync(
         [Description("Date of the time entry in YYYY-MM-DD format.")] string date,
         [Description("Project identifier returned by search_projects or get_recent_projects.")] Guid projectId,
-        [Description("Project name returned together with the selected project identifier.")] string projectName,
-        [Description("Numeric project type returned together with the selected project identifier.")] int projectType,
         [Description("Duration in decimal hours. Must be greater than zero.")] decimal duration,
         [Description("Required time entry description.")] string description,
         CancellationToken cancellationToken)
@@ -42,7 +40,7 @@ partial class AgentWritePlugin
 
         var result = await timesheetCreatePrepareFunc.InvokeAsync(
             context,
-            new(parsedDate, projectId, projectName, (ProjectType)projectType, duration, description),
+            new(parsedDate, projectId, duration, description),
             cancellationToken).ConfigureAwait(false);
 
         if (result.IsFailure)

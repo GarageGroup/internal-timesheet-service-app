@@ -290,7 +290,7 @@ Native plugin содержит `[KernelFunction]` и понятные descriptio
 
 Первым реализовать создание одного списания. Update и delete подключать отдельными инкрементами после проверки ownership, impersonation и поведения при повторе.
 
-`prepare_create_timesheet` доступен модели и принимает только бизнес-параметры: дату, выбранный проект, длительность и комментарий. Telegram identifiers, Entra object ID, CRM system user ID, action ID и срок действия не являются аргументами Kernel-функции. Их добавляет сервер из неизменяемого `AgentUserContext`.
+`prepare_create_timesheet` доступен модели и принимает дату, `ProjectId`, длительность и комментарий. Название и тип проекта не являются аргументами модели: сервер повторно загружает доступные Entra-пользователю проекты, находит запись по ID и сохраняет канонические `ProjectName` и `ProjectType`. Telegram identifiers, Entra object ID, CRM system user ID, action ID и срок действия также не являются аргументами Kernel-функции. Их добавляет сервер из неизменяемого `AgentUserContext`.
 
 Результат prepare содержит данные для отображения, но не выполняет CRM write:
 
@@ -455,7 +455,6 @@ Execution orchestration реализован следующим инкремен
 | `Agent:DefaultTimeZone` | Часовой пояс для относительных дат; начально `Europe/Moscow` |
 | `Agent:WritePreparation:Enabled` | Отдельный feature flag регистрации prepare-only plugin; по умолчанию `false` |
 | `Agent:WritePreparation:ApprovalTtlMinutes` | Срок preview; начально 10 минут |
-| `Agent:WritePreparation:ProjectSearchTop` | Верхняя граница повторного поиска проекта при подготовке; должна укладываться в лимит project search |
 | `Agent:MaxModelSteps`, `Agent:RequestTimeoutSeconds` | Предельная длина цикла и время задания, выставить после измерений |
 | `Agent:HistoryRetentionDays` | Утверждённый срок хранения разговоров, не хранить бессрочно по умолчанию |
 | `Agent:AllowedUserIds` | Временный серверный allowlist пилота; указать, что это CRM ID, не Telegram ID |

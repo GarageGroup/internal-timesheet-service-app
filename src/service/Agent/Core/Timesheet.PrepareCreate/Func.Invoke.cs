@@ -23,9 +23,7 @@ partial class AgentTimesheetCreatePrepareFunc
     private static Result<AgentTimesheetCreatePrepareIn, Failure<AgentTimesheetCreatePrepareFailureCode>> ValidateInput(
         AgentTimesheetCreatePrepareIn input)
     {
-        if (input.ProjectId == Guid.Empty ||
-            string.IsNullOrWhiteSpace(input.ProjectName) ||
-            Enum.IsDefined(input.ProjectType) is false)
+        if (input.ProjectId == Guid.Empty)
         {
             return Failure.Create(AgentTimesheetCreatePrepareFailureCode.InvalidProject, "Project is invalid");
         }
@@ -48,18 +46,17 @@ partial class AgentTimesheetCreatePrepareFunc
         AgentTimesheetCreatePrepareIn input,
         CancellationToken cancellationToken)
     {
-        var projectSetResult = await projectSetSearchFunc.InvokeAsync(
-            context,
-            new(input.ProjectName, option.ProjectSearchTop),
+        var projectSetResult = await projectSetGetFunc.InvokeAsync(
+            new(context.EntraObjectId),
             cancellationToken).ConfigureAwait(false);
 
         if (projectSetResult.IsFailure)
         {
-            return projectSetResult.FailureOrThrow().MapFailureCode(MapProjectFailureCode);
+            return Failure.Create(AgentTimesheetCreatePrepareFailureCode.Unknown, "Failed to get available projects");
         }
 
         var project = projectSetResult.SuccessOrThrow().Projects.AsEnumerable().FirstOrDefault(
-            project => project.Id == input.ProjectId && project.Type == input.ProjectType);
+            project => project.Id == input.ProjectId);
 
         if (project is null)
         {
@@ -94,14 +91,6 @@ partial class AgentTimesheetCreatePrepareFunc
             action.Description.OrEmpty(),
             action.ExpiresAt);
     }
-
-    private static AgentTimesheetCreatePrepareFailureCode MapProjectFailureCode(AgentProjectSetSearchFailureCode failureCode)
-        =>
-        failureCode switch
-        {
-            AgentProjectSetSearchFailureCode.Forbidden => AgentTimesheetCreatePrepareFailureCode.Forbidden,
-            _ => AgentTimesheetCreatePrepareFailureCode.Unknown
-        };
 
     private static AgentTimesheetCreatePrepareFailureCode MapStoreFailureCode(AgentActionStoreFailureCode failureCode)
         =>

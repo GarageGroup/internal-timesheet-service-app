@@ -18,8 +18,6 @@ partial class AgentWritePluginTest
         var actual = await plugin.PrepareCreateTimesheetAsync(
             "2026-09-29",
             SomeOutput.ProjectId,
-            SomeOutput.ProjectName,
-            (int)SomeOutput.ProjectType,
             SomeOutput.Duration,
             SomeOutput.Description,
             TestContext.Current.CancellationToken);
@@ -34,8 +32,6 @@ partial class AgentWritePluginTest
                 new AgentTimesheetCreatePrepareIn(
                     SomeOutput.Date,
                     SomeOutput.ProjectId,
-                    SomeOutput.ProjectName,
-                    SomeOutput.ProjectType,
                     SomeOutput.Duration,
                     SomeOutput.Description),
                 It.IsAny<CancellationToken>()),
@@ -77,8 +73,6 @@ partial class AgentWritePluginTest
         var actual = await CreatePlugin(prepareFunc).PrepareCreateTimesheetAsync(
             date,
             SomeOutput.ProjectId,
-            SomeOutput.ProjectName,
-            (int)SomeOutput.ProjectType,
             SomeOutput.Duration,
             SomeOutput.Description,
             TestContext.Current.CancellationToken);
@@ -113,8 +107,6 @@ partial class AgentWritePluginTest
             plugin.PrepareCreateTimesheetAsync(
                 "2026-09-29",
                 SomeOutput.ProjectId,
-                SomeOutput.ProjectName,
-                (int)SomeOutput.ProjectType,
                 SomeOutput.Duration,
                 SomeOutput.Description,
                 TestContext.Current.CancellationToken);
@@ -131,8 +123,6 @@ partial class AgentWritePluginTest
         {
             ["date"] = "2026-09-29",
             ["projectId"] = SomeOutput.ProjectId,
-            ["projectName"] = SomeOutput.ProjectName,
-            ["projectType"] = (int)SomeOutput.ProjectType,
             ["duration"] = SomeOutput.Duration,
             ["description"] = SomeOutput.Description
         };

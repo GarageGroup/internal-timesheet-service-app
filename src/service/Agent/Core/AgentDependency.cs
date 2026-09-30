@@ -99,22 +99,22 @@ public static class AgentDependency
     }
 
     public static Dependency<IAgentTimesheetCreatePrepareFunc> UseAgentTimesheetCreatePrepareFunc(
-        this Dependency<IAgentProjectSetSearchFunc, IAgentActionStore, AgentTimesheetCreatePrepareOption> dependency)
+        this Dependency<IProjectSetGetFunc, IAgentActionStore, AgentTimesheetCreatePrepareOption> dependency)
     {
         ArgumentNullException.ThrowIfNull(dependency);
 
         return dependency.Fold<IAgentTimesheetCreatePrepareFunc>(CreateFunc);
 
         static AgentTimesheetCreatePrepareFunc CreateFunc(
-            IAgentProjectSetSearchFunc projectSetSearchFunc,
+            IProjectSetGetFunc projectSetGetFunc,
             IAgentActionStore actionStore,
             AgentTimesheetCreatePrepareOption option)
         {
-            ArgumentNullException.ThrowIfNull(projectSetSearchFunc);
+            ArgumentNullException.ThrowIfNull(projectSetGetFunc);
             ArgumentNullException.ThrowIfNull(actionStore);
             ArgumentNullException.ThrowIfNull(option);
 
-            return new(projectSetSearchFunc, actionStore, new DateProvider(TimeZoneInfo.Utc), option);
+            return new(projectSetGetFunc, actionStore, new DateProvider(TimeZoneInfo.Utc), option);
         }
     }
 
