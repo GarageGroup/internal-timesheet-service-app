@@ -10,6 +10,43 @@ namespace GarageGroup.Internal.Timesheet.Endpoint.Agent.Action.Decide.Test;
 partial class AgentActionDecideFuncTest
 {
     [Fact]
+    public static async Task InvokeAsync_CreateAndDeleteConfirmDoNotFindAction_ExpectUpdateConfirmCall()
+    {
+        var resolver = new Mock<IAgentUserContextResolver>();
+        _ = resolver.Setup(r => r.ResolveAsync(
+            It.IsAny<AgentUserIdentity>(), It.IsAny<CancellationToken>())).ReturnsAsync(SomeContext);
+        var createConfirmFunc = new Mock<IAgentTimesheetCreateConfirmFunc>();
+        _ = createConfirmFunc.Setup(f => f.InvokeAsync(
+            SomeContext, SomeActionId, It.IsAny<CancellationToken>())).ReturnsAsync(
+                Failure.Create(AgentTimesheetCreateConfirmFailureCode.NotFound, "Create action not found"));
+        var deleteConfirmFunc = new Mock<IAgentTimesheetDeleteConfirmFunc>();
+        _ = deleteConfirmFunc.Setup(f => f.InvokeAsync(
+            SomeContext, SomeActionId, It.IsAny<CancellationToken>())).ReturnsAsync(
+                Failure.Create(AgentTimesheetDeleteConfirmFailureCode.NotFound, "Delete action not found"));
+        var updateConfirmFunc = new Mock<IAgentTimesheetUpdateConfirmFunc>();
+        _ = updateConfirmFunc.Setup(f => f.InvokeAsync(
+            SomeContext, SomeActionId, It.IsAny<CancellationToken>())).ReturnsAsync(
+                new AgentTimesheetUpdateConfirmOut(SomeActionId));
+        var func = new AgentActionDecideFunc(
+            resolver.Object,
+            createConfirmFunc.Object,
+            new Mock<IAgentTimesheetCreateCancelFunc>(MockBehavior.Strict).Object,
+            deleteConfirmFunc.Object,
+            new Mock<IAgentTimesheetDeleteCancelFunc>(MockBehavior.Strict).Object,
+            updateConfirmFunc.Object,
+            new Mock<IAgentTimesheetUpdateCancelFunc>(MockBehavior.Strict).Object,
+            new(true));
+
+        var actual = (await func.InvokeAsync(
+            SomeInput, TestContext.Current.CancellationToken)).SuccessOrThrow();
+
+        Assert.Equal(new AgentActionDecideOut(SomeActionId, AgentActionDecision.Confirm), actual);
+        createConfirmFunc.VerifyAll();
+        deleteConfirmFunc.VerifyAll();
+        updateConfirmFunc.VerifyAll();
+    }
+
+    [Fact]
     public static async Task InvokeAsync_DecisionIsConfirm_ExpectTrustedConfirmCall()
     {
         var func = BuildFunc(
@@ -85,12 +122,16 @@ partial class AgentActionDecideFuncTest
             SomeActionId,
             It.IsAny<CancellationToken>())).ReturnsAsync(new AgentTimesheetDeleteConfirmOut(SomeActionId));
         var deleteCancelFunc = new Mock<IAgentTimesheetDeleteCancelFunc>(MockBehavior.Strict);
+        var updateConfirmFunc = new Mock<IAgentTimesheetUpdateConfirmFunc>(MockBehavior.Strict);
+        var updateCancelFunc = new Mock<IAgentTimesheetUpdateCancelFunc>(MockBehavior.Strict);
         var func = new AgentActionDecideFunc(
             resolver.Object,
             createConfirmFunc.Object,
             createCancelFunc.Object,
             deleteConfirmFunc.Object,
             deleteCancelFunc.Object,
+            updateConfirmFunc.Object,
+            updateCancelFunc.Object,
             new(true));
 
         var actual = (await func.InvokeAsync(
@@ -102,6 +143,8 @@ partial class AgentActionDecideFuncTest
         deleteConfirmFunc.VerifyAll();
         createCancelFunc.VerifyNoOtherCalls();
         deleteCancelFunc.VerifyNoOtherCalls();
+        updateConfirmFunc.VerifyNoOtherCalls();
+        updateCancelFunc.VerifyNoOtherCalls();
     }
 
     [Theory]

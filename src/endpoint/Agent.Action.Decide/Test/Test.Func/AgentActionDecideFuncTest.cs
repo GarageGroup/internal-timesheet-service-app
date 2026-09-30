@@ -41,6 +41,8 @@ public static partial class AgentActionDecideFuncTest
         cancelFunc = new();
         var deleteConfirmFunc = new Mock<IAgentTimesheetDeleteConfirmFunc>();
         var deleteCancelFunc = new Mock<IAgentTimesheetDeleteCancelFunc>();
+        var updateConfirmFunc = new Mock<IAgentTimesheetUpdateConfirmFunc>();
+        var updateCancelFunc = new Mock<IAgentTimesheetUpdateCancelFunc>();
 
         _ = resolver
             .Setup(static r => r.ResolveAsync(
@@ -76,12 +78,24 @@ public static partial class AgentActionDecideFuncTest
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Failure.Create(AgentTimesheetDeleteCancelFailureCode.NotFound, "Action not found"));
 
+        _ = updateConfirmFunc
+            .Setup(static f => f.InvokeAsync(
+                It.IsAny<AgentUserContext>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Failure.Create(AgentTimesheetUpdateConfirmFailureCode.NotFound, "Action not found"));
+
+        _ = updateCancelFunc
+            .Setup(static f => f.InvokeAsync(
+                It.IsAny<AgentUserContext>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Failure.Create(AgentTimesheetUpdateCancelFailureCode.NotFound, "Action not found"));
+
         return new(
             resolver.Object,
             confirmFunc.Object,
             cancelFunc.Object,
             deleteConfirmFunc.Object,
             deleteCancelFunc.Object,
+            updateConfirmFunc.Object,
+            updateCancelFunc.Object,
             new(enabled));
     }
 }

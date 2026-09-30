@@ -16,6 +16,8 @@ public static class AgentActionDecideDependency
             IAgentTimesheetCreateCancelFunc,
             IAgentTimesheetDeleteConfirmFunc,
             IAgentTimesheetDeleteCancelFunc,
+            IAgentTimesheetUpdateConfirmFunc,
+            IAgentTimesheetUpdateCancelFunc,
             AgentActionDecideOption> dependency)
     {
         ArgumentNullException.ThrowIfNull(dependency);
@@ -28,6 +30,8 @@ public static class AgentActionDecideDependency
             IAgentTimesheetCreateCancelFunc createCancelFunc,
             IAgentTimesheetDeleteConfirmFunc deleteConfirmFunc,
             IAgentTimesheetDeleteCancelFunc deleteCancelFunc,
+            IAgentTimesheetUpdateConfirmFunc updateConfirmFunc,
+            IAgentTimesheetUpdateCancelFunc updateCancelFunc,
             AgentActionDecideOption option)
         {
             ArgumentNullException.ThrowIfNull(resolver);
@@ -35,9 +39,19 @@ public static class AgentActionDecideDependency
             ArgumentNullException.ThrowIfNull(createCancelFunc);
             ArgumentNullException.ThrowIfNull(deleteConfirmFunc);
             ArgumentNullException.ThrowIfNull(deleteCancelFunc);
+            ArgumentNullException.ThrowIfNull(updateConfirmFunc);
+            ArgumentNullException.ThrowIfNull(updateCancelFunc);
             ArgumentNullException.ThrowIfNull(option);
 
-            return new(resolver, createConfirmFunc, createCancelFunc, deleteConfirmFunc, deleteCancelFunc, option);
+            return new(
+                resolver,
+                createConfirmFunc,
+                createCancelFunc,
+                deleteConfirmFunc,
+                deleteCancelFunc,
+                updateConfirmFunc,
+                updateCancelFunc,
+                option);
         }
     }
 }

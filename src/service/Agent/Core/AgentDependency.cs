@@ -9,6 +9,39 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class AgentDependency
 {
+    public static Dependency<IAgentTimesheetUpdateConfirmFunc> UseAgentTimesheetUpdateConfirmFunc(
+        this Dependency<IAgentTimesheetUpdateActionStore, ITimesheetUpdateFunc> dependency)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.Fold<IAgentTimesheetUpdateConfirmFunc>(CreateFunc);
+
+        static AgentTimesheetUpdateConfirmFunc CreateFunc(
+            IAgentTimesheetUpdateActionStore actionStore,
+            ITimesheetUpdateFunc timesheetUpdateFunc)
+        {
+            ArgumentNullException.ThrowIfNull(actionStore);
+            ArgumentNullException.ThrowIfNull(timesheetUpdateFunc);
+
+            return new(actionStore, timesheetUpdateFunc, new DateProvider(TimeZoneInfo.Utc));
+        }
+    }
+
+    public static Dependency<IAgentTimesheetUpdateCancelFunc> UseAgentTimesheetUpdateCancelFunc(
+        this Dependency<IAgentTimesheetUpdateActionStore> dependency)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.Map<IAgentTimesheetUpdateCancelFunc>(CreateFunc);
+
+        static AgentTimesheetUpdateCancelFunc CreateFunc(IAgentTimesheetUpdateActionStore actionStore)
+        {
+            ArgumentNullException.ThrowIfNull(actionStore);
+
+            return new(actionStore, new DateProvider(TimeZoneInfo.Utc));
+        }
+    }
+
     public static Dependency<IAgentTimesheetUpdatePrepareFunc> UseAgentTimesheetUpdatePrepareFunc(
         this Dependency<
             IAgentTimesheetSetGetFunc,

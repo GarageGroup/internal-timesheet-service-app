@@ -923,6 +923,18 @@ Resolver выполняет следующие проверки:
 
 Проверка: 104 теста service `Agent` и 17 тестов endpoint `Agent.Message.Send` прошли. Следующий инкремент — реализовать типизированные confirm/cancel update через общий decision endpoint; после него добавить локализованный Telegram preview и кнопки. Инкремент не закоммичен.
 
+### 30.09.2026 — confirm/cancel изменения через общий decision endpoint
+
+- Добавлены отдельные контракты и Core-модули `Timesheet.ConfirmUpdate` и `Timesheet.CancelUpdate` в той же структуре, что create/delete.
+- Confirm загружает только принадлежащий пользователю `UpdateTimesheet` action, проверяет TTL, состояние и ETag, переводит `Pending → Executing` и вызывает переиспользуемый `ITimesheetUpdateFunc` напрямую, без self-HTTP.
+- `SystemUserId` всегда берётся из доверенного `AgentUserContext.EntraObjectId`; полный целевой payload берётся из сохранённого action и не принимается повторно из Telegram callback или модели.
+- Результат фиксируется как `Succeeded`, `Failed` или `Indeterminate`; при неопределённом результате автоматический повтор запрещён. Cancel допускает только атомарный переход `Pending → Cancelled` либо `Pending → Expired`.
+- Общий decision endpoint определяет тип действия последовательностью create → delete → update и переходит к следующему типу исключительно при строгом `NotFound`. Ошибка найденного action не маскируется результатом другого обработчика.
+- Для существующего Timesheet Modify API добавлена отдельная dependency-регистрация `UseTimesheetUpdateFunc`, чтобы application composition использовал бизнес-функцию напрямую.
+- Azure-ресурсы, APIM, роли, конфигурация и таблицы не менялись.
+
+Следующий инкремент после review — локализованный update preview и callback-ответы в Telegram-боте. До его завершения API и бот следует разворачивать согласованной парой.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.
