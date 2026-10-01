@@ -91,6 +91,11 @@
     <Project Path="src/service/Agent/Core/Core.csproj" />
     <Project Path="src/service/Agent/Test/Test.csproj" />
   </Folder>
+  <Folder Name="/service/Agent.Audio/">
+    <Project Path="src/service/Agent.Audio/Contract/Contract.csproj" />
+    <Project Path="src/service/Agent.Audio/Core/Core.csproj" />
+    <Project Path="src/service/Agent.Audio/Test/Test.csproj" />
+  </Folder>
   <Folder Name="/service/Agent.Identity/">
     <Project Path="src/service/Agent.Identity/Contract/Contract.csproj" />
     <Project Path="src/service/Agent.Identity/Core/Core.csproj" />

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <NoWarn>$(NoWarn);IDE0130;CA1859;SKEXP0001;SKEXP0010</NoWarn>
+    <RootNamespace>GarageGroup.Internal.Timesheet</RootNamespace>
+    <AssemblyName>GarageGroup.Internal.Timesheet.Service.Agent.Audio.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Contract\Contract.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EarlyFuncPack.Core.AsyncPipeline" Version="0.3.0" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.80.0" />
+    <PackageReference Include="PrimeFuncPack.Core.FlatArray" Version="1.6.0" />
+    <PackageReference Include="PrimeFuncPack.Dependency.Core" Version="2.2.0" />
+  </ItemGroup>
+
+</Project>
