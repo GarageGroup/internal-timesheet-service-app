@@ -679,6 +679,44 @@ Voice feature API оставлен выключенным до deployment API и
 
 На момент deployment бота `Agent__Voice__Enabled=false` в API, поэтому новый код безопасно развёрнут без активации голосовых запросов. Включение выполняется отдельно после завершения deployment API и проверки его состояния.
 
+### Включение voice feature после deployment API
+
+После подтверждения успешного deployment API настройка `Agent__Voice__Enabled` в test App Service `app-garage-timesheet-service-test` изменена с `false` на `true`. Значение повторно прочитано из App Settings; App Service находится в состоянии `Running` / `Normal`. Production не изменялся.
+
+Прямой запрос к `/health` вернул `403 Client Certificate Required`. Это ожидаемая проверка сохранности сетевой границы: backend API не принимает прямой внешний запрос без клиентского сертификата APIM. Сквозная проверка voice выполняется через Telegram-бота и существующий APIM route.
+
+### Исправление скачивания Telegram voice
+
+Первый voice smoke test завершился локализованной ошибкой скачивания. По телеметрии `getFile` через APIM был успешен; причиной оказалось отсутствующее значение `Bot__FileUrlTemplate`: Telegram-движок формировал пустой `FileUrl` из полученного `file_path`.
+
+Подтверждено, что в существующем `gtimesheet-telegram-api` уже есть operation `GET /{type}/{name}` (`get-file`), policy которой безопасно подставляет Telegram bot token внутри APIM. Новые APIM operation и policy не создавались.
+
+В test Function App добавлена настройка:
+
+- `Bot__FileUrlTemplate=https://apim-garage-timesheet-test.azure-api.net/telegram/api/{0}`.
+
+Загрузчик бота изменён так, чтобы передавать существующий `TelegramBot:ApiKey` как `Ocp-Apim-Subscription-Key` при скачивании через этот маршрут. Telegram bot token в Function App не добавлялся.
+
+Первый повторный ZIP-запрос получил transient `502` и не создал deployment. Попытка через OneDeploy создала неактивный deployment `cbab22f4-0cd0-4bd1-b534-edc89cdee710` со статусом `3`: платформа ошибочно запустила Oryx build для готового publish package. Рабочая версия приложения при этом не менялась. Повторный ZIP deployment `cedc7b46-ff38-458b-a333-da1b85f3ba29` завершился со статусом `4` и стал active; Function App и три функции проверены.
+
+Повторный сквозной voice smoke test успешен: Telegram-файл скачан через APIM, Whisper transcription и агентский read-only запрос выполнены, preview write-операции отображён, кнопки Cancel и Confirm отработали корректно.
+
+Первый запрос после перезапуска не успел завершиться: backend зарегистрировал `499` примерно через 25 секунд, хотя скачивание файла, Whisper и первый вызов chat model завершились с `200`. После прогрева Managed Identity токенов повторный запрос прошёл. Изменение APIM timeout не выполнялось. Перед production и при следующей работе с integration APIM необходимо проверить effective `forward-request` timeout и обеспечить запас для cold-start цепочки `identity → transcription → agent/tools`.
+
+### Timeout agent message operation
+
+По решению владельца test-контура для единственной operation `post-agent-message` в API `garage-timesheet-agent-api` добавлена operation-level policy:
+
+```xml
+<backend>
+  <forward-request timeout="60" />
+</backend>
+```
+
+Scope изменения: subscription `106dd084-8190-453f-87c9-cd2cb714b1d6`, resource group `rg-integration-platform-test`, APIM `apim-integration-platform-test-01`, API `garage-timesheet-agent-api`, operation `POST /internal/agent/messages`. API-level inbound policy с backend URL и сертификатом продолжает наследоваться через `<base />`. Operation решения по `ActionId`, остальные API и production не изменялись. Policy повторно прочитана из Azure с `timeout="60"`. Rollback — удалить только operation policy `post-agent-message`, вернув наследуемое поведение.
+
+После уточнения smoke test установлено, что повторно отправленное пользователем голосовое сообщение являлось отдельным Telegram update: после ожидания бот прислал два ответа на два фактически отправленных сообщения. Это не подтверждает повторную доставку одного update; существующая идемпотентность по `TelegramUpdateId` не изменялась.
+
 ## Правила дальнейшего ведения
 
 После каждого изменения Azure необходимо до завершения инкремента записать:

@@ -1008,6 +1008,14 @@ Resolver выполняет следующие проверки:
 
 Azure CLI при ZIP deployment сообщил о завершении поддержки текущего `dotnet-isolated` runtime 10.11.2026. Runtime stack в этом инкременте не изменялся; его проверка и обновление добавлены в обязательные задачи до production rollout.
 
+После успешного deployment API в test включён `Agent__Voice__Enabled=true`. Значение настройки и состояние `Running/Normal` проверены. Прямой health check без сертификата APIM ожидаемо отклонён с `403 Client Certificate Required`, поэтому следующий шаг — сквозной Telegram voice smoke test: сначала read-only запрос, затем подготовка write-операции с отменой.
+
+Первый voice smoke test выявил пустой `Bot__FileUrlTemplate`: `getFile` был успешен, но движок возвращал пустой URL скачивания. Использован уже существующий APIM `get-file` route, который подставляет bot token внутри policy; токен в Function App не копировался. Добавлена test-настройка `Bot__FileUrlTemplate`, а download client передаёт APIM subscription key. Исправление собрано без ошибок и развёрнуто активным ZIP deployment `cedc7b46-ff38-458b-a333-da1b85f3ba29`.
+
+Повторный voice smoke test полностью успешен: read-only запрос вернул ответ, write preview был сформирован, Cancel и Confirm сработали корректно. Первый cold-start запрос ранее зарегистрировал backend `499` примерно через 25 секунд после успешных file download, Whisper и chat model calls; прогретый повтор прошёл. Пользователь повторно отправил сообщение как новый Telegram update, поэтому после ожидания получил два ответа на два разных update — повтор одного update не подтверждён.
+
+По согласованию на test operation `post-agent-message` установлена отдельная APIM policy `<forward-request timeout="60" />`. Scope ограничен `/internal/agent/messages`; decision operation и остальные API не изменялись. Voice-инкремент функционально завершён, текущие исправления и итоговая документация ожидают commit.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.

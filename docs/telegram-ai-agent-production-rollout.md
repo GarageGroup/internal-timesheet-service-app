@@ -283,6 +283,7 @@ API-level policy должна:
 - [ ] Foundry deployment доступен и имеет квоту.
 - [ ] Audio-to-text deployment доступен, API MI имеет к нему доступ, а Voice feature включается независимо от текста.
 - [ ] Исходное аудио не сохраняется в Conversation/Action Table и не попадает в telemetry.
+- [ ] Effective APIM `forward-request` timeout покрывает cold-start цепочку voice transcription и agent/tools; проверен первый запрос после restart.
 - [ ] Data residency согласована.
 - [ ] Table создана и доступна API MI.
 - [ ] Запрос без токена = 401.
@@ -291,6 +292,7 @@ API-level policy должна:
 - [ ] Create/update/delete показывают preview и до Confirm не изменяют Dataverse.
 - [ ] Cancel каждой write-операции не изменяет Dataverse и удаляет клавиатуру.
 - [ ] Confirm каждой write-операции выполняет сохранённый payload только один раз.
+- [ ] Voice read-only, preview, Cancel и Confirm пройдены сквозным Telegram smoke test.
 - [ ] Настроен операторский разбор `Executing`/`Indeterminate` без автоматического повторения CRM write.
 - [ ] Бизнес-правило timezone согласовано с Dataverse validation.
 - [ ] Ошибки не раскрывают credentials, CRM payload или stack trace.
