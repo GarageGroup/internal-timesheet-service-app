@@ -6,6 +6,8 @@ namespace GarageGroup.Internal.Timesheet.Endpoint.Agent.Message.Send.Test;
 
 public static partial class AgentMessageSendFuncTest
 {
+    private static readonly IAgentAudioTranscribeFunc AudioTranscribeFunc = Mock.Of<IAgentAudioTranscribeFunc>();
+
     private static readonly AgentMessageSendIn SomeInput = new(101, 303, 202, 202, "Some question", "ru");
 
     private static readonly AgentUserContext SomeContext

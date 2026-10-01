@@ -25,6 +25,11 @@ partial class AgentAudioTranscribeFunc
     private Result<AgentAudioTranscribeIn, Failure<AgentAudioTranscribeFailureCode>> Validate(
         AgentAudioTranscribeIn input)
     {
+        if (option.Enabled is false)
+        {
+            return Failure.Create(AgentAudioTranscribeFailureCode.InvalidAudio, "Audio transcription is disabled");
+        }
+
         if (input.Audio.IsEmpty ||
             string.IsNullOrWhiteSpace(input.MimeType) ||
             string.IsNullOrWhiteSpace(input.FileName))

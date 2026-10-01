@@ -12,7 +12,11 @@ public sealed record class AgentMessageSendIn
         [JsonBodyIn] long telegramUserId,
         [JsonBodyIn] long telegramChatId,
         [JsonBodyIn] [AllowNull] string text,
-        [JsonBodyIn] string? locale)
+        [JsonBodyIn] string? locale,
+        [JsonBodyIn] [AllowNull] string audioBase64 = null,
+        [JsonBodyIn] [AllowNull] string audioMimeType = null,
+        [JsonBodyIn] [AllowNull] string audioFileName = null,
+        [JsonBodyIn] [AllowNull] string audioLanguage = null)
     {
         BotId = botId;
         TelegramUpdateId = telegramUpdateId;
@@ -20,6 +24,10 @@ public sealed record class AgentMessageSendIn
         TelegramChatId = telegramChatId;
         Text = text.OrEmpty();
         Locale = locale;
+        AudioBase64 = audioBase64.OrEmpty();
+        AudioMimeType = audioMimeType.OrEmpty();
+        AudioFileName = audioFileName.OrEmpty();
+        AudioLanguage = audioLanguage.OrEmpty();
     }
 
     public long BotId { get; }
@@ -33,4 +41,12 @@ public sealed record class AgentMessageSendIn
     public string Text { get; }
 
     public string? Locale { get; }
+
+    public string AudioBase64 { get; }
+
+    public string AudioMimeType { get; }
+
+    public string AudioFileName { get; }
+
+    public string AudioLanguage { get; }
 }

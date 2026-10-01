@@ -11,6 +11,17 @@ namespace GarageGroup.Internal.Timesheet.Service.Agent.Audio.Test;
 
 partial class AgentAudioTranscribeFuncTest
 {
+    [Fact]
+    public static async Task InvokeAsync_AudioDisabled_ExpectInvalidAudioFailure()
+    {
+        var service = new Mock<IAudioToTextService>(MockBehavior.Strict);
+        var actual = await CreateFunc(service, enabled: false).InvokeAsync(
+            new(new byte[] { 1 }, "audio/ogg", "voice.ogg", "ru"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(AgentAudioTranscribeFailureCode.InvalidAudio, actual.FailureOrThrow().FailureCode);
+    }
+
     [Theory]
     [InlineData("", "voice.ogg", AgentAudioTranscribeFailureCode.InvalidAudio)]
     [InlineData("audio/wav", "voice.wav", AgentAudioTranscribeFailureCode.UnsupportedFormat)]

@@ -9,6 +9,17 @@ namespace GarageGroup.Internal.Timesheet;
 
 partial class Application
 {
+    private static Dependency<IAgentAudioTranscribeFunc> UseAgentAudioTranscribeFunc()
+        =>
+        Dependency.From(
+            ResolveTokenCredential)
+        .With(
+            ResolveAgentAudioProviderOption)
+        .UseAzureOpenAIAudioToTextService()
+        .With(
+            ResolveAgentAudioTranscribeOption)
+        .UseAgentAudioTranscribeFunc();
+
     private static Dependency<IAgentConversationMessageFunc> UseAgentConversationMessageFunc()
         =>
         Pipeline.Pipe(
@@ -208,5 +219,52 @@ partial class Application
         }
 
         return new(endpoint, modelId.Trim(), tokenScope.Trim());
+    }
+
+    private static AgentAudioProviderOption ResolveAgentAudioProviderOption(IServiceProvider serviceProvider)
+    {
+        var configuration = serviceProvider.GetConfiguration();
+        if (configuration.GetValue<bool>("Agent:Voice:Enabled") is false)
+        {
+            return new(new("https://localhost"), "disabled", "disabled");
+        }
+
+        var endpointValue = configuration["Agent:Voice:Endpoint"];
+        var deploymentName = configuration["Agent:Voice:DeploymentName"];
+        var modelId = configuration["Agent:Voice:ModelId"];
+
+        if (Uri.TryCreate(endpointValue, UriKind.Absolute, out var endpoint) is false ||
+            endpoint.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) is false)
+        {
+            throw new InvalidOperationException("Agent audio endpoint must be an absolute HTTPS URL");
+        }
+
+        if (string.IsNullOrWhiteSpace(deploymentName))
+        {
+            throw new InvalidOperationException("Agent audio deployment name must be specified");
+        }
+
+        if (string.IsNullOrWhiteSpace(modelId))
+        {
+            throw new InvalidOperationException("Agent audio model ID must be specified");
+        }
+
+        return new(endpoint, deploymentName.Trim(), modelId.Trim());
+    }
+
+    private static AgentAudioTranscribeOption ResolveAgentAudioTranscribeOption(IServiceProvider serviceProvider)
+    {
+        var configuration = serviceProvider.GetConfiguration();
+        var maxFileSizeBytes = configuration.GetValue("Agent:Voice:MaxFileSizeBytes", 5 * 1024 * 1024);
+        if (maxFileSizeBytes <= 0)
+        {
+            throw new InvalidOperationException("Agent audio maximum file size must be positive");
+        }
+
+        return AgentAudioTranscribeOption.Default with
+        {
+            Enabled = configuration.GetValue<bool>("Agent:Voice:Enabled"),
+            MaxFileSizeBytes = maxFileSizeBytes
+        };
     }
 }

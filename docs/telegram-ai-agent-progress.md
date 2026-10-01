@@ -975,6 +975,18 @@ Resolver выполняет следующие проверки:
 
 Проверка: `Agent.Audio` собирается без ошибок и предупреждений; четыре теста сервиса прошли. Следующий инкремент — зарегистрировать Azure OpenAI реализацию `IAudioToTextService` через общий `TokenCredential` и конфигурацию, затем добавить защищённый voice endpoint, который после транскрипции вызывает существующий conversation message flow.
 
+### 01.10.2026 — Azure-провайдер и единый message endpoint для текста и голоса
+
+- Azure OpenAI `IAudioToTextService` зарегистрирован через Semantic Kernel `AzureOpenAIAudioToTextService` и уже используемый приложением общий `TokenCredential`. API key и отдельный способ получения credentials не добавлялись: локально используется credential после `az login`, в Azure — Managed Identity API.
+- От отдельного voice endpoint отказались. Существующий защищённый `POST /internal/agent/messages` принимает либо `text`, либо поля `audioBase64`, `audioMimeType`, `audioFileName`, `audioLanguage`. Это сохраняет один authentication boundary, один формат ответа, одну историю диалога и один prepare/confirm/cancel flow.
+- Telegram identity разрешается до обращения к распознаванию. Неавторизованный или не связанный с Mini App пользователь не может расходовать квоту audio-to-text.
+- Если передан непустой `text`, аудиопровайдер не вызывается. Если текста нет, endpoint проверяет Base64, вызывает `AgentAudioTranscribeFunc`, а транскрипцию передаёт существующему `IAgentConversationMessageFunc` без сохранения исходных аудиобайтов.
+- Добавлены настройки `Agent:Voice:Enabled`, `Endpoint`, `DeploymentName`, `ModelId`, `MaxFileSizeBytes`. По умолчанию voice flag выключен; при выключенном флаге текстовый агент продолжает работать, а пустые Azure Voice-настройки не мешают запуску приложения.
+- Голосовой write-запрос не выполняет CRM-изменение сразу: после транскрипции действуют прежние серверный preview и обязательное подтверждение кнопкой.
+- Azure-ресурсы, app settings, APIM и бот этим инкрементом не менялись. До deployment необходимо выбрать/развернуть audio-to-text model deployment, назначить доступ Managed Identity, заполнить test settings и только затем включить `Agent:Voice:Enabled`.
+
+Проверка: 5 тестов service `Agent.Audio` и 24 теста endpoint `Agent.Message.Send` прошли, включая выключенный feature, успешный voice flow, некорректный Base64 и отображение всех ошибок аудиосервиса; полная сборка `Internal.Timesheet.Service.slnx` завершилась без ошибок и предупреждений. Следующий инкремент после review — подготовить Azure test deployment/settings и typed Telegram download голосового файла без изменения текущего текстового пути. Инкремент не закоммичен.
+
 ## Открытые вопросы
 
 - Подтвердить с владельцем безопасности выбранные значения: `auth_date` 5 минут и clock skew 30 секунд.

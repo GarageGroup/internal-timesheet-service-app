@@ -7,9 +7,13 @@ public static partial class AgentAudioTranscribeFuncTest
 {
     private static AgentAudioTranscribeFunc CreateFunc(
         Mock<IAudioToTextService> service,
-        int maxFileSizeBytes = 100)
+        int maxFileSizeBytes = 100,
+        bool enabled = true)
         =>
         new(
             service.Object,
-            new(maxFileSizeBytes, ["audio/ogg"]));
+            new AgentAudioTranscribeOption(maxFileSizeBytes, ["audio/ogg"])
+            {
+                Enabled = enabled
+            });
 }

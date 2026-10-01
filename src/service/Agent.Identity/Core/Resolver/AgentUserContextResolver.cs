@@ -25,9 +25,8 @@ internal sealed class AgentUserContextResolver(ISqlQueryEntitySetSupplier sqlApi
         .ForwardValue(
             sqlApi.QueryEntitySetOrFailureAsync<DbAgentUserBinding>,
             static failure => failure.WithFailureCode(AgentUserContextResolveFailureCode.Unknown))
-        .Map(
-            bindings => MapBindings(identity, bindings),
-            static failure => failure)
+        .MapSuccess(
+            bindings => MapBindings(identity, bindings))
         .Forward(
             static result => result);
 

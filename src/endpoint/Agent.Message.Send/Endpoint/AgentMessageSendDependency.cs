@@ -10,20 +10,30 @@ namespace GarageGroup.Internal.Timesheet;
 public static class AgentMessageSendDependency
 {
     public static Dependency<AgentMessageSendEndpoint> UseAgentMessageSendEndpoint(
-        this Dependency<IAgentUserContextResolver, IAgentConversationMessageFunc> dependency)
+        this Dependency<IAgentUserContextResolver, IAgentConversationMessageFunc, IAgentAudioTranscribeFunc> dependency)
     {
         ArgumentNullException.ThrowIfNull(dependency);
 
-        return dependency.Fold<IAgentMessageSendFunc>(CreateFunc).Map(AgentMessageSendEndpoint.Resolve);
+        return dependency.UseAgentMessageSendFunc().Map(AgentMessageSendEndpoint.Resolve);
+    }
+
+    public static Dependency<IAgentMessageSendFunc> UseAgentMessageSendFunc(
+        this Dependency<IAgentUserContextResolver, IAgentConversationMessageFunc, IAgentAudioTranscribeFunc> dependency)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.Fold<IAgentMessageSendFunc>(CreateFunc);
 
         static AgentMessageSendFunc CreateFunc(
             IAgentUserContextResolver resolver,
-            IAgentConversationMessageFunc messageFunc)
+            IAgentConversationMessageFunc messageFunc,
+            IAgentAudioTranscribeFunc audioTranscribeFunc)
         {
             ArgumentNullException.ThrowIfNull(resolver);
             ArgumentNullException.ThrowIfNull(messageFunc);
+            ArgumentNullException.ThrowIfNull(audioTranscribeFunc);
 
-            return new(resolver, messageFunc);
+            return new(resolver, messageFunc, audioTranscribeFunc);
         }
     }
 }

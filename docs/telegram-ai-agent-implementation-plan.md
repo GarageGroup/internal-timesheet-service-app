@@ -462,9 +462,11 @@ Execution orchestration реализован следующим инкремен
 | `Agent:Foundry:ProjectEndpoint` | Endpoint проекта нового Foundry: `https://<resource>.services.ai.azure.com/api/projects/<project>`; `/openai/v1/` добавляется кодом |
 | `Agent:Foundry:ModelId` | Имя deployment модели с поддержкой tool calling; передаётся connector как `modelId` |
 | `Agent:Foundry:TokenScope` | Entra scope нового Foundry; по умолчанию `https://ai.azure.com/.default` |
-| `Agent:Voice:Enabled` | Будущий отдельный feature flag голосового входа; до реализации `false` |
-| `Agent:Voice:DeploymentName` | Будущее имя Azure OpenAI audio-to-text deployment; не совпадает автоматически с `gpt-5-mini` deployment |
-| `Agent:Voice:MaxFileSizeBytes`, `Agent:Voice:MaxDurationSeconds` | Будущие серверные ограничения голосового сообщения; значения определить после выбора модели и проверки Telegram-файлов |
+| `Agent:Voice:Enabled` | Отдельный feature flag голосового входа; по умолчанию `false`, текстовый агент от него не зависит |
+| `Agent:Voice:Endpoint` | HTTPS endpoint Azure OpenAI resource, на котором развёрнута модель распознавания |
+| `Agent:Voice:DeploymentName` | Имя Azure OpenAI audio-to-text deployment; не совпадает автоматически с `gpt-5-mini` deployment |
+| `Agent:Voice:ModelId` | Идентификатор audio-to-text модели для Semantic Kernel connector |
+| `Agent:Voice:MaxFileSizeBytes` | Серверный предел размера аудиофайла; начальное значение 5 MiB |
 | `Agent:Authentication:TenantId` | Tenant ID корпоративного Entra |
 | `Agent:Authentication:Audience` | Фактическая допустимая аудитория agent API token |
 | `Agent:Authentication:RequiredRole` | Значение app role, например `Timesheet.Agent.Invoke` |

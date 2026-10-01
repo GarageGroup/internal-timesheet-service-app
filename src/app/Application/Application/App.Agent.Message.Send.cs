@@ -14,5 +14,7 @@ partial class Application
         .UseAgentUserContextResolver()
         .With(
             UseAgentConversationMessageFunc())
+        .With(
+            UseAgentAudioTranscribeFunc())
         .UseAgentMessageSendEndpoint();
 }

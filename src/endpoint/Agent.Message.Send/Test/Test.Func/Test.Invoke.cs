@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using GarageGroup.Infra;
@@ -28,7 +29,7 @@ partial class AgentMessageSendFuncTest
             .ReturnsAsync(Failure.Create(sourceCode, "Resolve failed", sourceException));
         var messageFunc = new Mock<IAgentConversationMessageFunc>(MockBehavior.Strict);
 
-        var actual = await new AgentMessageSendFunc(resolver.Object, messageFunc.Object).InvokeAsync(
+        var actual = await new AgentMessageSendFunc(resolver.Object, messageFunc.Object, AudioTranscribeFunc).InvokeAsync(
             SomeInput,
             TestContext.Current.CancellationToken);
 
@@ -54,7 +55,7 @@ partial class AgentMessageSendFuncTest
             It.IsAny<CancellationToken>()))
         .ReturnsAsync(Failure.Create(sourceCode, "Message failed"));
 
-        var actual = await new AgentMessageSendFunc(resolver.Object, messageFunc.Object).InvokeAsync(
+        var actual = await new AgentMessageSendFunc(resolver.Object, messageFunc.Object, AudioTranscribeFunc).InvokeAsync(
             SomeInput,
             TestContext.Current.CancellationToken);
 
@@ -76,7 +77,7 @@ partial class AgentMessageSendFuncTest
             It.IsAny<CancellationToken>()))
         .ReturnsAsync(new AgentMessageOut("Some response"));
 
-        _ = await new AgentMessageSendFunc(resolver.Object, messageFunc.Object).InvokeAsync(
+        _ = await new AgentMessageSendFunc(resolver.Object, messageFunc.Object, AudioTranscribeFunc).InvokeAsync(
             SomeInput,
             TestContext.Current.CancellationToken);
 
@@ -98,7 +99,7 @@ partial class AgentMessageSendFuncTest
             It.IsAny<CancellationToken>()))
         .ReturnsAsync(new AgentMessageOut("Some response"));
 
-        var actual = await new AgentMessageSendFunc(resolver.Object, messageFunc.Object).InvokeAsync(
+        var actual = await new AgentMessageSendFunc(resolver.Object, messageFunc.Object, AudioTranscribeFunc).InvokeAsync(
             SomeInput,
             TestContext.Current.CancellationToken);
 
@@ -125,7 +126,7 @@ partial class AgentMessageSendFuncTest
             It.IsAny<CancellationToken>()))
         .ReturnsAsync(new AgentMessageOut("Confirm action", preparedAction));
 
-        var actual = (await new AgentMessageSendFunc(resolver.Object, messageFunc.Object).InvokeAsync(
+        var actual = (await new AgentMessageSendFunc(resolver.Object, messageFunc.Object, AudioTranscribeFunc).InvokeAsync(
             SomeInput,
             TestContext.Current.CancellationToken)).SuccessOrThrow();
 
@@ -162,7 +163,7 @@ partial class AgentMessageSendFuncTest
             It.IsAny<CancellationToken>()))
         .ReturnsAsync(new AgentMessageOut("Confirm delete", PreparedDeleteAction: preparedAction));
 
-        var actual = (await new AgentMessageSendFunc(resolver.Object, messageFunc.Object).InvokeAsync(
+        var actual = (await new AgentMessageSendFunc(resolver.Object, messageFunc.Object, AudioTranscribeFunc).InvokeAsync(
             SomeInput,
             TestContext.Current.CancellationToken)).SuccessOrThrow();
 
@@ -200,7 +201,7 @@ partial class AgentMessageSendFuncTest
             It.IsAny<CancellationToken>()))
         .ReturnsAsync(new AgentMessageOut("Confirm update", PreparedUpdateAction: preparedAction));
 
-        var actual = (await new AgentMessageSendFunc(resolver.Object, messageFunc.Object).InvokeAsync(
+        var actual = (await new AgentMessageSendFunc(resolver.Object, messageFunc.Object, AudioTranscribeFunc).InvokeAsync(
             SomeInput,
             TestContext.Current.CancellationToken)).SuccessOrThrow();
 
@@ -217,5 +218,97 @@ partial class AgentMessageSendFuncTest
             ExpiresAt = preparedAction.ExpiresAt
         };
         Assert.Equal(new AgentMessageSendOut("Confirm update", preparedUpdateAction: expectedAction), actual);
+    }
+
+    [Fact]
+    public static async Task InvokeAsync_VoiceMessage_ExpectTranscribedMessageSent()
+    {
+        var input = new AgentMessageSendIn(
+            101,
+            303,
+            202,
+            202,
+            string.Empty,
+            "ru",
+            Convert.ToBase64String([1, 2, 3]),
+            "audio/ogg",
+            "voice.ogg",
+            "ru");
+        var resolver = BuildResolver();
+        var audioFunc = new Mock<IAgentAudioTranscribeFunc>();
+        _ = audioFunc.Setup(static f => f.InvokeAsync(
+            It.IsAny<AgentAudioTranscribeIn>(),
+            It.IsAny<CancellationToken>()))
+        .ReturnsAsync(new AgentAudioTranscribeOut("Сколько часов я списал сегодня?"));
+        var messageFunc = new Mock<IAgentConversationMessageFunc>();
+        _ = messageFunc.Setup(static f => f.InvokeAsync(
+            SomeContext,
+            new AgentConversationMessageIn("Сколько часов я списал сегодня?", "ru"),
+            It.IsAny<CancellationToken>()))
+        .ReturnsAsync(new AgentMessageOut("За сегодня списано 8 часов"));
+
+        var actual = await new AgentMessageSendFunc(resolver.Object, messageFunc.Object, audioFunc.Object).InvokeAsync(
+            input,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(new AgentMessageSendOut("За сегодня списано 8 часов"), actual.SuccessOrThrow());
+        audioFunc.Verify(static f => f.InvokeAsync(
+            It.Is<AgentAudioTranscribeIn>(static input =>
+                input.Audio.ToArray().SequenceEqual(new byte[] { 1, 2, 3 }) &&
+                input.MimeType == "audio/ogg" &&
+                input.FileName == "voice.ogg" &&
+                input.Language == "ru"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public static async Task InvokeAsync_InvalidAudioBase64_ExpectInvalidAudioFailure()
+    {
+        var input = new AgentMessageSendIn(101, 303, 202, 202, string.Empty, "ru", "not-base64", "audio/ogg", "voice.ogg", "ru");
+        var resolver = BuildResolver();
+        var messageFunc = new Mock<IAgentConversationMessageFunc>(MockBehavior.Strict);
+        var audioFunc = new Mock<IAgentAudioTranscribeFunc>(MockBehavior.Strict);
+
+        var actual = await new AgentMessageSendFunc(resolver.Object, messageFunc.Object, audioFunc.Object).InvokeAsync(
+            input,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(AgentMessageSendFailureCode.InvalidAudio, actual.FailureOrThrow().FailureCode);
+    }
+
+    [Theory]
+    [InlineData(AgentAudioTranscribeFailureCode.InvalidAudio, AgentMessageSendFailureCode.InvalidAudio)]
+    [InlineData(AgentAudioTranscribeFailureCode.AudioTooLarge, AgentMessageSendFailureCode.AudioTooLarge)]
+    [InlineData(AgentAudioTranscribeFailureCode.UnsupportedFormat, AgentMessageSendFailureCode.UnsupportedAudioFormat)]
+    [InlineData(AgentAudioTranscribeFailureCode.EmptyTranscript, AgentMessageSendFailureCode.EmptyTranscript)]
+    [InlineData(AgentAudioTranscribeFailureCode.Unknown, AgentMessageSendFailureCode.Unknown)]
+    public static async Task InvokeAsync_AudioFailure_ExpectMappedFailure(
+        AgentAudioTranscribeFailureCode sourceCode,
+        AgentMessageSendFailureCode expectedCode)
+    {
+        var input = new AgentMessageSendIn(
+            101,
+            303,
+            202,
+            202,
+            string.Empty,
+            "ru",
+            Convert.ToBase64String([1]),
+            "audio/ogg",
+            "voice.ogg",
+            "ru");
+        var resolver = BuildResolver();
+        var messageFunc = new Mock<IAgentConversationMessageFunc>(MockBehavior.Strict);
+        var audioFunc = new Mock<IAgentAudioTranscribeFunc>();
+        _ = audioFunc.Setup(static f => f.InvokeAsync(
+            It.IsAny<AgentAudioTranscribeIn>(),
+            It.IsAny<CancellationToken>()))
+        .ReturnsAsync(Failure.Create(sourceCode, "Audio failed"));
+
+        var actual = await new AgentMessageSendFunc(resolver.Object, messageFunc.Object, audioFunc.Object).InvokeAsync(
+            input,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(expectedCode, actual.FailureOrThrow().FailureCode);
     }
 }
