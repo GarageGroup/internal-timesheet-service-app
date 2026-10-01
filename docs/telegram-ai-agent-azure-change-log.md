@@ -671,6 +671,14 @@ Voice feature API оставлен выключенным до deployment API и
 
 Связанный API commit: `55d410a`. Проверка реального audio inference будет выполнена после deployment кода. Быстрый rollback: оставить/вернуть `Agent__Voice__Enabled=false`; полный rollback после проверки отсутствия consumers — удалить deployment `whisper` и пять Voice settings.
 
+### ZIP deployment Telegram-бота
+
+После commit бота `8768c8a` выполнен ZIP deployment в test Function App `func-internal-gtimesheet-test`. Azure deployment `1acb5601-a43f-4734-b72d-ed2056701197` завершён 01.10.2026 со статусом `4` (success); приложение проверено в состоянии `Running` / `Normal`. Production не затронут.
+
+Во время deployment Azure CLI показал предупреждение о завершении поддержки выбранного `dotnet-isolated` runtime 10.11.2026. До production rollout необходимо отдельно проверить актуальный runtime stack Function App и выполнить поддерживаемое обновление; автоматическое изменение runtime в рамках voice deployment не выполнялось.
+
+На момент deployment бота `Agent__Voice__Enabled=false` в API, поэтому новый код безопасно развёрнут без активации голосовых запросов. Включение выполняется отдельно после завершения deployment API и проверки его состояния.
+
 ## Правила дальнейшего ведения
 
 После каждого изменения Azure необходимо до завершения инкремента записать:

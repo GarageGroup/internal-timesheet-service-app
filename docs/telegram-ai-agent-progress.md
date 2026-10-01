@@ -1004,7 +1004,9 @@ Resolver выполняет следующие проверки:
 - Добавлены локализованные ru/en ответы для слишком большого файла, ошибки скачивания и ошибки распознавания. Исходное аудио нигде не сохраняется.
 - Отдельные Azure Function tests не добавлялись согласно принятому правилу; изменённые service/endpoint API покрыты тестами, для бота проверяется solution build.
 
-Проверка: `Internal.Timesheet.Bot.sln` собирается без ошибок и предупреждений. Test Function App получила только limit setting и после restart находится в `Running/Normal`; код бота ещё не развёрнут. Следующий шаг после review — commit документации и bot-кода, deployment API пользователем, ZIP deployment бота, включение `Agent__Voice__Enabled=true` и контролируемые voice smoke tests.
+Проверка: `Internal.Timesheet.Bot.sln` собирается без ошибок и предупреждений. Код бота зафиксирован commit `8768c8a` и развёрнут ZIP deployment `1acb5601-a43f-4734-b72d-ed2056701197`; test Function App находится в `Running/Normal`. API deployment выполняется отдельно пользователем, а `Agent__Voice__Enabled` остаётся `false`. Следующий шаг — дождаться успешного deployment API, включить Voice feature и выполнить контролируемые voice smoke tests.
+
+Azure CLI при ZIP deployment сообщил о завершении поддержки текущего `dotnet-isolated` runtime 10.11.2026. Runtime stack в этом инкременте не изменялся; его проверка и обновление добавлены в обязательные задачи до production rollout.
 
 ## Открытые вопросы
 
