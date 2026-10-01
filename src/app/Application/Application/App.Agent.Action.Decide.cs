@@ -27,8 +27,17 @@ partial class Application
         .With(
             UseAgentTimesheetUpdateCancelFunc())
         .With(
-            ResolveAgentActionDecideOption)
+            UseAgentActionDecideContext())
         .UseAgentActionDecideEndpoint();
+
+    private static Dependency<AgentActionDecideContext> UseAgentActionDecideContext()
+        =>
+        Pipeline.Pipe(
+            UseAgentTimesheetSetGetFunc())
+        .With(
+            ResolveAgentActionDecideOption)
+        .Fold(
+            static (timesheetSetGetFunc, option) => new AgentActionDecideContext(timesheetSetGetFunc, option));
 
     private static Dependency<IAgentTimesheetCreateConfirmFunc> UseAgentTimesheetCreateConfirmFunc()
         =>

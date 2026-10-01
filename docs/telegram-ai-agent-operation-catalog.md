@@ -147,6 +147,8 @@ Execution boundary реализован в Core: `ITimesheetCreateFunc` полу
 
 Внешняя граница confirm/cancel реализована одним endpoint `POST /internal/agent/actions/{actionId}/decision`. Она не является Semantic Kernel tool: решение поступает только из явного Telegram callback. Endpoint принимает `Confirm`/`Cancel`, повторно разрешает owner context и передаёт Core только доверенный контекст и `ActionId`. Write feature flag проверяется до любых зависимостей.
 
+При успешном `Confirm` endpoint возвращает дату выполненного действия и актуальные списания за эту дату. Дата берётся из сохранённого server-side action, а не из callback. Список читается через существующий `IAgentTimesheetSetGetFunc` с доверенным `AgentUserContext`. При `Cancel` чтение не выполняется. Ошибка дополнительного чтения не меняет успешный результат write: клиент получает `TimesheetsLoaded=false` и не должен повторять запись.
+
 ### `Project.GetSet`
 
 Пользовательский ID применяется к истории списаний проектов, но запросы Incident, Opportunity и Lead выглядят общими. До выдачи полного набора модели необходимо интеграционно подтвердить, что SQL/API слой не раскрывает пользователю недоступные записи.

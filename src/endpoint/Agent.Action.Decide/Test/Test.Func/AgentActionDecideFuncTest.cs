@@ -9,6 +9,8 @@ public static partial class AgentActionDecideFuncTest
 {
     private static readonly Guid SomeActionId = new("78302d93-e6dc-4fd6-be63-2480c8984382");
 
+    private static readonly DateOnly SomeDate = new(2026, 10, 1);
+
     private static readonly AgentActionDecideIn SomeInput = new(
         101,
         SomeActionId,
@@ -43,6 +45,7 @@ public static partial class AgentActionDecideFuncTest
         var deleteCancelFunc = new Mock<IAgentTimesheetDeleteCancelFunc>();
         var updateConfirmFunc = new Mock<IAgentTimesheetUpdateConfirmFunc>();
         var updateCancelFunc = new Mock<IAgentTimesheetUpdateCancelFunc>();
+        var timesheetSetGetFunc = new Mock<IAgentTimesheetSetGetFunc>();
 
         _ = resolver
             .Setup(static r => r.ResolveAsync(
@@ -88,6 +91,11 @@ public static partial class AgentActionDecideFuncTest
                 It.IsAny<AgentUserContext>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Failure.Create(AgentTimesheetUpdateCancelFailureCode.NotFound, "Action not found"));
 
+        _ = timesheetSetGetFunc
+            .Setup(static f => f.InvokeAsync(
+                It.IsAny<AgentUserContext>(), It.IsAny<AgentTimesheetSetGetIn>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Failure.Create(AgentTimesheetSetGetFailureCode.Unknown, "Timesheets are unavailable"));
+
         return new(
             resolver.Object,
             confirmFunc.Object,
@@ -96,6 +104,7 @@ public static partial class AgentActionDecideFuncTest
             deleteCancelFunc.Object,
             updateConfirmFunc.Object,
             updateCancelFunc.Object,
+            timesheetSetGetFunc.Object,
             new(enabled));
     }
 }

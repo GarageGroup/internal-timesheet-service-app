@@ -8,4 +8,5 @@ internal sealed partial class AgentActionDecideFunc(
     IAgentTimesheetDeleteCancelFunc deleteCancelFunc,
     IAgentTimesheetUpdateConfirmFunc updateConfirmFunc,
     IAgentTimesheetUpdateCancelFunc updateCancelFunc,
+    IAgentTimesheetSetGetFunc timesheetSetGetFunc,
     AgentActionDecideOption option) : IAgentActionDecideFunc;

@@ -2,4 +2,4 @@ using System;
 
 namespace GarageGroup.Internal.Timesheet;
 
-public sealed record class AgentTimesheetUpdateConfirmOut(Guid ActionId);
+public sealed record class AgentTimesheetUpdateConfirmOut(Guid ActionId, DateOnly Date);

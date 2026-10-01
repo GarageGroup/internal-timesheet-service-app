@@ -135,7 +135,7 @@ partial class AgentTimesheetCreateConfirmFunc
                 return successUpdateResult.FailureOrThrow();
             }
 
-            return new AgentTimesheetCreateConfirmOut(action.ActionId);
+            return new AgentTimesheetCreateConfirmOut(action.ActionId, action.Date);
         }
 
         var createFailure = createResult.FailureOrThrow();

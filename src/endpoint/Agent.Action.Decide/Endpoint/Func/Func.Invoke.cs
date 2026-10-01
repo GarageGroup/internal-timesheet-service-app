@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using GarageGroup.Infra;
@@ -55,7 +56,11 @@ partial class AgentActionDecideFunc
 
             if (createResult.IsSuccess)
             {
-                return new AgentActionDecideOut(input.ActionId, input.Decision);
+                return await BuildConfirmedOutAsync(
+                    context,
+                    input,
+                    createResult.SuccessOrThrow().Date,
+                    cancellationToken).ConfigureAwait(false);
             }
 
             var createFailure = createResult.FailureOrThrow();
@@ -71,7 +76,11 @@ partial class AgentActionDecideFunc
 
             if (deleteResult.IsSuccess)
             {
-                return new AgentActionDecideOut(input.ActionId, input.Decision);
+                return await BuildConfirmedOutAsync(
+                    context,
+                    input,
+                    deleteResult.SuccessOrThrow().Date,
+                    cancellationToken).ConfigureAwait(false);
             }
 
             var deleteFailure = deleteResult.FailureOrThrow();
@@ -85,9 +94,16 @@ partial class AgentActionDecideFunc
                 input.ActionId,
                 cancellationToken).ConfigureAwait(false);
 
-            return updateResult.Map(
-                _ => new AgentActionDecideOut(input.ActionId, input.Decision),
-                static failure => failure.MapFailureCode(MapUpdateConfirmFailureCode));
+            if (updateResult.IsFailure)
+            {
+                return updateResult.FailureOrThrow().MapFailureCode(MapUpdateConfirmFailureCode);
+            }
+
+            return await BuildConfirmedOutAsync(
+                context,
+                input,
+                updateResult.SuccessOrThrow().Date,
+                cancellationToken).ConfigureAwait(false);
         }
 
         var createCancelResult = await createCancelFunc.InvokeAsync(
@@ -131,6 +147,43 @@ partial class AgentActionDecideFunc
             _ => new AgentActionDecideOut(input.ActionId, input.Decision),
             static failure => failure.MapFailureCode(MapUpdateCancelFailureCode));
     }
+
+    private async ValueTask<AgentActionDecideOut> BuildConfirmedOutAsync(
+        AgentUserContext context,
+        AgentActionDecideIn input,
+        DateOnly date,
+        CancellationToken cancellationToken)
+    {
+        var timesheetResult = await timesheetSetGetFunc.InvokeAsync(
+            context,
+            new(date, date),
+            cancellationToken).ConfigureAwait(false);
+
+        if (timesheetResult.IsFailure)
+        {
+            return new AgentActionDecideOut(input.ActionId, input.Decision)
+            {
+                Date = date
+            };
+        }
+
+        return new AgentActionDecideOut(input.ActionId, input.Decision)
+        {
+            Date = date,
+            TimesheetsLoaded = true,
+            Timesheets = timesheetResult.SuccessOrThrow().Timesheets.AsEnumerable().Select(MapTimesheet).ToArray()
+        };
+    }
+
+    private static AgentActionTimesheetOut MapTimesheet(AgentTimesheetSetGetItem item)
+        =>
+        new(
+            item.Id,
+            item.ProjectName,
+            item.ProjectType.ToString(),
+            item.Duration,
+            item.Description,
+            item.IsActive);
 
     private static AgentActionDecideFailureCode MapUserFailureCode(AgentUserContextResolveFailureCode failureCode)
         =>

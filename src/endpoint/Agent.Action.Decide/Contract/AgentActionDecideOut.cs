@@ -16,4 +16,13 @@ public sealed record class AgentActionDecideOut
 
     [JsonBodyOut]
     public AgentActionDecision Decision { get; }
+
+    [JsonBodyOut]
+    public DateOnly Date { get; init; }
+
+    [JsonBodyOut]
+    public bool TimesheetsLoaded { get; init; }
+
+    [JsonBodyOut]
+    public AgentActionTimesheetOut[] Timesheets { get; init; } = [];
 }

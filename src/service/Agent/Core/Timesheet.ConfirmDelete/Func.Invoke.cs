@@ -130,7 +130,7 @@ partial class AgentTimesheetDeleteConfirmFunc
                 return successUpdateResult.FailureOrThrow();
             }
 
-            return new AgentTimesheetDeleteConfirmOut(action.ActionId);
+            return new AgentTimesheetDeleteConfirmOut(action.ActionId, action.Date);
         }
 
         var deleteFailure = deleteResult.FailureOrThrow();

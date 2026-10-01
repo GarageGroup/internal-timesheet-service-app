@@ -26,7 +26,23 @@ partial class AgentActionDecideFuncTest
         var updateConfirmFunc = new Mock<IAgentTimesheetUpdateConfirmFunc>();
         _ = updateConfirmFunc.Setup(f => f.InvokeAsync(
             SomeContext, SomeActionId, It.IsAny<CancellationToken>())).ReturnsAsync(
-                new AgentTimesheetUpdateConfirmOut(SomeActionId));
+                new AgentTimesheetUpdateConfirmOut(SomeActionId, SomeDate));
+        var timesheetSetGetFunc = new Mock<IAgentTimesheetSetGetFunc>();
+        var timesheetId = new Guid("7bb827d2-82ec-422e-99b0-849438089577");
+        _ = timesheetSetGetFunc.Setup(f => f.InvokeAsync(
+            SomeContext, new AgentTimesheetSetGetIn(SomeDate, SomeDate), It.IsAny<CancellationToken>())).ReturnsAsync(
+                new AgentTimesheetSetGetOut
+                {
+                    Timesheets = new[] { new AgentTimesheetSetGetItem(
+                        timesheetId,
+                        new("e5b3afd3-ef3d-4417-9b27-6664c07cf388"),
+                        ProjectType.Project,
+                        "Test 01",
+                        1.5m,
+                        "Some description",
+                        true,
+                        SomeDate) }
+                });
         var func = new AgentActionDecideFunc(
             resolver.Object,
             createConfirmFunc.Object,
@@ -35,12 +51,23 @@ partial class AgentActionDecideFuncTest
             new Mock<IAgentTimesheetDeleteCancelFunc>(MockBehavior.Strict).Object,
             updateConfirmFunc.Object,
             new Mock<IAgentTimesheetUpdateCancelFunc>(MockBehavior.Strict).Object,
+            timesheetSetGetFunc.Object,
             new(true));
 
         var actual = (await func.InvokeAsync(
             SomeInput, TestContext.Current.CancellationToken)).SuccessOrThrow();
 
-        Assert.Equal(new AgentActionDecideOut(SomeActionId, AgentActionDecision.Confirm), actual);
+        Assert.Equal(SomeActionId, actual.ActionId);
+        Assert.Equal(AgentActionDecision.Confirm, actual.Decision);
+        Assert.Equal(SomeDate, actual.Date);
+        Assert.True(actual.TimesheetsLoaded);
+        var timesheet = Assert.Single(actual.Timesheets);
+        Assert.Equal(timesheetId, timesheet.Id);
+        Assert.Equal("Test 01", timesheet.ProjectName);
+        Assert.Equal("Project", timesheet.ProjectType);
+        Assert.Equal(1.5m, timesheet.Duration);
+        Assert.Equal("Some description", timesheet.Description);
+        Assert.True(timesheet.IsActive);
         createConfirmFunc.VerifyAll();
         deleteConfirmFunc.VerifyAll();
         updateConfirmFunc.VerifyAll();
@@ -51,7 +78,7 @@ partial class AgentActionDecideFuncTest
     {
         var func = BuildFunc(
             SomeContext,
-            new AgentTimesheetCreateConfirmOut(SomeActionId),
+            new AgentTimesheetCreateConfirmOut(SomeActionId, SomeDate),
             new AgentTimesheetCreateCancelOut(SomeActionId),
             out var resolver,
             out var confirmFunc,
@@ -61,7 +88,7 @@ partial class AgentActionDecideFuncTest
             SomeInput,
             TestContext.Current.CancellationToken)).SuccessOrThrow();
 
-        Assert.Equal(new AgentActionDecideOut(SomeActionId, AgentActionDecision.Confirm), actual);
+        Assert.Equal(new AgentActionDecideOut(SomeActionId, AgentActionDecision.Confirm) { Date = SomeDate }, actual);
         resolver.Verify(
             r => r.ResolveAsync(
                 new AgentUserIdentity(101, 202, 202),
@@ -82,7 +109,7 @@ partial class AgentActionDecideFuncTest
         var input = new AgentActionDecideIn(101, SomeActionId, 303, 202, 202, AgentActionDecision.Cancel);
         var func = BuildFunc(
             SomeContext,
-            new AgentTimesheetCreateConfirmOut(SomeActionId),
+            new AgentTimesheetCreateConfirmOut(SomeActionId, SomeDate),
             new AgentTimesheetCreateCancelOut(SomeActionId),
             out _,
             out var confirmFunc,
@@ -120,10 +147,14 @@ partial class AgentActionDecideFuncTest
         _ = deleteConfirmFunc.Setup(f => f.InvokeAsync(
             SomeContext,
             SomeActionId,
-            It.IsAny<CancellationToken>())).ReturnsAsync(new AgentTimesheetDeleteConfirmOut(SomeActionId));
+            It.IsAny<CancellationToken>())).ReturnsAsync(new AgentTimesheetDeleteConfirmOut(SomeActionId, SomeDate));
         var deleteCancelFunc = new Mock<IAgentTimesheetDeleteCancelFunc>(MockBehavior.Strict);
         var updateConfirmFunc = new Mock<IAgentTimesheetUpdateConfirmFunc>(MockBehavior.Strict);
         var updateCancelFunc = new Mock<IAgentTimesheetUpdateCancelFunc>(MockBehavior.Strict);
+        var timesheetSetGetFunc = new Mock<IAgentTimesheetSetGetFunc>();
+        _ = timesheetSetGetFunc.Setup(f => f.InvokeAsync(
+            SomeContext, new AgentTimesheetSetGetIn(SomeDate, SomeDate), It.IsAny<CancellationToken>())).ReturnsAsync(
+                Failure.Create(AgentTimesheetSetGetFailureCode.Unknown, "Timesheets are unavailable"));
         var func = new AgentActionDecideFunc(
             resolver.Object,
             createConfirmFunc.Object,
@@ -132,13 +163,14 @@ partial class AgentActionDecideFuncTest
             deleteCancelFunc.Object,
             updateConfirmFunc.Object,
             updateCancelFunc.Object,
+            timesheetSetGetFunc.Object,
             new(true));
 
         var actual = (await func.InvokeAsync(
             SomeInput,
             TestContext.Current.CancellationToken)).SuccessOrThrow();
 
-        Assert.Equal(new AgentActionDecideOut(SomeActionId, AgentActionDecision.Confirm), actual);
+        Assert.Equal(new AgentActionDecideOut(SomeActionId, AgentActionDecision.Confirm) { Date = SomeDate }, actual);
         createConfirmFunc.VerifyAll();
         deleteConfirmFunc.VerifyAll();
         createCancelFunc.VerifyNoOtherCalls();
@@ -160,7 +192,7 @@ partial class AgentActionDecideFuncTest
         var input = new AgentActionDecideIn(101, actionId, telegramUpdateId, 202, 202, decision);
         var func = BuildFunc(
             SomeContext,
-            new AgentTimesheetCreateConfirmOut(SomeActionId),
+            new AgentTimesheetCreateConfirmOut(SomeActionId, SomeDate),
             new AgentTimesheetCreateCancelOut(SomeActionId),
             out var resolver,
             out var confirmFunc,
@@ -179,7 +211,7 @@ partial class AgentActionDecideFuncTest
     {
         var func = BuildFunc(
             SomeContext,
-            new AgentTimesheetCreateConfirmOut(SomeActionId),
+            new AgentTimesheetCreateConfirmOut(SomeActionId, SomeDate),
             new AgentTimesheetCreateCancelOut(SomeActionId),
             out var resolver,
             out var confirmFunc,
@@ -209,7 +241,7 @@ partial class AgentActionDecideFuncTest
     {
         var func = BuildFunc(
             Failure.Create(sourceCode, "Some user failure"),
-            new AgentTimesheetCreateConfirmOut(SomeActionId),
+            new AgentTimesheetCreateConfirmOut(SomeActionId, SomeDate),
             new AgentTimesheetCreateCancelOut(SomeActionId),
             out _,
             out var confirmFunc,
@@ -264,7 +296,7 @@ partial class AgentActionDecideFuncTest
         var input = new AgentActionDecideIn(101, SomeActionId, 303, 202, 202, AgentActionDecision.Cancel);
         var func = BuildFunc(
             SomeContext,
-            new AgentTimesheetCreateConfirmOut(SomeActionId),
+            new AgentTimesheetCreateConfirmOut(SomeActionId, SomeDate),
             Failure.Create(sourceCode, "Some cancel failure"),
             out _,
             out _,

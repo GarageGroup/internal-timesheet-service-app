@@ -108,7 +108,7 @@ partial class AgentTimesheetUpdateConfirmFunc
         }
 
         return updateResult.IsSuccess
-            ? new AgentTimesheetUpdateConfirmOut(action.ActionId)
+            ? new AgentTimesheetUpdateConfirmOut(action.ActionId, action.Date)
             : updateResult.FailureOrThrow().MapFailureCode(MapUpdateFailureCode);
     }
 

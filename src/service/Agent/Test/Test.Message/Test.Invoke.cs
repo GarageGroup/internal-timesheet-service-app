@@ -60,6 +60,11 @@ partial class AgentMessageFuncTest
         Assert.NotNull(actualHistory);
         Assert.Contains("2026-09-28", actualHistory[0].Content);
         Assert.Contains("Europe/Moscow", actualHistory[0].Content);
+        Assert.Contains("сразу вызови get_recent_projects", actualHistory[0].Content);
+        Assert.Contains("обязательно вызови get_project_tags", actualHistory[0].Content);
+        Assert.Contains("используй сегодняшний день 2026-09-28 как dateFrom и dateTo", actualHistory[0].Content);
+        Assert.Contains("Отвечай в Telegram HTML", actualHistory[0].Content);
+        Assert.Contains("Не показывай технические идентификаторы", actualHistory[0].Content);
         Assert.Equal(AuthorRole.User, actualHistory[1].Role);
         Assert.Equal("Покажи проекты", actualHistory[1].Content);
         Assert.Equal(AuthorRole.Assistant, actualHistory[2].Role);
