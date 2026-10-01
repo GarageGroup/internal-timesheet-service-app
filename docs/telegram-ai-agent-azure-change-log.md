@@ -1,6 +1,6 @@
 # Telegram AI Agent: журнал изменений Azure
 
-Последнее обновление: 28.09.2026.
+Последнее обновление: 30.09.2026.
 
 Этот документ фиксирует инфраструктурные изменения тестового контура Telegram AI Agent. Он предназначен для аудита и последующего воспроизведения конфигурации в production. Секреты, ключи, токены, connection strings и персональные данные здесь не публикуются.
 
@@ -602,6 +602,29 @@ create с HTTP 400, потому что в UTC ещё было `2026-09-29`. Act
 не изменялись. Для production до запуска необходимо согласовать единое правило бизнес-даты и часового
 пояса между prompt агента, API и Dataverse validation; изменение одного только prompt может скрыть,
 но не устранить расхождение.
+
+### Deployment Telegram UI для update
+
+После пользовательского CI/CD deployment API бот из коммита `93a60f0` развёрнут прямым ZIP
+deployment только в test Function App `func-internal-gtimesheet-test`.
+
+| Параметр | Значение |
+|---|---|
+| Subscription | `73a6f94e-bfb4-4926-a9dd-09228d53a2a5` |
+| Resource group | `rg-garage-timesheet-test` |
+| Deployment ID | `06641d95-8a4f-43ef-a6c8-0b779487842a` |
+| Status | `4` / successful |
+| Итоговое состояние | `Running` / `Normal` |
+
+Release-пакет перед отправкой проверен на наличие русской satellite assembly. После deployment без
+ручного restart доступны `HandleBotEntity`, `HandleBotHttp` и `HealthCheck`. Затем пользователь
+сквозно подтвердил update Cancel и Confirm: отмена не изменила Dataverse, подтверждение применило
+сохранённый целевой snapshot, клавиатура исчезла в обеих ветках.
+
+App Settings, Managed Identity, RBAC, Entra ID, APIM, Storage, Foundry, webhook и production не
+изменялись. Для production требуется обычный согласованный deployment API и bot artifacts; новых
+ресурсов именно для update UI не требуется. Откат — deployment предыдущего bot artifact и отключение
+`Agent__WritePreparation__Enabled`, без удаления Action Table.
 
 ## Правила дальнейшего ведения
 

@@ -1,6 +1,6 @@
 # Telegram AI Agent: production rollout runbook
 
-Последнее обновление: 28.09.2026.
+Последнее обновление: 30.09.2026.
 
 ## Назначение документа
 
@@ -162,8 +162,8 @@ table-level RBAC и организационного стандарта можн
 | `Agent__Message__MaxTextLength` | согласованный лимит, test default `2000` |
 | `Agent__Message__TimeZoneId` | production business timezone |
 
-Согласовать lifecycle/retention и процедуру удаления истории. История диалога не заменяет обязательный
-аудит будущих write-операций.
+Согласовать lifecycle/retention и процедуру удаления истории и завершённых action. История диалога и
+текущее состояние Action Table не заменяют согласованный неизменяемый аудит write-операций.
 
 ## 8. APIM agent API
 
@@ -256,7 +256,9 @@ API-level policy должна:
 10. Проверить 401/403 и диагностический `/profile`, если он ещё присутствует.
 11. Установить `Agent__Enabled=true` и перезапустить API.
 12. Выполнить read-only end-to-end тест обычным Telegram-сообщением.
-13. Наблюдать логи, latency, 429, токены и стоимость.
+13. Включить `Agent__WritePreparation__Enabled=true` только после проверки Action Table и decision route.
+14. Выполнить create/update/delete Cancel и Confirm smoke matrix на контролируемых пилотных данных.
+15. Наблюдать логи, latency, 429, `Indeterminate`, токены и стоимость.
 
 ## 12. Acceptance checklist
 
@@ -278,6 +280,11 @@ API-level policy должна:
 - [ ] Запрос без токена = 401.
 - [ ] Неправильная роль/client = 403.
 - [ ] Read-only Telegram question возвращает корректный ответ.
+- [ ] Create/update/delete показывают preview и до Confirm не изменяют Dataverse.
+- [ ] Cancel каждой write-операции не изменяет Dataverse и удаляет клавиатуру.
+- [ ] Confirm каждой write-операции выполняет сохранённый payload только один раз.
+- [ ] Настроен операторский разбор `Executing`/`Indeterminate` без автоматического повторения CRM write.
+- [ ] Бизнес-правило timezone согласовано с Dataverse validation.
 - [ ] Ошибки не раскрывают credentials, CRM payload или stack trace.
 - [ ] Настроены Application Insights alerts и cost monitoring.
 - [ ] Записаны фактические production resource IDs и ответственные.
@@ -305,15 +312,15 @@ API-level policy должна:
 
 ## 14. Перед включением write-операций
 
-Текущий runbook покрывает read-only этап. До разрешения модели создавать/изменять timesheet необходимо:
+В test реализованы и сквозно проверены create/update/delete preview, Confirm/Cancel, owner validation,
+TTL, ETag-переходы и запрет повторного исполнения. Для production остаётся:
 
-- согласовать `Timesheet.Update`: должен ли API принимать `CallerObjectId` напрямую;
-- добавить preview результата и явное подтверждение пользователя;
-- обеспечить идемпотентность по Telegram update/confirmation ID;
-- определить поведение при timeout и неопределённом результате CRM-записи;
-- добавить неизменяемый аудит команды, подтверждения и результата;
-- установить лимиты суммы часов, дат и разрешённых проектов;
-- провести отдельный security review и production rollout.
+- согласовать бизнес-правило timezone между агентом и Dataverse;
+- определить операторскую reconciliation-процедуру для `Executing`/`Indeterminate`;
+- согласовать retention и неизменяемый аудит команды, подтверждения и результата;
+- подтвердить лимиты часов, диапазона дат и доступных проектов;
+- решить, нужна ли очистка комментария через расширение `Timesheet.Update`;
+- провести production security review и выполнить полную Cancel/Confirm smoke matrix.
 
 ## Связанные документы
 
