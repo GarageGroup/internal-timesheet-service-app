@@ -26,7 +26,6 @@ static class Program
         .UseProfileGetEndpoint()
         .UseAgentActionDecideEndpoint()
         .UseAgentMessageSendEndpoint()
-        .UseAgentProfileGetEndpoint()
         .UseProfileUpdateEndpoint()
         .UseUserSignOutEndpoint()
         .UseUserSignInEndpoint()

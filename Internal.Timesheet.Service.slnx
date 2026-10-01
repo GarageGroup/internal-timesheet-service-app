@@ -15,11 +15,6 @@
     <Project Path="src/endpoint/Agent.Message.Send/Endpoint/Endpoint.csproj" />
     <Project Path="src/endpoint/Agent.Message.Send/Test/Test.csproj" />
   </Folder>
-  <Folder Name="/endpoint/Agent.Profile.Get/">
-    <Project Path="src/endpoint/Agent.Profile.Get/Contract/Contract.csproj" />
-    <Project Path="src/endpoint/Agent.Profile.Get/Endpoint/Endpoint.csproj" />
-    <Project Path="src/endpoint/Agent.Profile.Get/Test/Test.csproj" />
-  </Folder>
   <Folder Name="/endpoint/Notification.Subscribe/">
     <Project Path="src/endpoint/Notification.Subscribe/Contract/Contract.csproj" />
     <Project Path="src/endpoint/Notification.Subscribe/Endpoint/Endpoint.csproj" />

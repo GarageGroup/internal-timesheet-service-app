@@ -13,7 +13,7 @@
 ## Базовые правила
 
 1. Semantic Kernel размещается внутри API и вызывает C# business-функции напрямую, без HTTP-вызова API к самому себе.
-2. Telegram-бот обращается только к одному будущему endpoint `/internal/agent/messages`. `Agent.Profile.Get` временно сохраняется как диагностический и демонстрационный endpoint.
+2. Telegram-бот отправляет сообщения только в `/internal/agent/messages`, а решения по подготовленным действиям — в общий decision endpoint. Временный диагностический `Agent.Profile.Get` удалён.
 3. `BotId`, Telegram identity, CRM System User ID и Entra Object ID поступают только из доверенного `AgentUserContext`. Модель не получает их как управляемые аргументы.
 4. В первую итерацию подключаются только read-only tools.
 5. Любая операция записи требует серверного prepare/confirm flow, идемпотентности и аудита. Одного подтверждения в prompt недостаточно.
@@ -34,7 +34,6 @@
 
 | Модуль / функция | Назначение | Пользовательские аргументы | Доверенный контекст | Тип | Решение для агента |
 |---|---|---|---|---|---|
-| `Agent.Profile.Get / IAgentProfileGetFunc` | Проверка Telegram-привязки и получение профиля | Нет | Bot ID, Telegram user/chat | Read | `Diagnostic`; сохранить до отдельного указания |
 | `Profile.Get / IProfileGetFunc` | Имя и язык профиля пользователя текущего бота | Нет | Entra Object ID | Read | `Excluded`; не требуется для работы со списаниями |
 | `Period.GetSet / IPeriodSetGetFunc` | Доступные периоды списания | Нет | Не требуется | Read | `Read candidate` |
 | `Project.GetLastSet / ILastProjectSetGetFunc` | Последние проекты пользователя | Необязательный `top` | Entra Object ID | Read | `Read candidate`; ограничить `top` на сервере |
@@ -62,7 +61,7 @@
 4. `GetTimesheets` — показать списания пользователя за ограниченный диапазон.
 5. `GetProjectTags` — получить подсказки тегов для уже выбранного проекта.
 
-`Project.GetSet` можно добавить после проверки фактической видимости данных для Project, Incident, Opportunity и Lead, если поиска и последних проектов будет недостаточно. `Profile.Get`, `Profile.Update`, `Subscription.GetSet`, `Notification.Subscribe`, `User.SignIn` и `User.SignOut` в allowlist tools не входят. Диагностический `Agent.Profile.Get` временно остаётся отдельным endpoint для демонстрации авторизации и не регистрируется в Semantic Kernel.
+`Project.GetSet` можно добавить после проверки фактической видимости данных для Project, Incident, Opportunity и Lead, если поиска и последних проектов будет недостаточно. `Profile.Get`, `Profile.Update`, `Subscription.GetSet`, `Notification.Subscribe`, `User.SignIn` и `User.SignOut` в allowlist tools не входят. Отдельного диагностического profile endpoint у agent API больше нет.
 
 ## Обязательные agent adapters
 

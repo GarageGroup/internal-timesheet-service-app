@@ -179,7 +179,6 @@ Mini App policy.
 | Backend | production Timesheet API App Service |
 | Subscription required | `false`, если защита обеспечивается MI JWT и принятым APIM perimeter |
 | Operation | `POST /internal/agent/messages` |
-| Diagnostic operation | `POST /internal/agent/profile`, только пока отдельно одобрено |
 
 API-level policy должна:
 
@@ -253,7 +252,7 @@ API-level policy должна:
 7. Развернуть API.
 8. Проверить health и отсутствие регрессии Mini App.
 9. Развернуть Telegram-бота.
-10. Проверить 401/403 и диагностический `/profile`, если он ещё присутствует.
+10. Проверить 401/403 на agent message и decision routes; отдельный диагностический profile route не создавать.
 11. Установить `Agent__Enabled=true` и перезапустить API.
 12. Выполнить read-only end-to-end тест обычным Telegram-сообщением.
 13. Включить `Agent__WritePreparation__Enabled=true` только после проверки Action Table и decision route.

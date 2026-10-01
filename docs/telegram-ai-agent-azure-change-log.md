@@ -1,6 +1,6 @@
 # Telegram AI Agent: журнал изменений Azure
 
-Последнее обновление: 30.09.2026.
+Последнее обновление: 01.10.2026.
 
 Этот документ фиксирует инфраструктурные изменения тестового контура Telegram AI Agent. Он предназначен для аудита и последующего воспроизведения конфигурации в production. Секреты, ключи, токены, connection strings и персональные данные здесь не публикуются.
 
@@ -625,6 +625,20 @@ App Settings, Managed Identity, RBAC, Entra ID, APIM, Storage, Foundry, webhook 
 изменялись. Для production требуется обычный согласованный deployment API и bot artifacts; новых
 ресурсов именно для update UI не требуется. Откат — deployment предыдущего bot artifact и отключение
 `Agent__WritePreparation__Enabled`, без удаления Action Table.
+
+## 01.10.2026 — удаление диагностической operation
+
+После удаления диагностического `/profile` из исходного кода API и Telegram-бота из test APIM удалена устаревшая operation:
+
+| Параметр | Значение |
+|---|---|
+| Subscription | `106dd084-8190-453f-87c9-cd2cb714b1d6` |
+| APIM | `apim-integration-platform-test-01` |
+| API ID | `garage-timesheet-agent-api` |
+| Operation ID | `get-agent-profile` |
+| Method и route | `POST /internal/agent/profile` |
+
+После удаления повторно прочитан список operations. В agent API остались `post-agent-message` и `post-agent-action-decision`; их method и URL template не изменились. Общая API policy, backend certificate, App Registration, Managed Identity, роли, App Service, Function App и production не изменялись. Для production диагностическую operation создавать не нужно.
 
 ## Правила дальнейшего ведения
 
