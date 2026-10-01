@@ -204,7 +204,7 @@ write-операции.
 - требуется согласовать бизнес-дату между `Europe/Moscow` и UTC-валидацией Dataverse;
 - необходимо исключить Telegram bot token из Application Insights URL telemetry и после исправления
   ротировать test token;
-- голосовой ввод отложен до отдельного этапа; выбран безопасный поток `Semantic Kernel Audio-to-Text → существующий gpt-5-mini agent`, чтобы не дублировать tools, авторизацию и подтверждения и не менять проверенное поведение текстового агента;
+- голосовой ввод реализован в коде API и Telegram-бота: безопасный поток `Telegram voice → Semantic Kernel Audio-to-Text → существующий gpt-5-mini agent` использует тот же message endpoint, identity boundary, tools и подтверждения; test Azure содержит выключенный feature flag и отдельный `whisper` deployment, deployment и сквозная проверка ещё не выполнены;
 - перед production нужны security review, data residency decision, нагрузочная проверка, мониторинг
   latency/429/стоимости и формализованный rollback.
 

@@ -640,6 +640,37 @@ App Settings, Managed Identity, RBAC, Entra ID, APIM, Storage, Foundry, webhook 
 
 После удаления повторно прочитан список operations. В agent API остались `post-agent-message` и `post-agent-action-decision`; их method и URL template не изменились. Общая API policy, backend certificate, App Registration, Managed Identity, роли, App Service, Function App и production не изменялись. Для production диагностическую operation создавать не нужно.
 
+## 01.10.2026 — test deployment распознавания голоса
+
+В существующем Azure AI Services resource создан отдельный audio-to-text deployment:
+
+| Параметр | Значение |
+|---|---|
+| Subscription | `73a6f94e-bfb4-4926-a9dd-09228d53a2a5` |
+| Resource group | `rg-garage-timesheet-test` |
+| Resource | `ai-timesheet-test` |
+| Region | `West Europe` |
+| Deployment | `whisper` |
+| Model | `OpenAI/whisper`, version `001` |
+| SKU | `Standard`, capacity `1` |
+| Итоговое состояние | `Succeeded` |
+
+Перед созданием через Azure CLI подтверждено, что `whisper` поддерживает `audioTranscriptions`, а в регионе доступна Standard quota. Для API используется endpoint `https://ai-timesheet-test.openai.azure.com/`. Существующая User Assigned Managed Identity `id-internal-gtimesheet-test` уже имела `Cognitive Services User` на `ai-timesheet-test`; новые identity и role assignment не создавались.
+
+В test App Service `app-garage-timesheet-service-test` добавлены настройки:
+
+- `Agent__Voice__Enabled=false`;
+- `Agent__Voice__Endpoint=https://ai-timesheet-test.openai.azure.com/`;
+- `Agent__Voice__DeploymentName=whisper`;
+- `Agent__Voice__ModelId=whisper`;
+- `Agent__Voice__MaxFileSizeBytes=5242880`.
+
+В test Function App `func-internal-gtimesheet-test` добавлена совпадающая предварительная настройка `AgentVoice__MaxFileSizeBytes=5242880`. Изменение перезапустило только test Function App; итоговое состояние также проверено как `Running` / `Normal`.
+
+Voice feature API оставлен выключенным до deployment API и Telegram-бота. APIM, App Registration, Storage, Dataverse и production не менялись.
+
+Связанный API commit: `55d410a`. Проверка реального audio inference будет выполнена после deployment кода. Быстрый rollback: оставить/вернуть `Agent__Voice__Enabled=false`; полный rollback после проверки отсутствия consumers — удалить deployment `whisper` и пять Voice settings.
+
 ## Правила дальнейшего ведения
 
 После каждого изменения Azure необходимо до завершения инкремента записать:

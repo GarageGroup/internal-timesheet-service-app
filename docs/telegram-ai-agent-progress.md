@@ -985,7 +985,26 @@ Resolver выполняет следующие проверки:
 - Голосовой write-запрос не выполняет CRM-изменение сразу: после транскрипции действуют прежние серверный preview и обязательное подтверждение кнопкой.
 - Azure-ресурсы, app settings, APIM и бот этим инкрементом не менялись. До deployment необходимо выбрать/развернуть audio-to-text model deployment, назначить доступ Managed Identity, заполнить test settings и только затем включить `Agent:Voice:Enabled`.
 
-Проверка: 5 тестов service `Agent.Audio` и 24 теста endpoint `Agent.Message.Send` прошли, включая выключенный feature, успешный voice flow, некорректный Base64 и отображение всех ошибок аудиосервиса; полная сборка `Internal.Timesheet.Service.slnx` завершилась без ошибок и предупреждений. Следующий инкремент после review — подготовить Azure test deployment/settings и typed Telegram download голосового файла без изменения текущего текстового пути. Инкремент не закоммичен.
+Проверка: 5 тестов service `Agent.Audio` и 24 теста endpoint `Agent.Message.Send` прошли, включая выключенный feature, успешный voice flow, некорректный Base64 и отображение всех ошибок аудиосервиса; полная сборка `Internal.Timesheet.Service.slnx` завершилась без ошибок и предупреждений. API-инкремент вместе с согласованным изменением `AgentUserContextResolver` зафиксирован commit `55d410a`. Следующий инкремент — подготовить Azure test deployment/settings и typed Telegram download голосового файла без изменения текущего текстового пути.
+
+### 01.10.2026 — Azure test подготовлен для audio-to-text
+
+В существующем `ai-timesheet-test` (West Europe) создан deployment `whisper`: model `OpenAI/whisper` version `001`, SKU Standard, capacity 1. Существующая UAMI API уже имела роль `Cognitive Services User` на этом resource, поэтому новые identity и RBAC назначения не потребовались.
+
+В `app-garage-timesheet-service-test` добавлены `Agent__Voice__Endpoint`, `DeploymentName`, `ModelId`, `MaxFileSizeBytes` и выключенный `Enabled=false`. App Service после изменения настроек вернулся в `Running/Normal`. APIM route не добавлялся, потому что голос использует существующий `/internal/agent/messages`. Production не затронут.
+
+Следующий инкремент — typed Telegram download OGG/Opus, передача аудио в существующий message endpoint и локализованные ответы. Реальный inference и включение feature flag выполняются только после deployment согласованной пары API+bot. Инфраструктурная подготовка не закоммичена.
+
+### 01.10.2026 — Telegram voice input
+
+- Существующая команда агента теперь принимает как обычный текст, так и Telegram `voice`; команды бота по-прежнему не перехватываются agent flow.
+- Файл разрешается через штатный `context.Api.GetFileLinkAsync`. Скачивание выполняет отдельный typed service через нелогируемый raw `HttpClient`: URL Telegram с bot token не передаётся в стандартный logging pipeline и исключения не содержат URL.
+- Размер проверяется трижды: по metadata сообщения, по `ChatFileLink` и во время потокового скачивания. Общий bot setting `AgentVoice__MaxFileSizeBytes` установлен в test равным API limit 5 MiB.
+- OGG/Opus отправляется как Base64 в тот же `/internal/agent/messages`; язык берётся из локали Telegram, а ответ, preview и кнопки обрабатываются существующим кодом без отдельного voice flow/state.
+- Добавлены локализованные ru/en ответы для слишком большого файла, ошибки скачивания и ошибки распознавания. Исходное аудио нигде не сохраняется.
+- Отдельные Azure Function tests не добавлялись согласно принятому правилу; изменённые service/endpoint API покрыты тестами, для бота проверяется solution build.
+
+Проверка: `Internal.Timesheet.Bot.sln` собирается без ошибок и предупреждений. Test Function App получила только limit setting и после restart находится в `Running/Normal`; код бота ещё не развёрнут. Следующий шаг после review — commit документации и bot-кода, deployment API пользователем, ZIP deployment бота, включение `Agent__Voice__Enabled=true` и контролируемые voice smoke tests.
 
 ## Открытые вопросы
 

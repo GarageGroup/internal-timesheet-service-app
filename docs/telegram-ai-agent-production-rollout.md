@@ -237,6 +237,12 @@ API-level policy должна:
 | `Agent__Tools__Project__MaxTop` | верхний лимит проектов |
 | `Agent__Tools__Project__MaxSearchTextLength` | лимит поискового текста |
 | `Agent__Tools__Tag__MaxTags` | максимальное число тегов |
+| `Agent__Voice__Enabled` | отдельное включение голосового ввода; при первом deployment оставить `false` |
+| `Agent__Voice__Endpoint` | Azure OpenAI endpoint вида `https://<resource>.openai.azure.com/` |
+| `Agent__Voice__DeploymentName` | имя отдельного audio-to-text deployment |
+| `Agent__Voice__ModelId` | идентификатор модели, проверенный с Semantic Kernel connector |
+| `Agent__Voice__MaxFileSizeBytes` | максимальный размер аудио до отправки модели |
+| `AgentVoice__MaxFileSizeBytes` (bot Function App) | такой же или меньший предел потокового скачивания Telegram voice |
 
 Значения должны соответствовать production-нагрузке и бизнес-ограничениям, а не автоматически
 копироваться из test.
@@ -244,7 +250,7 @@ API-level policy должна:
 ## 11. Порядок развёртывания
 
 1. Создать MI/App Registration/app role и назначить роль боту.
-2. Создать Foundry resource/project/deployment и проверить quota.
+2. Создать Foundry resource/project/chat deployment и отдельный audio-to-text deployment; проверить quota обоих.
 3. Создать Azure Table и назначить API две Azure RBAC-роли.
 4. Добавить API settings с `Agent__Enabled=false`.
 5. Создать APIM API, operations и policy.
@@ -258,6 +264,7 @@ API-level policy должна:
 13. Включить `Agent__WritePreparation__Enabled=true` только после проверки Action Table и decision route.
 14. Выполнить create/update/delete Cancel и Confirm smoke matrix на контролируемых пилотных данных.
 15. Наблюдать логи, latency, 429, `Indeterminate`, токены и стоимость.
+16. После отдельного voice smoke test установить `Agent__Voice__Enabled=true`; проверить read-only голос и голосовой write preview + Cancel до первого Confirm.
 
 ## 12. Acceptance checklist
 
@@ -274,6 +281,8 @@ API-level policy должна:
 - [ ] APIM предъявляет backend certificate и сохраняет Bearer token.
 - [ ] Mini App policy не ослаблена.
 - [ ] Foundry deployment доступен и имеет квоту.
+- [ ] Audio-to-text deployment доступен, API MI имеет к нему доступ, а Voice feature включается независимо от текста.
+- [ ] Исходное аудио не сохраняется в Conversation/Action Table и не попадает в telemetry.
 - [ ] Data residency согласована.
 - [ ] Table создана и доступна API MI.
 - [ ] Запрос без токена = 401.
