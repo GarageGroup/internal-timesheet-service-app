@@ -257,7 +257,7 @@ API-level policy должна:
 6. Добавить bot settings.
 7. Развернуть API.
 8. Проверить health и отсутствие регрессии Mini App.
-9. Развернуть Telegram-бота.
+9. Установить для Telegram Function App поддерживаемый `.NET 10 isolated` runtime stack и развернуть `net10.0` Telegram-бота. Изменение stack и artifact выполнять согласованно, с заранее подготовленным откатом на предыдущие stack и artifact.
 10. Проверить 401/403 на agent message и decision routes; отдельный диагностический profile route не создавать.
 11. Установить `Agent__Enabled=true` и перезапустить API.
 12. Выполнить read-only end-to-end тест обычным Telegram-сообщением.
@@ -270,6 +270,7 @@ API-level policy должна:
 
 - [ ] Production GUID/URL не совпадают с test.
 - [ ] У бота отдельная system-assigned MI.
+- [ ] Function App бота использует поддерживаемый `.NET 10 isolated` runtime, а deployed artifact собран для `net10.0` на Azure Functions Worker SDK 2.x.
 - [ ] App role выдана только разрешённым workload identities.
 - [ ] API проверяет tenant, audience, issuer, role и client allowlist.
 - [ ] Telegram `BotId` выводится из доверенного client mapping.

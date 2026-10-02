@@ -1045,6 +1045,24 @@ Bot commit `8bd8263` развёрнут в test Function App активным ZI
 
 Первый ответ агента после deployment показал `<code>` как обычный текст. Причина находилась в боте: при уже установленном `ParseMode=Html` свободный ответ модели целиком проходил через `HtmlEncode`. Для ответа агента добавлен sanitizer: он сохраняет только `<b>`, `<i>` и `<code>`, а прочий текст и HTML безопасно кодирует; локализованные write preview по-прежнему экранируют каждое значение в коде. Итоговый hotfix успешно собран и развёрнут активным ZIP deployment `0f833a53-e63b-4309-b074-a37375c9fc9d`; Function App находится в `Running/Normal`. Код и документация hotfix пока не закоммичены.
 
+### 02.10.2026 — переход решений на .NET 10 и обновление зависимостей
+
+- API уже использовал `net10.0`; его прямые NuGet-зависимости обновлены до последних стабильных версий из настроенных источников. В том числе обновлены Semantic Kernel `1.80.1`, OpenAI `2.14.0`, Azure Core `1.63.0`, ASP.NET Core authentication `10.0.12` и общие test packages.
+- Telegram-бот переведён с `net8.0` на `net10.0`. Azure Functions isolated worker SDK обновлён с `1.17.4` до `2.1.0`, остальные прямые зависимости — до последних стабильных версий из настроенных источников.
+- Старый solution-файл бота `Internal.Timesheet.Bot.sln` заменён на XML-формат `Internal.Timesheet.Bot.slnx`; состав solution не изменился и по-прежнему включает `src/AzureFunc/AzureFunc.csproj`.
+- После перехода xUnit `3.x → 4.x` API переведён со старого VSTest runner на Microsoft Testing Platform через корневой `global.json`. Тестовый код менять не потребовалось.
+- Повторная проверка `--outdated` не нашла устаревших прямых пакетов ни в API, ни в боте. Проверка `--vulnerable --include-transitive` не нашла известных уязвимых прямых или транзитивных пакетов в текущих NuGet-источниках.
+- Release-сборки обоих решений завершились без предупреждений и ошибок. Все 582 теста API прошли. Отдельные Azure Function tests для бота не добавлялись согласно принятому правилу.
+- Azure-конфигурация и работающие test deployments этим изменением не затрагивались. Перед следующим deployment бота необходимо согласованно обновить runtime stack Function App на .NET 10 isolated; публиковать `net10.0` artifact в старый runtime без этой проверки нельзя.
+
+Изменения ожидают review и commit. Следующий инфраструктурный шаг после одобрения кода — проверить поддержку .NET 10 в test Function App, зафиксировать исходное значение stack, обновить его вместе с deployment бота и выполнить health/Telegram smoke test. Для API требуется обычный CI/CD deployment и проверка health/Mini App/agent routes.
+
+### 02.10.2026 — план управляемого CI/CD Timesheet API
+
+Подготовлен отдельный план `timesheet-service-cicd-plan.md` на основе структуры `internal-exchange-rates-app`. Зафиксированы обязательные решения: versioned ZIP публикуется и скачивается через Blob Storage; Test и Prod получают один бинарный артефакт без rebuild; job `update-swagger-test` сохраняется после health check; application resources создаются Bicep/идемпотентными скриптами, а shared APIM, Dataverse, artifact Storage, Telegram Function App и backend certificate не пересоздаются.
+
+План охватывает App Service, UAMI API, observability, Storage Tables, Foundry project и chat/voice deployments, Azure RBAC, agent App Registration/app role/assignment, Dataverse Application User, Mini App и agent APIM surfaces, GitHub OIDC и безопасные App Settings. Первый этап — только read-only inventory, ownership/parameter contract, `what-if` и bootstrap-скрипт прав; Azure и workflows на этом шаге не изменялись.
+
 ## Правила ведения журнала
 
 После каждого завершённого инкремента необходимо:
