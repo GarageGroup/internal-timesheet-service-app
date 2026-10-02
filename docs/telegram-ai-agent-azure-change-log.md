@@ -717,6 +717,16 @@ Scope изменения: subscription `106dd084-8190-453f-87c9-cd2cb714b1d6`, r
 
 После уточнения smoke test установлено, что повторно отправленное пользователем голосовое сообщение являлось отдельным Telegram update: после ожидания бот прислал два ответа на два фактически отправленных сообщения. Это не подтверждает повторную доставку одного update; существующая идемпотентность по `TelegramUpdateId` не изменялась.
 
+### ZIP deployment улучшенного Telegram UI
+
+01.10.2026 в test Function App `func-internal-gtimesheet-test` из resource group `rg-garage-timesheet-test` развёрнут bot commit `8bd8263`. Способ — Azure CLI ZIP deployment готового Release publish package; deployment ID `8de7f595-f4f4-4af2-be43-10e7c2b1ecf1`, итоговый статус `4` (`Success`, active).
+
+Перед загрузкой проверено наличие русской satellite assembly. После deployment Function App имеет состояние `Running`, availability `Normal`; функции `HandleBotEntity`, `HandleBotHttp` и `HealthCheck` обнаруживаются платформой. App settings, Managed Identity, App Registration, RBAC, APIM policies и production-ресурсы не изменялись.
+
+Связанный API commit `8ccc092` разворачивается отдельно пользовательским CI/CD. До завершения API deployment новый bot/API contract нельзя считать сквозно проверенным. Rollback бота — повторный ZIP deployment publish package предыдущего bot commit. Azure CLI повторно предупредил об окончании поддержки текущего `dotnet-isolated` runtime 10.11.2026; задача обновления runtime уже остаётся обязательной до production.
+
+Первый read-only smoke test показал буквальные теги `<code>`: команда уже задавала Telegram `ParseMode=Html`, но затем целиком применяла `HtmlEncode` к тексту модели. В локальном hotfix убрано повторное кодирование всего ответа; вместо него добавлен allowlist-sanitizer для `<b>`, `<i>` и `<code>`, а остальной текст и HTML безопасно кодируются. Preview write-операций продолжает отдельно экранировать динамические значения. Промежуточный deployment `0e745213-7022-4d62-90b6-9871e8b29279` заменён итоговым ZIP deployment `0f833a53-e63b-4309-b074-a37375c9fc9d`, статус `4`, active. Function App после deployment находится в `Running/Normal`, три функции обнаруживаются. Настройки Azure и APIM не менялись; hotfix пока не закоммичен.
+
 ## Правила дальнейшего ведения
 
 После каждого изменения Azure необходимо до завершения инкремента записать:
