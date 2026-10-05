@@ -1,0 +1,279 @@
+name: Install Timesheet Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target GitHub Environment
+        required: true
+        type: choice
+        default: Test
+        options: [Test, Prod]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  infrastructure:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    outputs:
+      web_app_name: ${{ steps.install.outputs.web_app_name }}
+      managed_identity_client_id: ${{ steps.install.outputs.managed_identity_client_id }}
+      managed_identity_principal_id: ${{ steps.install.outputs.managed_identity_principal_id }}
+      storage_table_endpoint: ${{ steps.install.outputs.storage_table_endpoint }}
+      foundry_project_endpoint: ${{ steps.install.outputs.foundry_project_endpoint }}
+      foundry_openai_endpoint: ${{ steps.install.outputs.foundry_openai_endpoint }}
+      application_insights_connection_string: ${{ steps.install.outputs.application_insights_connection_string }}
+      bot_agent_identity_principal_id: ${{ steps.install.outputs.bot_agent_identity_principal_id }}
+      bot_agent_identity_client_id: ${{ steps.install.outputs.bot_agent_identity_client_id }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Log in to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.DEPLOY_CLIENT_ID }}
+          tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
+          subscription-id: ${{ vars.DEPLOY_SUBSCRIPTION_ID }}
+      - name: Install infrastructure resources
+        id: install
+        uses: azure/cli@v3
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ vars.DEPLOY_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP_NAME: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          FOUNDRY_LOCATION: ${{ vars.FOUNDRY_LOCATION }}
+          ENVIRONMENT_NAME: ${{ vars.AZURE_NAME_POSTFIX }}
+          APP_SERVICE_PLAN_NAME: ${{ vars.APP_SERVICE_PLAN_NAME }}
+          APP_SERVICE_PLAN_SKU_NAME: ${{ vars.APP_SERVICE_PLAN_SKU_NAME }}
+          WEB_APP_NAME: ${{ vars.WEB_APP_NAME }}
+          MANAGED_IDENTITY_NAME: ${{ vars.MANAGED_IDENTITY_NAME }}
+          TELEGRAM_BOT_FUNCTION_APP_NAME: ${{ vars.TELEGRAM_BOT_FUNCTION_APP_NAME }}
+          STORAGE_ACCOUNT_NAME: ${{ vars.STORAGE_ACCOUNT_NAME }}
+          LOG_ANALYTICS_WORKSPACE_NAME: ${{ vars.LOG_ANALYTICS_WORKSPACE_NAME }}
+          APPLICATION_INSIGHTS_NAME: ${{ vars.APPLICATION_INSIGHTS_NAME }}
+          FOUNDRY_ACCOUNT_NAME: ${{ vars.FOUNDRY_ACCOUNT_NAME }}
+          FOUNDRY_PROJECT_NAME: ${{ vars.FOUNDRY_PROJECT_NAME }}
+          FOUNDRY_CHAT_DEPLOYMENT_NAME: ${{ vars.FOUNDRY_CHAT_DEPLOYMENT_NAME }}
+          FOUNDRY_CHAT_MODEL_NAME: ${{ vars.FOUNDRY_CHAT_MODEL_NAME }}
+          FOUNDRY_CHAT_MODEL_VERSION: ${{ vars.FOUNDRY_CHAT_MODEL_VERSION }}
+          FOUNDRY_CHAT_SKU_NAME: ${{ vars.FOUNDRY_CHAT_SKU_NAME }}
+          FOUNDRY_CHAT_CAPACITY: ${{ vars.FOUNDRY_CHAT_CAPACITY }}
+          FOUNDRY_VOICE_DEPLOYMENT_NAME: ${{ vars.FOUNDRY_VOICE_DEPLOYMENT_NAME }}
+          FOUNDRY_VOICE_MODEL_NAME: ${{ vars.FOUNDRY_VOICE_MODEL_NAME }}
+          FOUNDRY_VOICE_MODEL_VERSION: ${{ vars.FOUNDRY_VOICE_MODEL_VERSION }}
+          FOUNDRY_VOICE_SKU_NAME: ${{ vars.FOUNDRY_VOICE_SKU_NAME }}
+          FOUNDRY_VOICE_CAPACITY: ${{ vars.FOUNDRY_VOICE_CAPACITY }}
+          AGENT_CONVERSATION_TABLE_NAME: ${{ vars.AGENT_CONVERSATION_TABLE_NAME }}
+          AGENT_ACTION_TABLE_NAME: ${{ vars.AGENT_ACTION_TABLE_NAME }}
+        with:
+          inlineScript: bash .infra/scripts/install-azure-resources.sh
+      - name: Azure logout
+        if: ${{ always() }}
+        uses: azure/cli@v3
+        with:
+          inlineScript: az logout
+
+  configure:
+    needs: infrastructure
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Log in for Entra ID and Dataverse with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.DIRECTORY_DEPLOY_CLIENT_ID }}
+          tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
+          allow-no-subscriptions: true
+      - name: Configure agent App Registration
+        id: entra
+        uses: azure/cli@v3
+        env:
+          AGENT_APP_DISPLAY_NAME: ${{ vars.AGENT_APP_DISPLAY_NAME }}
+          AGENT_APP_IDENTIFIER_URI: ${{ vars.AGENT_APP_IDENTIFIER_URI }}
+          AGENT_REQUIRED_ROLE: Timesheet.Agent.Invoke
+          BOT_AGENT_MANAGED_IDENTITY_PRINCIPAL_ID: ${{ needs.infrastructure.outputs.bot_agent_identity_principal_id }}
+        with:
+          inlineScript: bash .infra/scripts/configure-entra-agent-api.sh
+      - name: Grant Dataverse access to API identity
+        uses: azure/cli@v3
+        env:
+          DATAVERSE_SERVICE_URL: ${{ vars.DATAVERSE_SERVICE_URL }}
+          API_MANAGED_IDENTITY_PRINCIPAL_ID: ${{ needs.infrastructure.outputs.managed_identity_principal_id }}
+          DATAVERSE_API_ROLE_NAME: ${{ vars.DATAVERSE_API_ROLE_NAME }}
+        with:
+          inlineScript: bash .infra/scripts/grant-dataverse-managed-identity-access.sh
+      - name: Directory logout
+        uses: azure/cli@v3
+        with:
+          inlineScript: az logout
+      - name: Log in to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.DEPLOY_CLIENT_ID }}
+          tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
+          subscription-id: ${{ vars.DEPLOY_SUBSCRIPTION_ID }}
+      - name: Configure Web App settings
+        uses: azure/cli@v3
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ vars.DEPLOY_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP_NAME: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
+          WEB_APP_NAME: ${{ needs.infrastructure.outputs.web_app_name }}
+          API_MANAGED_IDENTITY_CLIENT_ID: ${{ needs.infrastructure.outputs.managed_identity_client_id }}
+          APPLICATION_INSIGHTS_CONNECTION_STRING: ${{ needs.infrastructure.outputs.application_insights_connection_string }}
+          DATAVERSE_SERVICE_URL: ${{ vars.DATAVERSE_SERVICE_URL }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_BOT_ID: ${{ vars.TELEGRAM_BOT_ID }}
+          AGENT_TENANT_ID: ${{ vars.DEPLOY_TENANT_ID }}
+          AGENT_AUDIENCE: ${{ steps.entra.outputs.audience }}
+          AGENT_CLIENT_ID: ${{ needs.infrastructure.outputs.bot_agent_identity_client_id }}
+          AGENT_ENABLED: ${{ vars.AGENT_ENABLED }}
+          AGENT_WRITE_PREPARATION_ENABLED: ${{ vars.AGENT_WRITE_PREPARATION_ENABLED }}
+          AGENT_VOICE_ENABLED: ${{ vars.AGENT_VOICE_ENABLED }}
+          FOUNDRY_PROJECT_ENDPOINT: ${{ needs.infrastructure.outputs.foundry_project_endpoint }}
+          FOUNDRY_OPENAI_ENDPOINT: ${{ needs.infrastructure.outputs.foundry_openai_endpoint }}
+          FOUNDRY_CHAT_DEPLOYMENT_NAME: ${{ vars.FOUNDRY_CHAT_DEPLOYMENT_NAME }}
+          FOUNDRY_VOICE_DEPLOYMENT_NAME: ${{ vars.FOUNDRY_VOICE_DEPLOYMENT_NAME }}
+          FOUNDRY_VOICE_MODEL_NAME: ${{ vars.FOUNDRY_VOICE_MODEL_NAME }}
+          STORAGE_TABLE_ENDPOINT: ${{ needs.infrastructure.outputs.storage_table_endpoint }}
+          AGENT_CONVERSATION_TABLE_NAME: ${{ vars.AGENT_CONVERSATION_TABLE_NAME }}
+          AGENT_ACTION_TABLE_NAME: ${{ vars.AGENT_ACTION_TABLE_NAME }}
+        with:
+          inlineScript: bash .infra/scripts/set-web-app-settings.sh
+      - name: Configure agent APIM
+        uses: azure/cli@v3
+        env:
+          ENVIRONMENT_NAME: ${{ vars.AZURE_NAME_POSTFIX }}
+          APIM_SUBSCRIPTION_ID: ${{ vars.APIM_SUBSCRIPTION_ID }}
+          APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
+          APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
+          APIM_AGENT_API_ID: ${{ vars.APIM_AGENT_API_ID }}
+          APIM_AGENT_API_PATH: ${{ vars.APIM_AGENT_API_PATH }}
+          APIM_WEB_API_ID: ${{ vars.APIM_WEB_API_ID }}
+          APIM_WEB_API_PATH: ${{ vars.APIM_WEB_API_PATH }}
+          APIM_HEALTH_NAME: ${{ vars.APIM_HEALTH_NAME }}
+          APIM_SWAGGER_NAME: ${{ vars.APIM_SWAGGER_NAME }}
+          AGENT_TENANT_ID: ${{ vars.DEPLOY_TENANT_ID }}
+          APIM_CERTIFICATE_CLIENT_ID: ${{ vars.APIM_CERTIFICATE_CLIENT_ID }}
+          APIM_BACKEND_CERTIFICATE_ID: ${{ vars.APIM_BACKEND_CERTIFICATE_ID }}
+          APIM_BACKEND_CERTIFICATE_PFX_BASE64: ${{ secrets.APIM_BACKEND_CERTIFICATE_PFX_BASE64 }}
+          APIM_BACKEND_CERTIFICATE_PASSWORD: ${{ secrets.APIM_BACKEND_CERTIFICATE_PASSWORD }}
+          APIM_AGENT_MESSAGE_TIMEOUT_SECONDS: ${{ vars.APIM_AGENT_MESSAGE_TIMEOUT_SECONDS }}
+          WEB_APP_NAME: ${{ needs.infrastructure.outputs.web_app_name }}
+        with:
+          inlineScript: bash .infra/scripts/configure-apim.sh
+      - name: Validate Azure deployment
+        uses: azure/cli@v3
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ vars.DEPLOY_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP_NAME: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
+          WEB_APP_NAME: ${{ needs.infrastructure.outputs.web_app_name }}
+          STORAGE_ACCOUNT_NAME: ${{ vars.STORAGE_ACCOUNT_NAME }}
+          FOUNDRY_ACCOUNT_NAME: ${{ vars.FOUNDRY_ACCOUNT_NAME }}
+          FOUNDRY_CHAT_DEPLOYMENT_NAME: ${{ vars.FOUNDRY_CHAT_DEPLOYMENT_NAME }}
+          FOUNDRY_VOICE_DEPLOYMENT_NAME: ${{ vars.FOUNDRY_VOICE_DEPLOYMENT_NAME }}
+          AGENT_CONVERSATION_TABLE_NAME: ${{ vars.AGENT_CONVERSATION_TABLE_NAME }}
+          AGENT_ACTION_TABLE_NAME: ${{ vars.AGENT_ACTION_TABLE_NAME }}
+        with:
+          inlineScript: bash .infra/scripts/validate-deployment.sh
+      - name: Ensure release container
+        uses: azure/cli@v3
+        env:
+          ARTIFACT_ACCOUNT: ${{ vars.AZURE_ARTIFACT_ACCOUNT_NAME }}
+          ARTIFACT_CONTAINER: ${{ vars.AZURE_ARTIFACT_CONTAINER_NAME }}
+          ARTIFACT_ACCOUNT_KEY: ${{ secrets.AZURE_ACCOUNT_KEY_ARTIFACT }}
+        with:
+          inlineScript: az storage container create --name "$ARTIFACT_CONTAINER" --account-name "$ARTIFACT_ACCOUNT" --account-key "$ARTIFACT_ACCOUNT_KEY" --output none --only-show-errors
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build and test
+        run: |
+          dotnet restore Internal.Timesheet.Service.slnx
+          dotnet build Internal.Timesheet.Service.slnx --no-restore --configuration Release
+          dotnet test Internal.Timesheet.Service.slnx --no-build --no-restore --configuration Release
+      - name: Publish bootstrap artifact
+        id: bootstrap
+        env:
+          ARTIFACT_NAME: ${{ vars.AZURE_ARTIFACT_NAME }}
+          ENVIRONMENT_NAME: ${{ vars.AZURE_NAME_POSTFIX }}
+        run: |
+          version="bootstrap-${ENVIRONMENT_NAME}-${GITHUB_SHA:0:12}"
+          dotnet publish src/app/Application/Application.csproj --configuration Release --runtime linux-x64 --self-contained false --output ./publish
+          jq --arg version "$version" --arg date "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" '.Info.ApiVersion = $version | .Info.BuildDateTime = $date' ./publish/appsettings.json > ./publish/appsettings.tmp.json
+          mv ./publish/appsettings.tmp.json ./publish/appsettings.json
+          (cd ./publish && zip -r "${ARTIFACT_NAME}-${version}.zip" ./)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Upload bootstrap artifact to Blob Storage
+        uses: azure/cli@v3
+        env:
+          VERSION: ${{ steps.bootstrap.outputs.version }}
+          ARTIFACT_NAME: ${{ vars.AZURE_ARTIFACT_NAME }}
+          ARTIFACT_CONTAINER: ${{ vars.AZURE_ARTIFACT_CONTAINER_NAME }}
+          ARTIFACT_ACCOUNT: ${{ vars.AZURE_ARTIFACT_ACCOUNT_NAME }}
+          ARTIFACT_ACCOUNT_KEY: ${{ secrets.AZURE_ACCOUNT_KEY_ARTIFACT }}
+        with:
+          inlineScript: az storage blob upload --container-name "$ARTIFACT_CONTAINER" --file "./publish/${ARTIFACT_NAME}-${VERSION}.zip" --name "${ARTIFACT_NAME}-${VERSION}.zip" --account-name "$ARTIFACT_ACCOUNT" --account-key "$ARTIFACT_ACCOUNT_KEY" --overwrite true --output none --only-show-errors
+      - name: Deploy bootstrap artifact
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ needs.infrastructure.outputs.web_app_name }}
+          package: ./publish/${{ vars.AZURE_ARTIFACT_NAME }}-${{ steps.bootstrap.outputs.version }}.zip
+      - name: Record deployment time
+        uses: azure/cli@v3
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
+          WEB_APP: ${{ needs.infrastructure.outputs.web_app_name }}
+        with:
+          inlineScript: az webapp config appsettings set --resource-group "$RESOURCE_GROUP" --name "$WEB_APP" --settings "Info__DeployDateTime=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" --output none --only-show-errors
+      - name: Resolve health APIM subscription key
+        id: health
+        uses: azure/cli@v3
+        env:
+          APIM_SUBSCRIPTION_ID: ${{ vars.APIM_SUBSCRIPTION_ID }}
+          APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
+          APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
+          APIM_SUBSCRIPTION_NAME: TimesheetHealthSubscription
+        with:
+          inlineScript: bash .infra/scripts/get-apim-subscription-key.sh
+      - name: Check bootstrap health
+        uses: GarageGroup/platform-ping-app@v0.1.0
+        with:
+          health_check_url: https://${{ vars.APIM_DNS }}/health/${{ vars.APIM_HEALTH_NAME }}?subscription-key=${{ steps.health.outputs.key }}
+          contains: ${{ steps.bootstrap.outputs.version }}
+          is_end_of_line_match: true
+          retry_delay_in_seconds: 15
+          max_attempts: 30
+      - name: Resolve Swagger APIM subscription key
+        id: swagger
+        uses: azure/cli@v3
+        env:
+          APIM_SUBSCRIPTION_ID: ${{ vars.APIM_SUBSCRIPTION_ID }}
+          APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
+          APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
+          APIM_SUBSCRIPTION_NAME: TimesheetSwaggerSubscription
+        with:
+          inlineScript: bash .infra/scripts/get-apim-subscription-key.sh
+      - name: Import API Swagger into APIM
+        uses: azure/cli@v3
+        env:
+          APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
+          APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
+          APIM_WEB_API_ID: ${{ vars.APIM_WEB_API_ID }}
+          APIM_WEB_API_PATH: ${{ vars.APIM_WEB_API_PATH }}
+          APIM_SWAGGER_NAME: ${{ vars.APIM_SWAGGER_NAME }}
+          APIM_DNS: ${{ vars.APIM_DNS }}
+          APIM_SUBKEY: ${{ steps.swagger.outputs.key }}
+          WEB_APP_NAME: ${{ needs.infrastructure.outputs.web_app_name }}
+        with:
+          inlineScript: bash .infra/scripts/update-swagger.sh
+      - name: Azure logout
+        if: ${{ always() }}
+        uses: azure/cli@v3
+        with:
+          inlineScript: az logout

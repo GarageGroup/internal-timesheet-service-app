@@ -1,6 +1,6 @@
 # Telegram AI Agent: журнал изменений Azure
 
-Последнее обновление: 01.10.2026.
+Последнее обновление: 05.10.2026.
 
 Этот документ фиксирует инфраструктурные изменения тестового контура Telegram AI Agent. Он предназначен для аудита и последующего воспроизведения конфигурации в production. Секреты, ключи, токены, connection strings и персональные данные здесь не публикуются.
 
@@ -727,6 +727,53 @@ Scope изменения: subscription `106dd084-8190-453f-87c9-cd2cb714b1d6`, r
 
 Первый read-only smoke test показал буквальные теги `<code>`: команда уже задавала Telegram `ParseMode=Html`, но затем целиком применяла `HtmlEncode` к тексту модели. В локальном hotfix убрано повторное кодирование всего ответа; вместо него добавлен allowlist-sanitizer для `<b>`, `<i>` и `<code>`, а остальной текст и HTML безопасно кодируются. Preview write-операций продолжает отдельно экранировать динамические значения. Промежуточный deployment `0e745213-7022-4d62-90b6-9871e8b29279` заменён итоговым ZIP deployment `0f833a53-e63b-4309-b074-a37375c9fc9d`, статус `4`, active. Function App после deployment находится в `Running/Normal`, три функции обнаруживаются. Настройки Azure и APIM не менялись; hotfix пока не закоммичен.
 
+## 02.10.2026 — подготовка управляемого CI/CD без применения Azure
+
+В репозитории подготовлены Bicep и workflows для управления Timesheet API infrastructure. Никакие
+Azure, Entra ID, Dataverse, APIM или GitHub settings этим инкрементом не изменялись.
+
+Выполнен read-only `what-if` для test resource group. Первая попытка с RBAC resources ожидаемо была
+отклонена из-за отсутствия у текущего пользователя `Microsoft.Authorization/roleAssignments/write`;
+никакой deployment не создавался. Повторный preview с `manageRoleAssignments=false` успешно проверил
+остальной шаблон и не показал Create/Delete/Replace существующих Timesheet resources.
+
+Перед первым запуском `install.yml` для Test обязательны:
+
+1. Выполнить административный shell-скрипт из `.infra/README.md` для Test.
+2. Заполнить GitHub Environment `Test` по `.infra/README.md`.
+3. Учесть ожидаемые изменения: `allowBlobPublicAccess=false`, `ftpsState=Disabled`,
+   `http20Enabled=true` и связь Application Insights с управляемым Log Analytics Workspace.
+4. Перед запуском сверить параметры GitHub Environment с фактическими именами ресурсов.
+
+Откат не требуется, поскольку Azure не менялся. После будущего запуска каждый фактический deployment,
+resource ID, role assignment и результат smoke test записываются отдельной датированной секцией.
+
+После сверки с эталонным `internal-exchange-rates-app` из workflow удалены не предусмотренные образцом
+режимы `WhatIf/Apply`. `install.yml` сразу выполняет `az deployment group create --mode Incremental`.
+Это изменение затрагивает только незакоммиченные файлы CI/CD; Azure по-прежнему не изменялся.
+
+Из API pipeline также удалено назначение `Timesheet.Agent.Invoke` Managed Identity Telegram-бота.
+API pipeline владеет App Registration агента и объявлением application role, а assignment конкретному
+потребителю должен выполнять CI/CD бота. Из bootstrap API удалено ставшее лишним Microsoft Graph
+разрешение `AppRoleAssignment.ReadWrite.All`. Изменения существуют только локально, Azure не менялся.
+
+Одноразовый административный bootstrap перенесён целиком в `.infra/README.md`. Отдельный
+`.infra/scripts/bootstrap-github-oidc.sh` удалён как неиспользуемый workflow-файл; логика выдачи
+OIDC/RBAC/Graph permissions сохранена в копируемом shell-блоке документации. Azure не изменялся.
+
+Контракт GitHub Environment упрощён: удалены `MANAGE_ROLE_ASSIGNMENTS`, `IDENTITY_LOCATION`,
+`APP_SERVICE_PLAN_SKU_TIER` и отдельные параметры Foundry для upgrade policy, RAI policy и local auth.
+RBAC assignments теперь создаются всегда; фиксированные Foundry-настройки заданы в Bicep. Добавлена
+одна переменная `FOUNDRY_LOCATION` для создания Foundry account/project. Существующие локации MI и
+Foundry account install-скрипт сохраняет автоматически, не сравнивая их с переменными создания.
+Azure этим изменением не затрагивался.
+
+После подготовки CI/CD Telegram-бота интеграционная ответственность скорректирована повторно, чтобы
+исключить циклический первый запуск. Штатный порядок: сначала bot pipeline создаёт Function App и
+System Assigned MI, затем API pipeline создаёт agent App Registration/role, назначает роль MI бота и
+заполняет bot `AgentApi` settings. В API bootstrap возвращено `AppRoleAssignment.ReadWrite.All`.
+Изменения существуют только в незакоммиченных CI/CD-файлах; Azure не менялся.
+
 ## Правила дальнейшего ведения
 
 После каждого изменения Azure необходимо до завершения инкремента записать:
@@ -740,3 +787,8 @@ Scope изменения: subscription `106dd084-8190-453f-87c9-cd2cb714b1d6`, r
 7. отдельный production checklist, если конфигурацию потребуется воспроизвести.
 
 Секретные значения разрешено упоминать только по имени настройки или объекта Key Vault. Их значения в Git не добавляются.
+# Планируемое изменение CI/CD от 05.10.2026
+
+Для устранения цикла первого запуска в новой Resource Group подготовлены изменения в репозиториях API и бота. API `install` создаёт отдельную UAMI `<имя Function App бота>-agent`, назначает ей Entra app role `Timesheet.Agent.Invoke` и разрешает её client ID в Agent API. Bot `install` после API подключает UAMI к Function App и заполняет `AgentApi__Audience`, `AgentApi__BaseAddress`, `AgentApi__ManagedIdentityClientId`. Код бота выбирает эту UAMI для токена Agent API; Dataverse UAMI остаётся отдельной. На 05.10.2026 эти изменения в Azure не применялись. После развёртывания следует проверить app role assignment, список identity Function App, настройки API и бота и успешный агентский вызов.
+
+В тот же набор изменений добавлена автоматизация первичного развёртывания кода и маршрутов. API pipeline создаст Timesheet API, Agent API, health/Swagger operations и scoped subscriptions в существующем общем APIM, при необходимости импортирует backend PFX из GitHub secrets. Bot pipeline создаст отдельный Consumption APIM в Resource Group приложения, настроит webhook `/bot/message`, прокси `/telegram/api`, именованные значения и подписки. Оба pipeline создадут Blob Container в существующем общем Storage Account, запишут bootstrap ZIP и развернут его. Новые ресурсы и настройки ещё не применялись; планируемые изменения Test должны быть проверены перед деплоем.

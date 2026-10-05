@@ -1,13 +1,13 @@
 # Telegram AI Agent: авторизация, App Registration и Managed Identity
 
-Последнее обновление: 30.09.2026.
+Последнее обновление: 05.10.2026.
 
 ## Самая короткая версия
 
 В схеме участвуют три разные личности:
 
 1. **Человек** входит через Mini App под корпоративной учётной записью Entra ID.
-2. **Telegram-бот** входит в Timesheet API под своей новой system-assigned Managed Identity.
+2. **Telegram-бот** входит в Timesheet API под отдельной user-assigned Managed Identity, созданной API pipeline.
 3. **Timesheet API** обращается к Foundry и Storage под существующей user-assigned Managed Identity, а
    в Dataverse передаёт Entra Object ID человека как `CallerObjectId`.
 
@@ -128,12 +128,12 @@ BotId + TelegramUserId → CRM SystemUser + Entra Object ID
 
 ## Шаг 2. Как бот получает токен для нового App Registration
 
-При запуске бота HTTP-клиенты agent API регистрируются с явно выбранной system-assigned identity:
+При запуске бота HTTP-клиенты agent API регистрируются с явно выбранной агентской user-assigned identity:
 
 - [`Host.Create.cs`](../../internal-timesheet-bot-app/src/AzureFunc/ApplicationHost/Host.Create.cs)
 
 ```csharp
-new ManagedIdentityCredential(ManagedIdentityId.SystemAssigned)
+new ManagedIdentityCredential(ManagedIdentityId.FromUserAssignedClientId(clientId))
 ```
 
 Перед каждым запросом `AgentAccessTokenHandler` читает `AgentApi:Audience`, добавляет `/.default`,

@@ -36,7 +36,7 @@ App Service, а не Azure Functions: Timesheet API — ASP.NET Core Web App.
   - `Cognitive Services User`;
 - App Settings API, кроме значений секретов в открытом виде;
 - Entra App Registration agent API, service principal, application role
-  `Timesheet.Agent.Invoke` и назначение этой роли Managed Identity Telegram-бота;
+  `Timesheet.Agent.Invoke` и назначение этой роли отдельной агентской UAMI Telegram-бота;
 - Dataverse Application User для UAMI API и назначение прикладной security role;
 - принадлежащие Timesheet операции, backend и policies в существующем APIM.
 
@@ -44,7 +44,7 @@ App Service, а не Azure Functions: Timesheet API — ASP.NET Core Web App.
 
 - корпоративный APIM service;
 - Dataverse environment;
-- Telegram Function App и её system-assigned Managed Identity;
+- Telegram Function App (создаётся CI/CD бота после API `install.yml`);
 - общий Storage Account/контейнер релизных артефактов;
 - backend certificate или Key Vault certificate, управляемый integration platform;
 - GitHub Environments и deployment App Registrations.
@@ -65,29 +65,21 @@ Timesheet-часть и завершаться ошибкой, если обяз
 .infra/
   README.md
   main.bicep
-  modules/
-    app-service.bicep
-    observability.bicep
-    storage.bicep
-    foundry.bicep
-    role-assignments.bicep
   apim/
     main.bicep
-    policies/
-      mini-app-api.xml
-      agent-api.xml
-      agent-message.xml
   scripts/
     install-azure-resources.sh
     configure-entra-agent-api.sh
     grant-dataverse-managed-identity-access.sh
     configure-apim.sh
     set-web-app-settings.sh
+    update-swagger.sh
     validate-deployment.sh
 ```
 
-Файлы могут быть объединены, если маленький модуль не улучшает читаемость. Логическое разделение
-App Service, Storage, Foundry, RBAC, Entra, Dataverse и APIM сохраняется обязательно.
+App Service, Storage, Foundry, observability и RBAC собраны в одном application entry point, чтобы
+первый `what-if` показывал единый план среды. APIM вынесен в отдельный entry point из-за другой
+subscription/resource group; Entra и Dataverse используют идемпотентные Graph/Web API scripts.
 
 ## 4. Workflows
 
@@ -107,7 +99,8 @@ App Service, Storage, Foundry, RBAC, Entra, Dataverse и APIM сохраняет
 
 ### `install.yml`
 
-Ручной запуск с Environment `Test` или `Prod` и отдельными skip-флагами.
+Ручной запуск с Environment `Test` или `Prod`. Обязательные Entra ID, Dataverse и APIM
+шаги не пропускаются: успешный `install.yml` должен оставить работающий API.
 
 1. OIDC login в Azure без client secret.
 2. Проверка provider registrations, location и входных параметров.
@@ -117,15 +110,16 @@ App Service, Storage, Foundry, RBAC, Entra, Dataverse и APIM сохраняет
 6. Назначение Storage/Foundry RBAC.
 7. Создание/обновление Foundry project и двух model deployments с параметризованными model version,
    SKU и capacity.
-8. Идемпотентная настройка Entra App Registration, app role, service principal и role assignment MI
-   Telegram-бота.
+8. Идемпотентная настройка Entra App Registration, app role, service principal и role assignment
+   агентской UAMI Telegram-бота, созданной в шаге 3.
 9. Идемпотентная регистрация UAMI API как Dataverse Application User и назначение согласованной роли.
-10. Создание/обновление Timesheet-конфигурации в существующем APIM.
-11. Запись несекретных outputs и итоговая read-only валидация.
+10. Создание/обновление основного API, Agent API, health и Swagger-маршрутов в существующем
+    общем APIM; выпуск отдельных subscriptions для health и Swagger.
+11. Создание Blob Container в существующем Storage Account релизов, сборка и публикация
+    bootstrap ZIP, развёртывание Web App, проверка health и импорт Swagger.
 
-Feature flags `Agent__Enabled`, `Agent__WritePreparation__Enabled` и `Agent__Voice__Enabled` при первом
-создании среды остаются `false`. Их включение выполняется после deployment и smoke tests отдельным
-явным параметром или шагом.
+Feature flags `Agent__Enabled`, `Agent__WritePreparation__Enabled` и `Agent__Voice__Enabled`
+должны быть `true` для успешного первого `install.yml`.
 
 ### `publish.yml`
 
@@ -222,8 +216,9 @@ CI/CD должен обслуживать две разные поверхнос
 - диагностический `/profile` не создаётся;
 - policy и operations задаются декларативно либо идемпотентным скриптом и проверяются после применения.
 
-APIM service и сертификат считаются shared dependencies. Pipeline получает их имена и завершает работу
-с ошибкой, если они отсутствуют; он не создаёт параллельный APIM или новый сертификат автоматически.
+Общий APIM service считается внешней зависимостью. Если Timesheet backend certificate отсутствует,
+pipeline импортирует предоставленный через GitHub secrets PFX. Отдельный APIM Telegram-бота
+создаётся в Resource Group приложения CI/CD бота.
 
 ## 7. Entra ID и права pipeline
 
@@ -233,10 +228,9 @@ APIM service и сертификат считаются shared dependencies. Pip
    - Contributor на application resource group;
    - Role Based Access Control Administrator на минимальном scope для назначения RBAC;
    - API Management Service Contributor на конкретном shared APIM;
-   - права читать identity Telegram Function App.
 2. Directory/Dataverse deployment identity:
    - минимальные Microsoft Graph application permissions для App Registration, service principal и
-     app role assignment;
+     app role assignment агентской UAMI бота;
    - Dataverse Application User с ролью, позволяющей создавать/обновлять Application User API и
      назначать только требуемую security role.
 
@@ -253,7 +247,7 @@ client secrets.
 - Web App plan/runtime/network/TLS settings;
 - Storage Account и существующие tables;
 - Foundry project/deployments/quota;
-- App Registration/app role/assignment;
+- App Registration, опубликованная app role и assignment существующей MI бота;
 - APIM APIs, operations, effective policies и certificate reference;
 - Dataverse Application User и role;
 - список App Settings без вывода secret values.
@@ -300,7 +294,7 @@ client secrets.
 
 ### Этап 5. Entra ID и Dataverse
 
-- Добавить идемпотентную настройку agent App Registration/app role/assignment MI бота.
+- Добавить идемпотентную настройку agent App Registration, app role и assignment MI бота.
 - Добавить настройку Dataverse Application User UAMI API.
 - Не выводить токены и персональные данные в logs.
 

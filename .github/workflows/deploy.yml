@@ -1,0 +1,189 @@
+name: Deploy Release Artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target GitHub Environment
+        required: true
+        type: choice
+        default: Test
+        options: [Test, Prod]
+      version:
+        description: Existing release tag, for example v1.2.3
+        required: true
+        type: string
+      update_swagger:
+        description: Update Mini App API specification after health check
+        type: boolean
+        default: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Validate version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]
+      - name: Download release artifact from Azure Blob Storage
+        env:
+          VERSION: ${{ inputs.version }}
+          ARTIFACT_NAME: ${{ vars.AZURE_ARTIFACT_NAME }}
+          ARTIFACT_CONTAINER: ${{ vars.AZURE_ARTIFACT_CONTAINER_NAME }}
+          ARTIFACT_ACCOUNT: ${{ vars.AZURE_ARTIFACT_ACCOUNT_NAME }}
+          ARTIFACT_ACCOUNT_KEY: ${{ secrets.AZURE_ACCOUNT_KEY_ARTIFACT }}
+        run: |
+          mkdir -p ./publish
+          az storage blob download \
+            --name "${ARTIFACT_NAME}-${VERSION}.zip" \
+            --file "./publish/${ARTIFACT_NAME}-${VERSION}.zip" \
+            --account-name "$ARTIFACT_ACCOUNT" \
+            --container-name "$ARTIFACT_CONTAINER" \
+            --account-key "$ARTIFACT_ACCOUNT_KEY" \
+            --only-show-errors
+      - name: Log in to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.DEPLOY_CLIENT_ID }}
+          tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
+          subscription-id: ${{ vars.DEPLOY_SUBSCRIPTION_ID }}
+      - name: Deploy release artifact
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.WEB_APP_NAME }}
+          package: ./publish/${{ vars.AZURE_ARTIFACT_NAME }}-${{ inputs.version }}.zip
+      - name: Record deployment time
+        uses: azure/cli@v3
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
+          WEB_APP: ${{ vars.WEB_APP_NAME }}
+        with:
+          inlineScript: az webapp config appsettings set --resource-group "$RESOURCE_GROUP" --name "$WEB_APP" --settings "Info__DeployDateTime=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" --output none --only-show-errors
+      - name: Azure logout
+        if: ${{ always() }}
+        uses: azure/cli@v3
+        with:
+          inlineScript: az logout
+
+  health:
+    needs: deploy
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Log in to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.DEPLOY_CLIENT_ID }}
+          tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
+          subscription-id: ${{ vars.APIM_SUBSCRIPTION_ID }}
+      - name: Resolve health APIM subscription key
+        id: health_key
+        uses: azure/cli@v3
+        env:
+          APIM_SUBSCRIPTION_ID: ${{ vars.APIM_SUBSCRIPTION_ID }}
+          APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
+          APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
+          APIM_SUBSCRIPTION_NAME: TimesheetHealthSubscription
+        with:
+          inlineScript: bash .infra/scripts/get-apim-subscription-key.sh
+      - name: Ping health endpoint
+        uses: GarageGroup/platform-ping-app@v0.1.0
+        with:
+          health_check_url: https://${{ vars.APIM_DNS }}/health/${{ vars.APIM_HEALTH_NAME }}?subscription-key=${{ steps.health_key.outputs.key }}
+          contains: ${{ inputs.version }}
+          is_end_of_line_match: true
+          retry_delay_in_seconds: 15
+          max_attempts: 30
+
+  update-swagger-test:
+    if: ${{ inputs.environment == 'Test' && inputs.update_swagger }}
+    needs: health
+    runs-on: ubuntu-latest
+    environment: Test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Log in to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.DEPLOY_CLIENT_ID }}
+          tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
+          subscription-id: ${{ vars.APIM_SUBSCRIPTION_ID }}
+      - name: Resolve Swagger APIM subscription key
+        id: swagger_key
+        uses: azure/cli@v3
+        env:
+          APIM_SUBSCRIPTION_ID: ${{ vars.APIM_SUBSCRIPTION_ID }}
+          APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
+          APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
+          APIM_SUBSCRIPTION_NAME: TimesheetSwaggerSubscription
+        with:
+          inlineScript: bash .infra/scripts/get-apim-subscription-key.sh
+      - name: Update API Management specification
+        env:
+          APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
+          APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
+          APIM_WEB_API_ID: ${{ vars.APIM_WEB_API_ID }}
+          APIM_WEB_API_PATH: ${{ vars.APIM_WEB_API_PATH }}
+          APIM_SWAGGER_NAME: ${{ vars.APIM_SWAGGER_NAME }}
+          APIM_DNS: ${{ vars.APIM_DNS }}
+          APIM_SUBKEY: ${{ steps.swagger_key.outputs.key }}
+          WEB_APP_NAME: ${{ vars.WEB_APP_NAME }}
+        run: bash .infra/scripts/update-swagger.sh
+      - name: Azure logout
+        if: ${{ always() }}
+        uses: azure/cli@v3
+        with:
+          inlineScript: az logout
+
+  update-swagger-prod:
+    if: ${{ inputs.environment == 'Prod' && inputs.update_swagger }}
+    needs: health
+    runs-on: ubuntu-latest
+    environment: Prod
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Log in to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.DEPLOY_CLIENT_ID }}
+          tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
+          subscription-id: ${{ vars.APIM_SUBSCRIPTION_ID }}
+      - name: Resolve Swagger APIM subscription key
+        id: swagger_key
+        uses: azure/cli@v3
+        env:
+          APIM_SUBSCRIPTION_ID: ${{ vars.APIM_SUBSCRIPTION_ID }}
+          APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
+          APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
+          APIM_SUBSCRIPTION_NAME: TimesheetSwaggerSubscription
+        with:
+          inlineScript: bash .infra/scripts/get-apim-subscription-key.sh
+      - name: Update API Management specification
+        env:
+          APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
+          APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
+          APIM_WEB_API_ID: ${{ vars.APIM_WEB_API_ID }}
+          APIM_WEB_API_PATH: ${{ vars.APIM_WEB_API_PATH }}
+          APIM_SWAGGER_NAME: ${{ vars.APIM_SWAGGER_NAME }}
+          APIM_DNS: ${{ vars.APIM_DNS }}
+          APIM_SUBKEY: ${{ steps.swagger_key.outputs.key }}
+          WEB_APP_NAME: ${{ vars.WEB_APP_NAME }}
+        run: bash .infra/scripts/update-swagger.sh
+      - name: Azure logout
+        if: ${{ always() }}
+        uses: azure/cli@v3
+        with:
+          inlineScript: az logout

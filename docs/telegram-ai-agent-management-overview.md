@@ -84,7 +84,7 @@ Entra access token пользователя. Требовать интеракт
 
 Авторизация разделена на две независимые части:
 
-1. **Авторизация приложения.** Telegram-бот вызывает agent API от собственной system-assigned Managed
+1. **Авторизация приложения.** Telegram-бот вызывает agent API от отдельной user-assigned Managed
    Identity. Для API создана отдельная Entra App Registration и application role
    `Timesheet.Agent.Invoke`. Только Managed Identity бота получила эту роль.
 2. **Определение человека.** Бот передаёт фактические Telegram user/chat identifiers. API не считает их

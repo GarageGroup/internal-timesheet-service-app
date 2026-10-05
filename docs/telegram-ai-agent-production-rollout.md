@@ -44,18 +44,18 @@ resource IDs, URL, сертификаты и credentials нельзя копир
 
 ## 3. Managed Identity Telegram-бота
 
-1. Включить system-assigned Managed Identity у production Function App Telegram-бота.
+1. Запустить API `install.yml`: он создаст отдельную user-assigned Managed Identity агента.
 2. Сохранить её:
    - client/application ID;
    - principal/object ID.
 3. Не удалять существующую user-assigned identity, если она нужна старому коду.
-4. В клиенте agent API явно использовать system-assigned identity. Если задан `AZURE_CLIENT_ID`,
-   убедиться, что он не заставляет бот получать agent token от общей identity.
+4. Запустить bot `install.yml`: он подключит агентскую UAMI и настроит её client ID отдельно от
+   `AZURE_CLIENT_ID`, используемого для Dataverse.
 
 Причина отдельной identity: API должен однозначно распознавать Telegram-бот по `appid`/`azp`.
 
 Проверка: получить app-only token для production audience и убедиться, что его client claim соответствует
-system-assigned identity бота.
+агентской user-assigned identity бота.
 
 ## 4. App Registration agent API
 
@@ -74,8 +74,9 @@ system-assigned identity бота.
 
 Не создавать client secret для бота: он использует Managed Identity.
 
-Назначить app role `Timesheet.Agent.Invoke` service principal system-assigned Managed Identity бота.
-Это Entra app role assignment, а не Azure RBAC role assignment.
+CI/CD API назначает app role `Timesheet.Agent.Invoke` service principal агентской UAMI бота до
+создания Function App. Это Entra app role assignment, а не Azure RBAC role assignment.
+CI/CD бота затем берёт audience из настроек API Web App и задаёт адрес Agent API.
 
 Проверка токена:
 
@@ -91,17 +92,17 @@ system-assigned identity бота.
 
 | App Setting | Значение |
 |---|---|
-| `Agent__Enabled` | сначала `false` |
+| `Agent__Enabled` | `true` после успешного `install.yml` |
 | `Agent__Authentication__TenantId` | production Entra tenant ID |
 | `Agent__Authentication__Audience` | `api://<production-app-client-id>` |
 | `Agent__Authentication__RequiredRole` | `Timesheet.Agent.Invoke` |
-| `Agent__Authentication__Clients__0__ClientId` | client ID system-assigned MI бота |
+| `Agent__Authentication__Clients__0__ClientId` | client ID агентской UAMI бота |
 | `Agent__Authentication__Clients__0__BotId` | production Telegram Bot ID |
 
 Использовать массив `Clients`, а не GUID как сегмент dictionary key: App Service может отклонить имя
 настройки с GUID-сегментом.
 
-До завершения остальных шагов `Agent__Enabled` должен оставаться `false`.
+Первый `install.yml` конфигурирует зависимости и публикует код до завершения проверки health.
 
 ## 6. Foundry resource, project и deployment
 
@@ -237,7 +238,7 @@ API-level policy должна:
 | `Agent__Tools__Project__MaxTop` | верхний лимит проектов |
 | `Agent__Tools__Project__MaxSearchTextLength` | лимит поискового текста |
 | `Agent__Tools__Tag__MaxTags` | максимальное число тегов |
-| `Agent__Voice__Enabled` | отдельное включение голосового ввода; при первом deployment оставить `false` |
+| `Agent__Voice__Enabled` | `true` после успешного `install.yml`; модель развёртывается тем же pipeline |
 | `Agent__Voice__Endpoint` | Azure OpenAI endpoint вида `https://<resource>.openai.azure.com/` |
 | `Agent__Voice__DeploymentName` | имя отдельного audio-to-text deployment |
 | `Agent__Voice__ModelId` | идентификатор модели, проверенный с Semantic Kernel connector |
@@ -249,27 +250,24 @@ API-level policy должна:
 
 ## 11. Порядок развёртывания
 
-1. Создать MI/App Registration/app role и назначить роль боту.
-2. Создать Foundry resource/project/chat deployment и отдельный audio-to-text deployment; проверить quota обоих.
-3. Создать Azure Table и назначить API две Azure RBAC-роли.
-4. Добавить API settings с `Agent__Enabled=false`.
-5. Создать APIM API, operations и policy.
-6. Добавить bot settings.
-7. Развернуть API.
-8. Проверить health и отсутствие регрессии Mini App.
-9. Установить для Telegram Function App поддерживаемый `.NET 10 isolated` runtime stack и развернуть `net10.0` Telegram-бота. Изменение stack и artifact выполнять согласованно, с заранее подготовленным откатом на предыдущие stack и artifact.
-10. Проверить 401/403 на agent message и decision routes; отдельный диагностический profile route не создавать.
-11. Установить `Agent__Enabled=true` и перезапустить API.
-12. Выполнить read-only end-to-end тест обычным Telegram-сообщением.
-13. Включить `Agent__WritePreparation__Enabled=true` только после проверки Action Table и decision route.
-14. Выполнить create/update/delete Cancel и Confirm smoke matrix на контролируемых пилотных данных.
-15. Наблюдать логи, latency, 429, `Indeterminate`, токены и стоимость.
-16. После отдельного voice smoke test установить `Agent__Voice__Enabled=true`; проверить read-only голос и голосовой write preview + Cancel до первого Confirm.
+Новый штатный путь автоматизирован workflows `install.yml`, `publish.yml` и `deploy.yml`; полный
+перечень GitHub variables/secrets и bootstrap прав находится в `.infra/README.md`. Для каждой среды
+запускать `install.yml` для выбранного GitHub Environment. Workflow, как и в эталонном проекте,
+сразу выполняет идемпотентное создание или обновление ресурсов в режиме `Incremental`.
+
+1. До запуска заполнить GitHub Environments и secrets, подготовить внешний Dataverse, Telegram-бота,
+   Mini App, общий APIM и Storage Account релизов согласно `.infra/README.md` обоих проектов.
+2. Запустить API `install.yml`: он создаст общие ресурсы, Foundry, таблицы, роли, App Registration,
+   Timesheet-маршруты общего APIM и опубликует код API. Health и Swagger проверяются в workflow.
+3. Запустить bot `install.yml`: он создаст Function App и отдельный APIM, подключит UAMI,
+   опубликует код, проверит оба health-маршрута и установит Telegram webhook.
+4. Проверить вход через Mini App, read-only сообщение и голос, затем Cancel/Confirm для
+   create/update/delete на контролируемых данных. Наблюдать логи, latency, 429 и стоимость.
 
 ## 12. Acceptance checklist
 
 - [ ] Production GUID/URL не совпадают с test.
-- [ ] У бота отдельная system-assigned MI.
+- [ ] У бота подключена отдельная агентская UAMI.
 - [ ] Function App бота использует поддерживаемый `.NET 10 isolated` runtime, а deployed artifact собран для `net10.0` на Azure Functions Worker SDK 2.x.
 - [ ] App role выдана только разрешённым workload identities.
 - [ ] API проверяет tenant, audience, issuer, role и client allowlist.
