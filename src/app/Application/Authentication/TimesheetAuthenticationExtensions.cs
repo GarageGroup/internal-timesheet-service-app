@@ -13,7 +13,7 @@ internal static class TimesheetAuthenticationExtensions
 
     internal static EndpointApplication UseLegacyJwtAuthentication(this EndpointApplication app)
     {
-        ((IApplicationBuilder)app).UseWhen(
+        app.UseWhen(
             static context => context.Request.Path.StartsWithSegments("/internal/agent") is false,
             static branch => branch.UseJwtReader());
 

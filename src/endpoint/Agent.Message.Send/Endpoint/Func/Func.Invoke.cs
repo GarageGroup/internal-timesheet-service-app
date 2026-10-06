@@ -28,19 +28,17 @@ partial class AgentMessageSendFunc
                 MapPreparedDeleteAction(result.PreparedDeleteAction),
                 MapPreparedUpdateAction(result.PreparedUpdateAction)));
 
-    private async ValueTask<Result<AgentMessageOut, Failure<AgentMessageSendFailureCode>>> SendMessageAsync(
+    private ValueTask<Result<AgentMessageOut, Failure<AgentMessageSendFailureCode>>> SendMessageAsync(
         AgentUserContext context,
         AgentMessageSendIn input,
         CancellationToken cancellationToken)
-    {
-        var messageResult = await ResolveMessageAsync(input, cancellationToken).ConfigureAwait(false);
-        if (messageResult.IsFailure)
-        {
-            return messageResult.FailureOrThrow();
-        }
-
-        return await InvokeMessageAsync(context, messageResult.SuccessOrThrow(), cancellationToken).ConfigureAwait(false);
-    }
+        =>
+        AsyncPipeline.Pipe(
+            input, cancellationToken)
+        .PipeValue(
+            ResolveMessageAsync)
+        .ForwardValue(
+            (message, token) => InvokeMessageAsync(context, message, token));
 
     private ValueTask<Result<AgentMessageOut, Failure<AgentMessageSendFailureCode>>> InvokeMessageAsync(
         AgentUserContext context,

@@ -142,31 +142,24 @@ partial class Application
     private static AgentConversationTableOption ResolveAgentConversationTableOption(IServiceProvider serviceProvider)
     {
         var configuration = serviceProvider.GetConfiguration();
-        var endpointValue = configuration["Agent:Storage:TableServiceEndpoint"];
-        var tableName = configuration["Agent:Storage:ConversationTableName"];
 
-        if (Uri.TryCreate(endpointValue, UriKind.Absolute, out var endpoint) is false ||
-            endpoint.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) is false)
-        {
-            throw new InvalidOperationException("Agent storage table service endpoint must be an absolute HTTPS URL");
-        }
-
-        if (string.IsNullOrWhiteSpace(tableName) ||
-            tableName.Length is < 3 or > 63 ||
-            char.IsLetter(tableName[0]) is false ||
-            tableName.Any(static c => char.IsLetterOrDigit(c) is false))
-        {
-            throw new InvalidOperationException("Agent storage conversation table name must be specified");
-        }
-
-        return new(endpoint, tableName.Trim());
+        return new(
+            ResolveAgentTableServiceEndpoint(configuration),
+            ResolveAgentTableName(configuration, "ConversationTableName", "conversation"));
     }
 
     private static AgentActionTableOption ResolveAgentActionTableOption(IServiceProvider serviceProvider)
     {
         var configuration = serviceProvider.GetConfiguration();
+
+        return new(
+            ResolveAgentTableServiceEndpoint(configuration),
+            ResolveAgentTableName(configuration, "ActionTableName", "action"));
+    }
+
+    private static Uri ResolveAgentTableServiceEndpoint(IConfiguration configuration)
+    {
         var endpointValue = configuration["Agent:Storage:TableServiceEndpoint"];
-        var tableName = configuration["Agent:Storage:ActionTableName"];
 
         if (Uri.TryCreate(endpointValue, UriKind.Absolute, out var endpoint) is false ||
             endpoint.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) is false)
@@ -174,15 +167,21 @@ partial class Application
             throw new InvalidOperationException("Agent storage table service endpoint must be an absolute HTTPS URL");
         }
 
+        return endpoint;
+    }
+
+    private static string ResolveAgentTableName(IConfiguration configuration, string key, string description)
+    {
+        var tableName = configuration[$"Agent:Storage:{key}"];
         if (string.IsNullOrWhiteSpace(tableName) ||
             tableName.Length is < 3 or > 63 ||
             char.IsLetter(tableName[0]) is false ||
             tableName.Any(static c => char.IsLetterOrDigit(c) is false))
         {
-            throw new InvalidOperationException("Agent storage action table name must be specified");
+            throw new InvalidOperationException($"Agent storage {description} table name must be specified");
         }
 
-        return new(endpoint, tableName.Trim());
+        return tableName.Trim();
     }
 
     private static AgentWritePreparationOption ResolveAgentWritePreparationOption(IServiceProvider serviceProvider)

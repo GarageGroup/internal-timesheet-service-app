@@ -1092,7 +1092,10 @@ Azure не изменялся. Первый запуск `install.yml` для Te
 
 2026-10-05. Уточнено требование для развёртывания с нуля: два успешных `install` должны оставить API и бота работающими без отдельного первичного Release и ручной настройки Timesheet-маршрутов. Read-only проверка Test подтвердила, что Telegram webhook направлен на `apim-garage-timesheet-test.azure-api.net/bot/message`, исходящий Telegram API бота использует `/telegram/api/` того же APIM, а Agent API находится в общем `apim-integration-platform-test-01`. API `install` теперь конфигурирует основной API, Agent API, health и Swagger в общем APIM, создаёт scoped subscriptions, контейнер ZIP, публикует bootstrap ZIP, разворачивает код и импортирует Swagger. Bot `install` создаёт или настраивает отдельный APIM в Resource Group приложения, его named values/subscriptions, публикует код, проверяет health и устанавливает webhook. Telegram token бот читает из настроек API, а собственный APIM subscription key получает из APIM. Azure на этом этапе не изменялся.
 
+2026-10-06. По итогам review решено не менять текущий ключ истории Telegram-диалога: `BotId` и private `TelegramUserId/ChatId` однозначно определяют его. Для будущей перепривязки к другой CRM-учётке в основном плане отдельно зафиксировано обязательное разделение или очищение прежней истории и закрытие pending actions; в текущем коде сценарий перепривязки не добавлялся. В рамках того же инкремента упрощены orchestration `Agent.Message.Send` через `AsyncPipeline`, повторная валидация конфигурации двух таблиц и общая сериализация полей create/delete/update action в Azure Table. Бот сохраняет кнопки после временной ошибки callback (HTTP 408/429/5xx или исключение связи), а credential агентской MI теперь переиспользуется в процессе; формат хранения действий не менялся. Профильные тесты `Agent.Message.Send` (24) и `Agent.Storage.Table` (27) прошли; сборка бота Release прошла без предупреждений. Azure не изменялся.
+
 ## Правила ведения журнала
+
 
 После каждого завершённого инкремента необходимо:
 

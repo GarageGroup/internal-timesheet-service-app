@@ -42,113 +42,100 @@ partial class AgentActionDecideFunc
         return input;
     }
 
-    private async ValueTask<Result<AgentActionDecideOut, Failure<AgentActionDecideFailureCode>>> DecideAsync(
+    private ValueTask<Result<AgentActionDecideOut, Failure<AgentActionDecideFailureCode>>> DecideAsync(
         AgentUserContext context,
         AgentActionDecideIn input,
         CancellationToken cancellationToken)
     {
         if (input.Decision is AgentActionDecision.Confirm)
         {
-            var createResult = await createConfirmFunc.InvokeAsync(
-                context,
-                input.ActionId,
-                cancellationToken).ConfigureAwait(false);
-
-            if (createResult.IsSuccess)
-            {
-                return await BuildConfirmedOutAsync(
-                    context,
-                    input,
-                    createResult.SuccessOrThrow().Date,
-                    cancellationToken).ConfigureAwait(false);
-            }
-
-            var createFailure = createResult.FailureOrThrow();
-            if (createFailure.FailureCode is not AgentTimesheetCreateConfirmFailureCode.NotFound)
-            {
-                return createFailure.MapFailureCode(MapCreateConfirmFailureCode);
-            }
-
-            var deleteResult = await deleteConfirmFunc.InvokeAsync(
-                context,
-                input.ActionId,
-                cancellationToken).ConfigureAwait(false);
-
-            if (deleteResult.IsSuccess)
-            {
-                return await BuildConfirmedOutAsync(
-                    context,
-                    input,
-                    deleteResult.SuccessOrThrow().Date,
-                    cancellationToken).ConfigureAwait(false);
-            }
-
-            var deleteFailure = deleteResult.FailureOrThrow();
-            if (deleteFailure.FailureCode is not AgentTimesheetDeleteConfirmFailureCode.NotFound)
-            {
-                return deleteFailure.MapFailureCode(MapDeleteConfirmFailureCode);
-            }
-
-            var updateResult = await updateConfirmFunc.InvokeAsync(
-                context,
-                input.ActionId,
-                cancellationToken).ConfigureAwait(false);
-
-            if (updateResult.IsFailure)
-            {
-                return updateResult.FailureOrThrow().MapFailureCode(MapUpdateConfirmFailureCode);
-            }
-
-            return await BuildConfirmedOutAsync(
-                context,
-                input,
-                updateResult.SuccessOrThrow().Date,
-                cancellationToken).ConfigureAwait(false);
+            return AsyncPipeline.Pipe(
+                input.ActionId, cancellationToken)
+                .PipeValue(
+                    (actionId, token) => ConfirmAsync(context, actionId, token))
+                .ForwardValue(
+                    (date, token) => BuildConfirmedOutAsync(context, input, date, token));
         }
 
-        var createCancelResult = await createCancelFunc.InvokeAsync(
-            context,
-            input.ActionId,
-            cancellationToken).ConfigureAwait(false);
+        return AsyncPipeline.Pipe(
+            input.ActionId, cancellationToken)
+            .PipeValue(
+                (actionId, token) => CancelAsync(context, actionId, token))
+            .MapSuccess(
+                _ => new AgentActionDecideOut(input.ActionId, input.Decision));
+    }
 
-        if (createCancelResult.IsSuccess)
+    private async ValueTask<Result<DateOnly, Failure<AgentActionDecideFailureCode>>> ConfirmAsync(
+        AgentUserContext context,
+        Guid actionId,
+        CancellationToken cancellationToken)
+    {
+        var createResult = await createConfirmFunc.InvokeAsync(context, actionId, cancellationToken).ConfigureAwait(false);
+        if (createResult.IsSuccess)
         {
-            return new AgentActionDecideOut(input.ActionId, input.Decision);
+            return createResult.SuccessOrThrow().Date;
         }
 
-        var createCancelFailure = createCancelResult.FailureOrThrow();
-        if (createCancelFailure.FailureCode is not AgentTimesheetCreateCancelFailureCode.NotFound)
+        var createFailure = createResult.FailureOrThrow();
+        if (createFailure.FailureCode is not AgentTimesheetCreateConfirmFailureCode.NotFound)
         {
-            return createCancelFailure.MapFailureCode(MapCreateCancelFailureCode);
+            return createFailure.MapFailureCode(MapCreateConfirmFailureCode);
         }
 
-        var deleteCancelResult = await deleteCancelFunc.InvokeAsync(
-            context,
-            input.ActionId,
-            cancellationToken).ConfigureAwait(false);
-
-        if (deleteCancelResult.IsSuccess)
+        var deleteResult = await deleteConfirmFunc.InvokeAsync(context, actionId, cancellationToken).ConfigureAwait(false);
+        if (deleteResult.IsSuccess)
         {
-            return new AgentActionDecideOut(input.ActionId, input.Decision);
+            return deleteResult.SuccessOrThrow().Date;
         }
 
-        var deleteCancelFailure = deleteCancelResult.FailureOrThrow();
-        if (deleteCancelFailure.FailureCode is not AgentTimesheetDeleteCancelFailureCode.NotFound)
+        var deleteFailure = deleteResult.FailureOrThrow();
+        if (deleteFailure.FailureCode is not AgentTimesheetDeleteConfirmFailureCode.NotFound)
         {
-            return deleteCancelFailure.MapFailureCode(MapDeleteCancelFailureCode);
+            return deleteFailure.MapFailureCode(MapDeleteConfirmFailureCode);
         }
 
-        var updateCancelResult = await updateCancelFunc.InvokeAsync(
-            context,
-            input.ActionId,
-            cancellationToken).ConfigureAwait(false);
+        var updateResult = await updateConfirmFunc.InvokeAsync(context, actionId, cancellationToken).ConfigureAwait(false);
+        return updateResult.Map(
+            static success => success.Date,
+            static failure => failure.MapFailureCode(MapUpdateConfirmFailureCode));
+    }
 
-        return updateCancelResult.Map(
-            _ => new AgentActionDecideOut(input.ActionId, input.Decision),
+    private async ValueTask<Result<Unit, Failure<AgentActionDecideFailureCode>>> CancelAsync(
+        AgentUserContext context,
+        Guid actionId,
+        CancellationToken cancellationToken)
+    {
+        var createResult = await createCancelFunc.InvokeAsync(context, actionId, cancellationToken).ConfigureAwait(false);
+        if (createResult.IsSuccess)
+        {
+            return default(Unit);
+        }
+
+        var createFailure = createResult.FailureOrThrow();
+        if (createFailure.FailureCode is not AgentTimesheetCreateCancelFailureCode.NotFound)
+        {
+            return createFailure.MapFailureCode(MapCreateCancelFailureCode);
+        }
+
+        var deleteResult = await deleteCancelFunc.InvokeAsync(context, actionId, cancellationToken).ConfigureAwait(false);
+        if (deleteResult.IsSuccess)
+        {
+            return default(Unit);
+        }
+
+        var deleteFailure = deleteResult.FailureOrThrow();
+        if (deleteFailure.FailureCode is not AgentTimesheetDeleteCancelFailureCode.NotFound)
+        {
+            return deleteFailure.MapFailureCode(MapDeleteCancelFailureCode);
+        }
+
+        var updateResult = await updateCancelFunc.InvokeAsync(context, actionId, cancellationToken).ConfigureAwait(false);
+        return updateResult.Map(
+            static _ => default(Unit),
             static failure => failure.MapFailureCode(MapUpdateCancelFailureCode));
     }
 
-    private async ValueTask<AgentActionDecideOut> BuildConfirmedOutAsync(
+    private async ValueTask<Result<AgentActionDecideOut, Failure<AgentActionDecideFailureCode>>> BuildConfirmedOutAsync(
         AgentUserContext context,
         AgentActionDecideIn input,
         DateOnly date,
