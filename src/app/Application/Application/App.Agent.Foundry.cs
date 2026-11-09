@@ -136,8 +136,18 @@ partial class Application
     }
 
     private static AgentConversationMessageOption ResolveAgentConversationMessageOption(IServiceProvider serviceProvider)
-        =>
-        new(serviceProvider.GetConfiguration().GetValue("Agent:Message:MaxHistoryMessageCount", 20));
+    {
+        var configuration = serviceProvider.GetConfiguration();
+        var maxMessageCount = configuration.GetValue("Agent:Message:MaxHistoryMessageCount", 20);
+        var maxMessageTextLength = configuration.GetValue("Agent:Message:MaxTextLength", 2000);
+
+        if (maxMessageCount < 2 || maxMessageTextLength <= 0)
+        {
+            throw new InvalidOperationException("Agent conversation message limits are invalid");
+        }
+
+        return new(maxMessageCount, maxMessageTextLength);
+    }
 
     private static AgentConversationTableOption ResolveAgentConversationTableOption(IServiceProvider serviceProvider)
     {

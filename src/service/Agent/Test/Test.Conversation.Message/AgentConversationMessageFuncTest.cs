@@ -21,5 +21,5 @@ public static partial class AgentConversationMessageFuncTest
         Mock<IAgentMessageFunc> messageFunc,
         Mock<IAgentConversationStore> conversationStore)
         =>
-        new(messageFunc.Object, conversationStore.Object, new(20));
+        new(messageFunc.Object, conversationStore.Object, new(20, 2000));
 }

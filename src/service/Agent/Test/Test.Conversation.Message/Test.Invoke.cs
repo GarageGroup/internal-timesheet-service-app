@@ -71,6 +71,52 @@ partial class AgentConversationMessageFuncTest
     }
 
     [Fact]
+    public static async Task InvokeAsync_HistoryAndResponseAreLong_ExpectBoundedStoredMessages()
+    {
+        var longText = new string('Ж', 2500);
+        var conversation = new AgentConversationGetOut(
+            [new(AgentChatMessageRole.Assistant, longText)],
+            "version-1");
+        var output = new AgentMessageOut(longText);
+        AgentMessageIn? actualMessageInput = null;
+        AgentChatMessage[]? savedMessages = null;
+
+        var messageFunc = new Mock<IAgentMessageFunc>();
+        _ = messageFunc.Setup(f => f.InvokeAsync(SomeContext, It.IsAny<AgentMessageIn>(), It.IsAny<CancellationToken>()))
+            .Callback<AgentUserContext, AgentMessageIn, CancellationToken>((_, input, _) => actualMessageInput = input)
+            .ReturnsAsync(output);
+
+        var conversationStore = new Mock<IAgentConversationStore>();
+        _ = conversationStore.Setup(f => f.GetAsync(SomeContext, It.IsAny<CancellationToken>())).ReturnsAsync(conversation);
+        _ = conversationStore.Setup(
+            f => f.SaveAsync(
+                SomeContext,
+                "version-1",
+                It.IsAny<FlatArray<AgentChatMessage>>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<AgentUserContext, string?, FlatArray<AgentChatMessage>, CancellationToken>(
+                (_, _, messages, _) => savedMessages = messages.AsEnumerable().ToArray())
+            .ReturnsAsync(Unit.Value);
+
+        var actual = await CreateFunc(messageFunc, conversationStore).InvokeAsync(
+            SomeContext,
+            SomeInput,
+            TestContext.Current.CancellationToken);
+
+        Assert.Same(output, actual.SuccessOrThrow());
+        Assert.NotNull(actualMessageInput);
+        Assert.Equal(2000, Assert.Single(actualMessageInput.History.AsEnumerable()).Text.Length);
+        Assert.NotNull(savedMessages);
+        Assert.Equal(3, savedMessages.Length);
+        Assert.Equal(2000, savedMessages[0].Text.Length);
+        Assert.Equal("Покажи списания", savedMessages[1].Text);
+        Assert.Equal(2000, savedMessages[2].Text.Length);
+        Assert.EndsWith("…", savedMessages[2].Text);
+        messageFunc.VerifyAll();
+        conversationStore.VerifyAll();
+    }
+
+    [Fact]
     public static async Task InvokeAsync_AppendIsConflict_ExpectConversationConflictFailure()
     {
         var messageFunc = new Mock<IAgentMessageFunc>();

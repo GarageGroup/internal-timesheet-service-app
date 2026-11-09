@@ -27,11 +27,16 @@ partial class AgentConversationMessageFunc
         AgentConversationMessageIn input,
         AgentConversationGetOut conversation,
         CancellationToken cancellationToken)
-        =>
-        AsyncPipeline.Pipe(
+    {
+        var history = conversation.Messages.AsEnumerable()
+            .TakeLast(option.MaxMessageCount)
+            .Select(NormalizeMessage)
+            .ToArray();
+
+        return AsyncPipeline.Pipe(
             new AgentMessageIn(input.Text, input.Locale)
             {
-                History = conversation.Messages
+                History = history
             },
             cancellationToken)
         .PipeValue(
@@ -42,10 +47,11 @@ partial class AgentConversationMessageFunc
             (@out, token) => SaveConversationAsync(
                 context,
                 conversation.Version,
-                conversation.Messages,
+                history,
                 input,
                 @out,
                 token));
+    }
 
     private ValueTask<Result<AgentMessageOut, Failure<AgentConversationMessageFailureCode>>> SaveConversationAsync(
         AgentUserContext context,
@@ -63,7 +69,7 @@ partial class AgentConversationMessageFunc
                 expectedVersion,
                 conversationMessages.AsEnumerable()
                     .Append(new(AgentChatMessageRole.User, input.Text.Trim()))
-                    .Append(new(AgentChatMessageRole.Assistant, output.Text))
+                    .Append(NormalizeMessage(new(AgentChatMessageRole.Assistant, output.Text)))
                     .TakeLast(option.MaxMessageCount)
                     .ToArray(),
                 token))
@@ -71,6 +77,23 @@ partial class AgentConversationMessageFunc
             static failure => failure.MapFailureCode(MapStoreFailureCode))
         .MapSuccess(
             _ => output);
+
+    private AgentChatMessage NormalizeMessage(AgentChatMessage message)
+    {
+        var text = message.Text.Trim();
+        if (text.Length <= option.MaxMessageTextLength)
+        {
+            return message with { Text = text };
+        }
+
+        var retainedLength = option.MaxMessageTextLength - 1;
+        if (retainedLength > 0 && char.IsHighSurrogate(text[retainedLength - 1]) && char.IsLowSurrogate(text[retainedLength]))
+        {
+            retainedLength--;
+        }
+
+        return message with { Text = string.Concat(text.AsSpan(0, retainedLength), "…") };
+    }
 
     private static AgentConversationMessageFailureCode MapMessageFailureCode(AgentMessageFailureCode failureCode)
         =>
