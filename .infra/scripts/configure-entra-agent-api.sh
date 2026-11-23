@@ -121,7 +121,7 @@ done
 [[ -n "$bot_service_principal" ]] || { echo 'Bot agent Managed Identity did not propagate to Microsoft Graph' >&2; exit 1; }
 bot_client_id="$(jq -er '.appId' <<< "$bot_service_principal")"
 
-existing_assignment="$(az rest \
+existing_assignment="$(retry_graph_not_found az rest \
   --method GET \
   --url "https://graph.microsoft.com/v1.0/servicePrincipals/$BOT_AGENT_MANAGED_IDENTITY_PRINCIPAL_ID/appRoleAssignments" \
   --query "value[?resourceId=='$agent_sp_object_id' && appRoleId=='$role_id'] | [0].id" \
@@ -135,7 +135,7 @@ if [[ -z "$existing_assignment" ]]; then
     --arg appRoleId "$role_id" \
     '{principalId: $principalId, resourceId: $resourceId, appRoleId: $appRoleId}')"
 
-  az rest \
+  retry_graph_not_found az rest \
     --method POST \
     --url "https://graph.microsoft.com/v1.0/servicePrincipals/$BOT_AGENT_MANAGED_IDENTITY_PRINCIPAL_ID/appRoleAssignments" \
     --headers 'Content-Type=application/json' \
