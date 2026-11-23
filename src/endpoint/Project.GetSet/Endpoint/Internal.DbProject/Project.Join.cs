@@ -29,7 +29,7 @@ partial record class DbProject
                                         Filters =
                                         [
                                             new DbRawFilter("t.ownerid = u.systemuserid"),
-                                            new DbParameterFilter("u.azureactivedirectoryobjectid", DbFilterOperator.Equal, userId, "userId")
+                                            BuildUserFilter(userId)
                                         ]
                                     }
                                 }),
@@ -65,7 +65,7 @@ partial record class DbProject
                                         Filters =
                                         [
                                             new DbRawFilter("t1.ownerid = u.systemuserid"),
-                                            new DbParameterFilter("u.azureactivedirectoryobjectid", DbFilterOperator.Equal, userId, "userId")
+                                            BuildUserFilter(userId)
                                         ]
                                     }
                                 }),
@@ -81,4 +81,11 @@ partial record class DbProject
                     ]
                 })
         ];
+
+    private static DbRawFilter BuildUserFilter(Guid userId)
+    {
+        // Dataverse TDS rejects the GUID parameter in this query; the typed Guid is safe to format as a SQL literal.
+
+        return new($"u.azureactivedirectoryobjectid = '{userId:D}'");
+    }
 }
