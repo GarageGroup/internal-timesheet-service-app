@@ -886,3 +886,23 @@ West Europe, существующие сохраняют фактический 
 Определение существующих регионов API сохранено: ранее оно покрывало только MI и Foundry,
 а теперь также Web App, plan, Storage, Insights, Workspace и агентскую MI. Бот уже сохранял
 фактический регион существующей Function App. Azure resources не изменялись.
+
+## Prod preflight 23.11.2026
+
+Перед install проверены main API 353e084 и bot 29dba5d, OIDC всех трёх deployment apps,
+Contributor/RBAC Administrator API на application и integration RG, Contributor бота на application RG,
+три application permissions Graph у Directory SP (Application.ReadWrite.All, Directory.Read.All,
+AppRoleAssignment.ReadWrite.All). Dataverse deployment Application User ранее проверен как активный
+System Administrator. В общем APIM существует timesheet-certificate (до 22.07.2027), client named value
+подтверждён. Недостающие APIM certificate/model переменные и фактический SKU B2 записаны в GitHub Prod.
+Secret TELEGRAM_BOT_TOKEN присутствует (содержимое не проверялось). Foundry квота West Europe ранее
+подтверждена. Production install ещё не запускался, работоспособность runtime после переноса не проверена.
+
+## Исправление Entra bootstrap после Prod install 23.11.2026
+
+Run 45206699602: первый configure получил Request_ResourceNotFound после создания App Registration;
+повторный configure настроил application, но остановился на пустом результате поиска Service Principal.
+В main подготовлена обработка пустой строки и null, а также 12 попыток с интервалом 5 секунд для
+операций Graph с ResourceNotFound. Прочие ошибки завершают шаг сразу с исходной диагностикой.
+Проверены shell-синтаксис и локальные имитации успеха, отказа прав и исчерпания повторов.
+Изменение не закоммичено и не развёрнуто, workflow не запускался.

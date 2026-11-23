@@ -11,6 +11,36 @@ for variable in "${required[@]}"; do
   [[ -n "${!variable:-}" ]] || { echo "Missing $variable" >&2; exit 1; }
 done
 
+# Microsoft Graph may not expose a newly created object immediately.
+retry_graph_not_found() {
+  local attempt result error_file status
+  error_file="$(mktemp)"
+  for attempt in {1..12}; do
+    if result="$("$@" 2>"$error_file")"; then
+      rm -f "$error_file"
+      printf '%s' "$result"
+      return 0
+    else
+      status=$?
+    fi
+    if grep -Eq 'Request_ResourceNotFound|Request_ResourceNotFoundException|ResourceNotFound|does not exist' "$error_file"; then
+      :
+    else
+      cat "$error_file" >&2
+      rm -f "$error_file"
+      return "$status"
+    fi
+    if [[ "$attempt" == 12 ]]; then
+      cat "$error_file" >&2
+      echo 'Microsoft Graph object did not become available after 12 attempts' >&2
+      rm -f "$error_file"
+      return "$status"
+    fi
+    echo "Waiting for Microsoft Graph object propagation ($attempt/12)" >&2
+    sleep 5
+  done
+}
+
 apps_json="$(az ad app list --display-name "$AGENT_APP_DISPLAY_NAME" --output json --only-show-errors)"
 app_count="$(jq length <<< "$apps_json")"
 [[ "$app_count" -le 1 ]] || { echo "Multiple App Registrations found with display name '$AGENT_APP_DISPLAY_NAME'" >&2; exit 1; }
@@ -23,7 +53,7 @@ app_id="$(jq -er '.appId' <<< "$app_json")"
 app_object_id="$(jq -er '.id' <<< "$app_json")"
 identifier_uri="${AGENT_APP_IDENTIFIER_URI:-api://$app_id}"
 
-current_app="$(az rest --method GET --url "https://graph.microsoft.com/v1.0/applications/$app_object_id" --output json --only-show-errors)"
+current_app="$(retry_graph_not_found az rest --method GET --url "https://graph.microsoft.com/v1.0/applications/$app_object_id" --output json --only-show-errors)"
 role_id="$(jq -r --arg value "$AGENT_REQUIRED_ROLE" '.appRoles[]? | select(.value == $value) | .id' <<< "$current_app" | head -n 1)"
 if [[ -z "$role_id" ]]; then
   role_id="$(cat /proc/sys/kernel/random/uuid)"
@@ -52,7 +82,7 @@ patch_body="$(jq -n \
   --argjson roles "$updated_roles" \
   '{identifierUris: [$uri], appRoles: $roles}')"
 
-az rest \
+retry_graph_not_found az rest \
   --method PATCH \
   --url "https://graph.microsoft.com/v1.0/applications/$app_object_id" \
   --headers 'Content-Type=application/json' \
@@ -61,13 +91,13 @@ az rest \
   --only-show-errors
 
 agent_sp="$(az ad sp list --filter "appId eq '$app_id'" --query '[0]' --output json --only-show-errors)"
-if [[ "$agent_sp" == 'null' ]]; then
-  agent_sp="$(az ad sp create --id "$app_id" --output json --only-show-errors)"
+if [[ -z "$agent_sp" || "$agent_sp" == null ]]; then
+  agent_sp="$(retry_graph_not_found az ad sp create --id "$app_id" --output json --only-show-errors)"
 fi
 agent_sp_object_id="$(jq -er '.id' <<< "$agent_sp")"
 
 for _ in {1..12}; do
-  propagated_role="$(az rest \
+  propagated_role="$(retry_graph_not_found az rest \
     --method GET \
     --url "https://graph.microsoft.com/v1.0/servicePrincipals/$agent_sp_object_id?\$select=appRoles" \
     --query "appRoles[?id=='$role_id'].id | [0]" \
