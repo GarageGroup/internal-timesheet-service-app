@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -12,6 +12,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\endpoint\Agent.Action.Decide\Endpoint\Endpoint.csproj" />
+    <ProjectReference Include="..\..\endpoint\Agent.Message.Send\Endpoint\Endpoint.csproj" />
+    <ProjectReference Include="..\..\service\Agent\Contract\Contract.csproj" />
+    <ProjectReference Include="..\..\service\Agent\Core\Core.csproj" />
+    <ProjectReference Include="..\..\service\Agent.Audio\Core\Core.csproj" />
+    <ProjectReference Include="..\..\service\Agent.Storage.Table\Api\Api.csproj" />
+    <ProjectReference Include="..\..\service\Agent.Identity\Core\Core.csproj" />
     <ProjectReference Include="..\..\service\BotApi\Api\Api.csproj" />
     <ProjectReference Include="..\..\endpoint\Notification.Subscribe\Endpoint\Endpoint.csproj" />
     <ProjectReference Include="..\..\endpoint\Period.GetSet\Endpoint\Endpoint.csproj" />
@@ -30,10 +37,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.21" />
-    <PackageReference Include="GarageGroup.Infra.AspNetCore.AzureApplication" Version="5.1.0" />
+    <PackageReference Include="GarageGroup.Infra.AspNetCore.AzureApplication" Version="5.2.0" />
     <PackageReference Include="GarageGroup.Infra.Dataverse.Api" Version="3.21.0" />
-    <PackageReference Include="GarageGroup.Infra.Endpoint.AspNetCore" Version="1.1.0" />
+    <PackageReference Include="GarageGroup.Infra.Endpoint.AspNetCore" Version="1.1.1" />
     <PackageReference Include="GarageGroup.Infra.Handler.AspNetCore" Version="0.2.1" />
     <PackageReference Include="GarageGroup.Infra.HealthCheck.Handler" Version="1.0.0" />
     <PackageReference Include="GarageGroup.Infra.Http.Api" Version="1.1.0" />

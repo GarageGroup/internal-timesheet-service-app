@@ -1,0 +1,269 @@
+# Telegram AI Agent: каталог операций
+
+Последнее обновление: 28.09.2026.
+
+Документ описывает существующие бизнес-функции API и решение об их использовании будущим Semantic Kernel agent. Это инвентаризация, а не регистрация функций как AI tools.
+
+Связанные документы:
+
+- [план реализации](telegram-ai-agent-implementation-plan.md);
+- [журнал прогресса](telegram-ai-agent-progress.md);
+- [журнал изменений Azure](telegram-ai-agent-azure-change-log.md).
+
+## Базовые правила
+
+1. Semantic Kernel размещается внутри API и вызывает C# business-функции напрямую, без HTTP-вызова API к самому себе.
+2. Telegram-бот отправляет сообщения только в `/internal/agent/messages`, а решения по подготовленным действиям — в общий decision endpoint. Временный диагностический `Agent.Profile.Get` удалён.
+3. `BotId`, Telegram identity, CRM System User ID и Entra Object ID поступают только из доверенного `AgentUserContext`. Модель не получает их как управляемые аргументы.
+4. В первую итерацию подключаются только read-only tools.
+5. Любая операция записи требует серверного prepare/confirm flow, идемпотентности и аудита. Одного подтверждения в prompt недостаточно.
+6. Наличие существующего HTTP endpoint не означает, что его внутренняя функция уже безопасна для агента.
+7. Агент получает не всё API, а явный allowlist операций, необходимых для списания времени. Профиль, подписки, уведомления и account flow не являются AI tools.
+
+## Классификация
+
+| Статус | Значение |
+|---|---|
+| `Read candidate` | Можно готовить adapter/plugin после проверки входного контекста и лимитов результата |
+| `Write blocked` | Не подключать до реализации подтверждений, идемпотентности и проверки прав |
+| `System only` | Служебная операция, модель не должна выбирать её как tool |
+| `Diagnostic` | Временная операция для проверки и демонстрации контура |
+| `Excluded` | Операция осознанно не входит в функциональные границы агента |
+
+## Матрица существующих операций
+
+| Модуль / функция | Назначение | Пользовательские аргументы | Доверенный контекст | Тип | Решение для агента |
+|---|---|---|---|---|---|
+| `Profile.Get / IProfileGetFunc` | Имя и язык профиля пользователя текущего бота | Нет | Entra Object ID | Read | `Excluded`; не требуется для работы со списаниями |
+| `Period.GetSet / IPeriodSetGetFunc` | Доступные периоды списания | Нет | Не требуется | Read | `Read candidate` |
+| `Project.GetLastSet / ILastProjectSetGetFunc` | Последние проекты пользователя | Необязательный `top` | Entra Object ID | Read | `Read candidate`; ограничить `top` на сервере |
+| `Project.GetSet / IProjectSetGetFunc` | Общий набор активных проектов с пользовательской историей | Нет | Entra Object ID | Read | `Read candidate`; дополнительно проверить видимость четырёх типов проектов |
+| `Project.SearchSet / IProjectSetSearchFunc` | Поиск project/incident/opportunity/lead | Строка поиска, необязательный `top` | Entra Object ID как `CallerObjectId` | Read | `Read candidate`; ограничить длину строки и `top` |
+| `Timesheet.GetSet / ITimesheetSetGetFunc` | Списания пользователя за диапазон дат | `dateFrom`, `dateTo` | Entra Object ID | Read | `Read candidate`; ограничить диапазон дат и размер результата |
+| `Tag.GetSet / ITagSetGetFunc` | Хэштеги пользователя по выбранному проекту | Project ID | Entra Object ID | Read | `Read candidate`; Project ID должен происходить из разрешённого результата поиска/выбора |
+| `Subscription.GetSet / ISubscriptionSetGetFunc` | Настройки уведомлений пользователя | Нет | CRM System User ID | Read | `Excluded`; не относится к работе со списаниями |
+| `Timesheet.Modify / ITimesheetCreateFunc` | Создание списания | Дата, проект, длительность, комментарий | CRM System User ID как `CallerObjectId` | Write | `Write blocked` |
+| `Timesheet.Modify / ITimesheetUpdateFunc` | Изменение списания | Timesheet ID и изменяемые поля | CRM System User ID | Write | `Write blocked`; update-запрос требует дополнительного аудита impersonation/ownership |
+| `Timesheet.Delete / ITimesheetDeleteFunc` | Удаление списания | Timesheet ID | CRM System User ID как `CallerObjectId` | Write | `Write blocked` |
+| `Profile.Update / IProfileUpdateFunc` | Изменение языка профиля | Language code | CRM System User ID | Write | `Excluded`; не относится к работе со списаниями |
+| `Notification.Subscribe / INotificationSubscribeFunc` | Настройка ежедневных/еженедельных уведомлений | Тип и параметры уведомления | CRM System User ID | Write | `Excluded`; не относится к работе со списаниями |
+| `Notification.Subscribe / INotificationUnsubscribeFunc` | Отключение уведомлений | Тип уведомления | CRM System User ID | Write | `Excluded`; не относится к работе со списаниями |
+| `User.SignIn / IUserSignInFunc` | Создание Telegram/CRM-привязки по подписанному Mini App `initData` | Telegram `initData` | Интерактивный Entra user | Write | `System only`; никогда не вызывать моделью |
+| `User.SignOut / IUserSignOutFunc` | Отзыв Telegram-привязки | Нет | Интерактивный Entra user | Write | `System only`; отдельный явный account flow, не обычный tool |
+
+## Первая read-only группа
+
+Первый безопасный набор native plugins предлагается ограничить следующими возможностями:
+
+1. `GetPeriods` — получить допустимые периоды.
+2. `GetRecentProjects` — показать последние проекты пользователя.
+3. `SearchProjects` — найти проекты по тексту с серверным пределом результата.
+4. `GetTimesheets` — показать списания пользователя за ограниченный диапазон.
+5. `GetProjectTags` — получить подсказки тегов для уже выбранного проекта.
+
+`Project.GetSet` можно добавить после проверки фактической видимости данных для Project, Incident, Opportunity и Lead, если поиска и последних проектов будет недостаточно. `Profile.Get`, `Profile.Update`, `Subscription.GetSet`, `Notification.Subscribe`, `User.SignIn` и `User.SignOut` в allowlist tools не входят. Отдельного диагностического profile endpoint у agent API больше нет.
+
+## Обязательные agent adapters
+
+Нельзя регистрировать текущие контракты endpoint напрямую как SK functions: они содержат доверенные идентификаторы рядом с пользовательскими аргументами. Для каждой разрешённой операции нужен тонкий adapter в agent-модуле:
+
+```text
+Аргументы модели + AgentUserContext
+                ↓
+        Agent read adapter
+                ↓
+ Существующая business-функция
+```
+
+Adapter обязан:
+
+- подставлять Entra/CRM ID только из `AgentUserContext`;
+- валидировать диапазоны, длины строк и `top`;
+- возвращать модели минимальный DTO без служебных полей;
+- преобразовывать инфраструктурные ошибки в безопасные типизированные результаты;
+- не принимать произвольный `SystemUserId`, `CallerObjectId`, `BotId` или Telegram ID.
+
+Для `prepare_create_timesheet` модель передаёт только `ProjectId`, полученный из read-функции. `ProjectName` и `ProjectType` не входят в tool arguments: application layer повторно загружает доступные пользователю проекты через существующий `IProjectSetGetFunc`, находит ID и сохраняет канонические имя и тип. Это исключает нестабильное определение моделью CRM-типа сущности, например путаницу между `Project = 10912` и `Incident = 112`, и не позволяет подменить свойства проекта в prompt.
+
+## Выявленные риски и проверки до подключения
+
+### `Timesheet.Update`
+
+`TimesheetJson.BuildDataverseUpdateInput` сейчас не устанавливает `CallerObjectId`, тогда как create/delete и чтение проекта используют пользовательскую impersonation. До подключения update необходимо доказать ownership/permission check либо добавить эквивалентный доверенный caller context. Особенно опасен сценарий обновления без смены проекта: в нём нет предварительного Dataverse-чтения проекта с caller identity.
+
+Перед началом реализации write-инструментов обязательно напомнить владельцу проекта уточнить у руководства: отсутствие `CallerObjectId` является осознанной частью текущей CRM-авторизации или недоработкой, которую следует исправить передачей caller identity. До ответа `Timesheet.Update` остаётся заблокированным для агента.
+
+### Результат повторного аудита write-операций от 29.09.2026
+
+- `Timesheet.Modify.CreateAsync` передаёт `TimesheetCreateIn.SystemUserId` и при проверке выбранного проекта, и в `DataverseEntityCreateIn.CallerObjectId`.
+- `Timesheet.Delete.InvokeAsync` передаёт `TimesheetDeleteIn.SystemUserId` в `DataverseEntityDeleteIn.CallerObjectId`.
+- `Timesheet.Modify.UpdateAsync` передаёт `TimesheetUpdateIn.SystemUserId` только в запрос чтения проекта, если проект изменяется.
+- Итоговый `DataverseEntityUpdateIn<TimesheetJson>` не получает `CallerObjectId` ни при изменении проекта, ни при изменении только даты, длительности или комментария.
+- Контракт update при этом уже принимает `SystemUserId` из claim `oid`, поэтому технически identity доступна до построения Dataverse-запроса.
+
+Это подтверждает асимметрию существующей реализации, но само по себе не доказывает ошибку авторизации: итоговое поведение может зависеть от Dataverse plugin и внутренних правил CRM. До решения владельца API агенту нельзя предоставлять `prepare_update_timesheet` и исполнение update.
+
+Нужно получить явный ответ на три вопроса:
+
+1. Должен ли `CallerObjectId` передаваться в Dataverse update при любом наборе изменяемых полей?
+2. Является ли его текущее отсутствие недоработкой существующего API?
+3. Подтверждено ли, что для agent create/update/delete источником `SystemUserId` и `CallerObjectId` должен быть `AgentUserContext.EntraObjectId`?
+
+По решению владельца проекта от 29.09.2026 `CallerObjectId` был сначала добавлен только в существующий пользовательский `Timesheet.Update`. Ручная проверка в test прошла успешно, поэтому `AgentUserContext.EntraObjectId` принят как единый источник caller identity для будущих agent create/update/delete. Agent update остаётся заблокированным до появления общего prepare/confirm flow, проверки ownership и защиты от повторного исполнения.
+
+Первый слой agent update реализуется как отдельный `Timesheet.PrepareUpdate` application module, но пока не публикуется в Semantic Kernel. Модель в будущем должна передать `TimesheetId`, исходную дату и только изменяемые значения. Prepare повторно читает исходную запись через доверенный user context, проверяет `IsActive`, объединяет изменения с серверным snapshot и при смене проекта принимает только `ProjectId`; имя и CRM-тип разрешаются сервером. Пустое изменение отклоняется. Подключать tool разрешено только после реализации типизированного Table Storage payload, confirm/cancel и общего decision endpoint.
+
+Текущий `TimesheetUpdateIn` нормализует пустой/whitespace `Description` в `null`, а `null` означает «не изменять поле». Поэтому первая версия agent update может заменить непустой комментарий, но не может явно очистить его. Не следует вводить скрытое специальное значение на уровне prompt; поддержку очистки нужно отдельно добавить в основной API-контракт, если бизнес-сценарий требуется.
+
+Update action хранится в общей `TimesheetAgentAction` с обязательным `ActionType = UpdateTimesheet (2)`. Числовые значения discriminator зафиксированы явно: create `0`, delete `1`, update `2`; существующие строки остаются совместимыми. Update reader принимает только свой тип и полного владельца, а payload содержит доверенный `TimesheetId` и полный целевой snapshot, включая канонический проект.
+
+Semantic Kernel публикует update только как `prepare_update_timesheet`: функция принимает `TimesheetId`, исходную дату и необязательные новые значения, но не исполняет Dataverse update. Один общий capture запрещает подготовить более одного create/update/delete action за model turn. HTTP-ответ использует отдельное поле `PreparedUpdateAction`; оно не смешивается с create/delete preview. До появления confirm/cancel и Telegram UI API с этим tool нельзя разворачивать отдельно от согласованного набора компонентов, иначе бот не сможет показать кнопки для подготовленного update.
+
+Confirm/cancel update реализованы через тот же общий decision endpoint. Confirm повторно не принимает изменяемые поля: доверенный `AgentUserContext.EntraObjectId` используется как caller identity, а полный целевой snapshot берётся из update action. Исполнение вызывает `ITimesheetUpdateFunc` напрямую и использует те же ETag/state/TTL и `Indeterminate`-гарантии, что create/delete. Общий dispatcher пробует create → delete → update только по строгому `NotFound`. До добавления локализованного update preview в Telegram этот API-инкремент нельзя разворачивать отдельно от бота.
+
+Telegram UI для update использует отдельный `PreparedUpdateAction`, локализованный полный целевой preview и те же кнопки общего decision endpoint. Callback type `u` влияет только на текст ответа бота; security boundary остаётся в API и Action Table. API и бот готовы к совместному test deployment и ручной матрице update cancel/confirm.
+
+Ручная матрица update в test пройдена 30.09.2026: Cancel сохранил исходную запись без изменений, Confirm применил подготовленный целевой snapshot в Dataverse, в обеих ветках бот показал локализованный результат и удалил inline-клавиатуру. Полный create/delete/update write flow подтверждён сквозным тестом.
+
+Для agent delete недостаточно принять `TimesheetId` от модели и положиться только на callback ownership. Prepare обязан повторно разрешить запись через read-функцию с доверенным `AgentUserContext`, убедиться, что ID присутствует в доступном пользователю результате, и сохранить серверный preview в action. Произвольный ID из prompt не считается разрешённым. Существующий `Timesheet.Delete` выделен в переиспользуемую `UseTimesheetDeleteFunc`; confirm должен вызывать её напрямую, без self-HTTP.
+
+Подготовленное удаление хранится в существующей `TimesheetAgentAction`, а не в отдельной таблице. Строки различаются обязательным свойством `ActionType`; delete payload содержит доверенный `TimesheetId` и серверный snapshot. До первого production-релиза обратная совместимость с тестовыми rows без discriminator намеренно не поддерживается: оба reader принимают только свой явный тип. Переходы состояния используют общий ETag optimistic concurrency.
+
+Semantic Kernel write plugin публикует `prepare_delete_timesheet(timesheetId, date)`. Функция не выполняет удаление и не принимает identity; доверенный `AgentUserContext` замкнут внутри plugin instance. Модель должна сначала получить ID и дату через `get_timesheets`, после чего application layer повторно проверяет запись и возвращает отдельный `PreparedDeleteAction` в HTTP-ответе. Capture разрешает только одно подготовленное create или delete действие за ход.
+
+Confirm/cancel удаления подключены к тому же decision endpoint, что и создание. Endpoint сначала ищет типизированный create action и переходит к delete handler только при `NotFound`; каждый storage reader требует свой `ActionType`. Confirm вызывает общий `ITimesheetDeleteFunc` с `AgentUserContext.EntraObjectId` как caller identity и сохраняет финальное состояние через ETag. Cancel выполняет только `Pending → Cancelled`. Ни action payload, ни callback не позволяют клиенту заменить `TimesheetId` после prepare.
+
+Telegram-клиент получает отдельные `PreparedCreateAction` и `PreparedDeleteAction` и строит локализованный preview из серверного snapshot. Callback содержит тип только для выбора UI-текста; сервер не доверяет этому типу и разрешает action через обязательный storage `ActionType`. До первого production-релиза старые JSON-поля и callback без типа не поддерживаются.
+
+### Текущий confirm/cancel boundary
+
+Core-функции создания списания принимают для confirm/cancel только доверенный `AgentUserContext` и серверный `ActionId`. Они не принимают дату, проект, длительность, комментарий, `CallerObjectId` или Telegram identifiers как изменяемые аргументы. Action storage повторно сравнивает полного владельца, а переход состояния защищён ETag и ожидаемым `Pending`.
+
+Confirm переводит `Pending → Executing`, cancel — `Pending → Cancelled`, истёкшее действие — `Pending → Expired`. Эти функции ещё не подключены к внешнему endpoint.
+
+Execution boundary реализован в Core: `ITimesheetCreateFunc` получает `SystemUserId = AgentUserContext.EntraObjectId`, а остальные параметры — из action, уже прошедшего prepare и подтверждение. `Succeeded` устанавливается только после успешного результата. Известные бизнес-отказы становятся `Failed`; неизвестные ошибки, исключения и невозможность надёжно сохранить результат становятся `Indeterminate`. Для `Indeterminate` автоматический retry запрещён, так как текущий create не возвращает CRM ID и не принимает idempotency key.
+
+Реальный Confirm smoke 30.09.2026 подтвердил execution boundary: callback с `ActionId` выполнил сохранённый payload, Dataverse create вернул HTTP 204, action стал `Succeeded`. Отдельно обнаружена бизнес-дата: около полуночи `Europe/Moscow` агент считает локальную дату текущей, но Dataverse отвергает её как будущую, пока не сменился UTC-день. До согласования единого правила не маскировать это автоматическим сдвигом даты; пользователь должен видеть понятную бизнес-ошибку, а не общий retry.
+
+Внешняя граница confirm/cancel реализована одним endpoint `POST /internal/agent/actions/{actionId}/decision`. Она не является Semantic Kernel tool: решение поступает только из явного Telegram callback. Endpoint принимает `Confirm`/`Cancel`, повторно разрешает owner context и передаёт Core только доверенный контекст и `ActionId`. Write feature flag проверяется до любых зависимостей.
+
+При успешном `Confirm` endpoint возвращает дату выполненного действия и актуальные списания за эту дату. Дата берётся из сохранённого server-side action, а не из callback. Список читается через существующий `IAgentTimesheetSetGetFunc` с доверенным `AgentUserContext`. При `Cancel` чтение не выполняется. Ошибка дополнительного чтения не меняет успешный результат write: клиент получает `TimesheetsLoaded=false` и не должен повторять запись.
+
+### `Project.GetSet`
+
+Пользовательский ID применяется к истории списаний проектов, но запросы Incident, Opportunity и Lead выглядят общими. До выдачи полного набора модели необходимо интеграционно подтвердить, что SQL/API слой не раскрывает пользователю недоступные записи.
+
+### `Tag.GetSet`
+
+Функция фильтрует историю по Entra user и Project ID. Adapter не должен позволять модели использовать случайный ID, полученный из prompt; ID должен быть выбран из серверно разрешённого набора проектов либо повторно проверен.
+
+### Размеры результатов
+
+Для `top`, диапазона дат и строк поиска нужны серверные пределы независимо от аргументов модели. Это защищает CRM/SQL, prompt budget и Telegram response size.
+
+### Операции записи
+
+Ни одна write-функция не регистрируется в Kernel до появления:
+
+- immutable prepared action с владельцем и сроком жизни;
+- явного подтверждения того же Telegram-пользователя;
+- идемпотентного execution key;
+- атомарного состояния `Prepared -> Executing -> Succeeded/Failed/Unknown`;
+- проверки повторных сообщений и callback;
+- аудита безопасных параметров и результата.
+
+## Следующий технический инкремент
+
+Не подключая модель, создать read-only agent application layer в принятой структуре проекта. Начать с одной вертикали `GetTimesheets` либо `SearchProjects`:
+
+1. контракт tool-friendly аргументов без identity;
+2. adapter, получающий `AgentUserContext` отдельно;
+3. вызов существующей business-функции через `AsyncPipeline`;
+4. unit-тесты подстановки доверенного ID, лимитов и преобразования ошибок;
+5. никаких новых публичных endpoint и изменений Azure.
+
+После проверки шаблона распространить его на остальные read-only candidates и только затем подключать Semantic Kernel/Azure AI Foundry.
+
+## Реализованный шаблон read adapter
+
+Первая вертикаль реализована для `Timesheet.GetSet` в `src/service/Agent`:
+
+- tool-friendly вход содержит только `DateFrom` и `DateTo`;
+- Entra Object ID берётся из доверенного `AgentUserContext`;
+- adapter вызывает общую `ITimesheetSetGetFunc`, используемую также HTTP endpoint;
+- неправильный порядок дат отклоняется до бизнес-вызова;
+- диапазон ограничен option `MaxDateRangeInDays`, по умолчанию 31 день;
+- наружу возвращается отдельный минимальный agent DTO;
+- orchestration реализована через `AsyncPipeline`.
+
+Adapter зарегистрирован во внутренней dependency composition приложения, но пока не передан Semantic Kernel и не доступен через HTTP.
+
+Вторая вертикаль реализована для `Project.SearchSet`:
+
+- вход содержит поисковый текст и необязательный `top`;
+- `CallerObjectId` формируется из доверенного Entra Object ID, а не CRM primary key;
+- поисковый текст обрезается по краям, пустое значение отклоняется;
+- максимальная длина текста по умолчанию — 100 символов;
+- `top` по умолчанию равен 10, допустимый максимум — 20;
+- `Forbidden` сохраняется как отдельный безопасный код ошибки;
+- результат преобразуется в общий компактный `AgentProjectItem`.
+
+Пределы вынесены в `AgentProjectSetSearchOption` и связаны с секцией `Agent:Tools:Project` в `appsettings.json`.
+
+Третья вертикаль реализована для `Project.GetLastSet`:
+
+- вход содержит только необязательный `top`;
+- Entra Object ID подставляется из доверенного `AgentUserContext`;
+- `top` по умолчанию равен 10, допустимый максимум — 20;
+- результат использует общий `AgentProjectItem` и сохраняет комментарий проекта;
+- adapter вызывает общую `ILastProjectSetGetFunc`, используемую HTTP endpoint.
+
+Пределы вынесены в `AgentLastProjectSetGetOption` и связаны с секцией `Agent:Tools:Project` в `appsettings.json`.
+
+Четвёртая вертикаль реализована для `Period.GetSet`:
+
+- tool не принимает пользовательские аргументы;
+- вызов разрешён только после формирования `AgentUserContext`, хотя существующей бизнес-функции identity не требуется;
+- результат преобразуется в компактные `AgentPeriodItem` с названием и границами периода;
+- adapter вызывает общую `IPeriodSetGetFunc`, используемую HTTP endpoint;
+- инфраструктурные ошибки преобразуются в безопасный `Unknown`.
+
+Пятая вертикаль реализована для `Tag.GetSet`:
+
+- вход содержит только Project ID;
+- Entra Object ID подставляется из доверенного `AgentUserContext`;
+- пустой Project ID отклоняется до вызова бизнес-функции;
+- количество тегов ограничено `AgentTagSetGetOption.MaxTags`, по умолчанию 20;
+- adapter вызывает общую `ITagSetGetFunc`, используемую HTTP endpoint.
+
+Сам adapter подтверждает изоляцию истории тегов по Entra user, но не доказывает, что Project ID был выбран из разрешённого набора. Будущий message orchestration должен передавать сюда ID из результата `SearchProjects`/`GetRecentProjects` либо выполнять отдельную проверку проекта.
+
+Все пять разрешённых read adapters собраны в `App.Agent.Tools.cs`. Их лимиты читаются из общей секции `Agent:Tools`; существующие HTTP endpoint продолжают использовать прежние business-функции и собственные настройки. Semantic Kernel пока не подключён, поэтому эти зависимости ещё не доступны модели.
+
+## Реализованный Semantic Kernel read plugin
+
+В `src/service/Agent/Core/Plugin.Read` добавлен native plugin `TimesheetRead` на Semantic Kernel 1.80.0. Он содержит ровно пять функций из утверждённого allowlist:
+
+1. `get_timesheets`;
+2. `search_projects`;
+3. `get_recent_projects`;
+4. `get_periods`;
+5. `get_project_tags`.
+
+Plugin создаётся для одного доверенного `AgentUserContext`; identity не входит в схемы аргументов функций. Результат каждой функции имеет единый безопасный формат `IsSuccess`, `Data`, `ErrorCode`. Текст и исходное исключение инфраструктурной ошибки модели не возвращаются.
+
+`Profile.Get`, `Subscription.GetSet`, уведомления, account flow и write-функции в plugin отсутствуют. Plugin пока не добавлен в рабочий Kernel и не вызывается через HTTP — это следующий отдельный инкремент.
+
+Фабрика `AgentKernelFactory` создаёт отдельный Kernel для переданного `AgentUserContext`, подключает новый Microsoft Foundry project endpoint через OpenAI v1 connector и регистрирует только `TimesheetRead`. Connector использует `ProjectEndpoint`, `ModelId` и `TokenScope`; путь `/openai/v1/` добавляется фабрикой. `AgentFoundryOption` и зарегистрированный на уровне host стандартный `TokenCredential` передаются в фабрику через `Pipeline/Dependency`. API key не используется: локально credential использует `az login`, в Azure — Managed Identity. Создание Kernel не выполняет сетевой запрос; обращение к Foundry начнётся только на этапе message orchestration.
+
+`AgentMessageFunc` выполняет один read-only ход: создаёт Kernel для доверенного `AgentUserContext`, добавляет системную инструкцию с актуальной датой и часовым поясом, восстанавливает ограниченную серверную историю ролей `User`/`Assistant` и вызывает chat completion с автоматическим выбором функций. `AgentConversationMessageFunc` загружает и сохраняет эту историю в Azure Table по доверенному owner с ETag optimistic concurrency; Telegram-клиент историю не передаёт. Исключения Foundry наружу не передаются.
+
+Параметры дат `get_timesheets` публикуются в schema Semantic Kernel как строки `yyyy-MM-dd`. Plugin
+явно разбирает их через invariant `DateOnly.TryParseExact` и только после этого вызывает типизированный
+`IAgentTimesheetSetGetFunc`. Это необходимо, потому что стандартный Kernel binder не преобразует
+JSON-строку непосредственно в `System.DateOnly`. Ошибка формата возвращается модели как безопасный
+`InvalidDateFormat` и не доходит до CRM/SQL-функции.
+
+Над ним добавлен `AgentConversationMessageFunc`. Он получает историю через `IAgentConversationStore` по полному доверенному `AgentUserContext`, вызывает `AgentMessageFunc` и дописывает user/assistant пару с ожидаемой версией диалога. Контракт storage предусматривает optimistic concurrency; конкретный Azure provider будет реализован отдельно вместе с решением по ресурсам и deployment-конфигурации.
+
+`AgentConversationTableStore` реализует этот контракт через Azure Table Storage без connection string. Ограниченный массив сообщений записывается целиком с ETag, поэтому конкурентное изменение не перетирается. Приложение не создаёт таблицу автоматически и не выдаёт себе Azure RBAC; эти действия выполняются отдельно перед интеграционной проверкой.

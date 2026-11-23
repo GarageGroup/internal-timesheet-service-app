@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Security.Cryptography;
-using System.Text;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,7 +13,7 @@ partial class UserSignInFunc
         AsyncPipeline.Pipe(
             input, cancellationToken)
         .Pipe(
-            ParseTelegramDataOrFailure)
+            MapTelegramDataOrFailure)
         .ForwardValue(
             InnerInvokeAsync);
 
@@ -28,20 +26,66 @@ partial class UserSignInFunc
             GetSystemUserAsync,
             GetBotInfoAsync)
         .MapSuccess(
-            @out => UserJson.BuildDataverseInput(
-                systemUserId: input.SystemUserId,
-                botId: @out.Item2.Id,
+            @out => new SignInContext
+            {
+                User = input,
+                SystemUser = @out.Item1,
+                Bot = @out.Item2
+            })
+        .ForwardValue(
+            EnsureBindingAvailableAsync)
+        .MapSuccess(
+            static context => UserJson.BuildDataverseInput(
+                systemUserId: context.User.SystemUserId,
+                botId: context.Bot.Id,
                 user: new()
                 {
-                    BotId = @out.Item2.Id,
-                    BotName = $"{@out.Item2.Username} - {@out.Item1.FullName}",
-                    ChatId = input.ChatId,
-                    UserLookupValue = UserJson.BuildUserLookupValue(input.SystemUserId),
+                    BotId = context.Bot.Id,
+                    BotName = $"{context.Bot.Username} - {context.SystemUser.FullName}",
+                    ChatId = context.User.ChatId,
+                    UserLookupValue = UserJson.BuildUserLookupValue(context.User.SystemUserId),
                     IsSignedOut = false
                 }))
         .ForwardValue(
             dataverseApi.UpdateEntityAsync,
             static failure => failure.WithFailureCode(UserSignInFailureCode.Unknown));
+
+    private ValueTask<Result<SignInContext, Failure<UserSignInFailureCode>>> EnsureBindingAvailableAsync(
+        SignInContext context,
+        CancellationToken cancellationToken)
+        =>
+        AsyncPipeline.Pipe(
+            UserBindingJson.BuildDataverseInput(context.Bot.Id, context.User.ChatId),
+            cancellationToken)
+        .PipeValue(
+            dataverseApi.GetEntitySetAsync<UserBindingJson>)
+        .Map(
+            @out => ValidateBindings(context, @out.Value),
+            static failure => failure.WithFailureCode(UserSignInFailureCode.Unknown))
+        .Forward(
+            static result => result);
+
+    private static Result<SignInContext, Failure<UserSignInFailureCode>> ValidateBindings(
+        SignInContext context,
+        FlatArray<UserBindingJson> bindings)
+    {
+        var bindingArray = bindings.AsEnumerable().Take(2).ToArray();
+        if (bindingArray.Length > 1)
+        {
+            return Failure.Create(
+                UserSignInFailureCode.TelegramUserAlreadyLinked,
+                "Several active Telegram user bindings were found");
+        }
+
+        if (bindingArray is [{ CrmSystemUserId: var crmSystemUserId }] && crmSystemUserId != context.User.SystemUserId)
+        {
+            return Failure.Create(
+                UserSignInFailureCode.TelegramUserAlreadyLinked,
+                "Telegram user is already linked to another system user");
+        }
+
+        return context;
+    }
 
     private ValueTask<Result<SystemUserJson, Failure<UserSignInFailureCode>>> GetSystemUserAsync(
         UserChatId input, CancellationToken cancellationToken)
@@ -66,53 +110,12 @@ partial class UserSignInFunc
         .MapFailure(
             static failure => failure.WithFailureCode(UserSignInFailureCode.Unknown));
 
-    private Result<UserChatId, Failure<UserSignInFailureCode>> ParseTelegramDataOrFailure(UserSignInIn input)
-    {
-        var dataArray = Uri.UnescapeDataString(input.TelegramData).Split('&');
-        var hash = string.Empty;
-
-        var filteredData = new List<string>(dataArray.Length);
-        foreach (var data in dataArray)
-        {
-            if (data.StartsWith(HashParameterName, StringComparison.InvariantCultureIgnoreCase))
+    private Result<UserChatId, Failure<UserSignInFailureCode>> MapTelegramDataOrFailure(UserSignInIn input)
+        =>
+        telegramDataValidator.Validate(input.TelegramData).MapSuccess(
+            chatId => new UserChatId
             {
-                hash = data[HashParameterName.Length..];
-            }
-            else
-            {
-                filteredData.Add(data);
-            }
-        }
-
-        if (string.IsNullOrEmpty(hash))
-        {
-            return Failure.Create(UserSignInFailureCode.InvalidTelegramData, "Invalid telegram data");
-        }
-
-        filteredData.Sort();
-
-        using var hashAlgorithmWebAppData = new HMACSHA256(Encoding.UTF8.GetBytes(TelegramWebAppData));
-        var secretKey = hashAlgorithmWebAppData.ComputeHash(Encoding.UTF8.GetBytes(option.BotToken));
-
-        using var hashAlgorithmSecretKey = new HMACSHA256(secretKey);
-        var dataBytes = Encoding.UTF8.GetBytes(string.Join("\n", filteredData));
-
-        var expectedHash = BitConverter.ToString(hashAlgorithmSecretKey.ComputeHash(dataBytes)).Replace("-", string.Empty).ToLowerInvariant();
-        if (string.Equals(expectedHash, hash, StringComparison.Ordinal) is false)
-        {
-            return Failure.Create(UserSignInFailureCode.InvalidTelegramData, "Invalid hash");
-        }
-
-        var match = UserIdRegex.Match(filteredData[^1]);
-        if (match.Success is false || long.TryParse(match.Groups[1].Value, out var chatId) is false)
-        {
-            return Failure.Create(UserSignInFailureCode.InvalidTelegramData, "Invalid id");
-        }
-
-        return new UserChatId
-        {
-            ChatId = chatId,
-            SystemUserId = input.SystemUserId
-        };
-    }
+                ChatId = chatId,
+                SystemUserId = input.SystemUserId
+            });
 }

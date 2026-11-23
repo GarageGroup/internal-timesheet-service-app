@@ -19,6 +19,7 @@
   <ItemGroup>
     <PackageReference Include="GarageGroup.Core.AsyncPipeline.Extensions" Version="0.4.1" />
     <PackageReference Include="GarageGroup.Infra.Dataverse.Api.Abstractions" Version="3.17.2" />
+    <PackageReference Include="GarageGroup.Infra.Dataverse.Api.Filter" Version="1.0.0" />
     <PackageReference Include="PrimeFuncPack.Dependency.Core" Version="2.2.0" />
   </ItemGroup>
 

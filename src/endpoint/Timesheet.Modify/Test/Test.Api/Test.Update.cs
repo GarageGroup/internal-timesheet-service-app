@@ -194,10 +194,11 @@ partial class TimesheetModifyApiTest
         var api = new TimesheetModifyApi(mockDataverseApi.Object);
 
         _ = await api.UpdateAsync(input, TestContext.Current.CancellationToken);
+        var expectedInput = expected with { CallerObjectId = input.SystemUserId };
 
         mockDataverseApi.Verify(
             a => a.UpdateEntityAsync(
-                It.Is<DataverseEntityUpdateIn<TimesheetJson>>(@in => AreEqual(expected, @in)), It.IsAny<CancellationToken>()),
+                It.Is<DataverseEntityUpdateIn<TimesheetJson>>(@in => AreEqual(expectedInput, @in)), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -210,10 +211,11 @@ partial class TimesheetModifyApiTest
         var api = new TimesheetModifyApi(mockDataverseApi.Object);
 
         _ = await api.UpdateAsync(input, TestContext.Current.CancellationToken);
+        var expectedInput = expected with { CallerObjectId = input.SystemUserId };
 
         mockDataverseApi.Verify(
             a => a.UpdateEntityAsync(
-                It.Is<DataverseEntityUpdateIn<TimesheetJson>>(@in => AreEqual(expected, @in)), It.IsAny<CancellationToken>()),
+                It.Is<DataverseEntityUpdateIn<TimesheetJson>>(@in => AreEqual(expectedInput, @in)), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -226,10 +228,11 @@ partial class TimesheetModifyApiTest
         var api = new TimesheetModifyApi(mockDataverseApi.Object);
 
         _ = await api.UpdateAsync(input, TestContext.Current.CancellationToken);
+        var expectedInput = expected with { CallerObjectId = input.SystemUserId };
 
         mockDataverseApi.Verify(
             a => a.UpdateEntityAsync(
-                It.Is<DataverseEntityUpdateIn<TimesheetJson>>(@in => AreEqual(expected, @in)), It.IsAny<CancellationToken>()),
+                It.Is<DataverseEntityUpdateIn<TimesheetJson>>(@in => AreEqual(expectedInput, @in)), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -242,10 +245,11 @@ partial class TimesheetModifyApiTest
         var api = new TimesheetModifyApi(mockDataverseApi.Object);
 
         _ = await api.UpdateAsync(input, TestContext.Current.CancellationToken);
+        var expectedInput = expected with { CallerObjectId = input.SystemUserId };
 
         mockDataverseApi.Verify(
             a => a.UpdateEntityAsync(
-                It.Is<DataverseEntityUpdateIn<TimesheetJson>>(@in => AreEqual(expected, @in)), It.IsAny<CancellationToken>()),
+                It.Is<DataverseEntityUpdateIn<TimesheetJson>>(@in => AreEqual(expectedInput, @in)), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

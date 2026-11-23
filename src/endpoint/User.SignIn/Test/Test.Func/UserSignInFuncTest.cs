@@ -7,11 +7,6 @@ namespace GarageGroup.Internal.Timesheet.Endpoint.User.SignIn.Test;
 
 public static partial class UserSignInFuncTest
 {
-    private static readonly UserSignInOption SomeOption
-        =
-        new(
-            botToken: "1234567890:QWG2gaQTcv14ttw1wqrEgqw1wQqTQx5QWeR");
-
     private static readonly UserSignInIn SomeInput
         =
         new(
@@ -47,8 +42,20 @@ public static partial class UserSignInFuncTest
             static a => a.UpdateEntityAsync(It.IsAny<DataverseEntityUpdateIn<UserJson>>(), It.IsAny<CancellationToken>()))
         .ReturnsAsync(upsertResult);
 
+        _ = mock.Setup(
+            static a => a.GetEntitySetAsync<UserBindingJson>(It.IsAny<DataverseEntitySetGetIn>(), It.IsAny<CancellationToken>()))
+        .ReturnsAsync(new DataverseEntitySetGetOut<UserBindingJson>(default));
+
         return mock;
     }
+
+    private static void SetupBindings(
+        Mock<IDataverseApiClient> mock,
+        in Result<DataverseEntitySetGetOut<UserBindingJson>, Failure<DataverseFailureCode>> result)
+        =>
+        mock.Setup(
+            static a => a.GetEntitySetAsync<UserBindingJson>(It.IsAny<DataverseEntitySetGetIn>(), It.IsAny<CancellationToken>()))
+        .ReturnsAsync(result);
 
     private static Mock<IBotInfoGetSupplier> BuildMockBotApi(
         in Result<BotInfoGetOut, Failure<Unit>> result)
@@ -59,6 +66,14 @@ public static partial class UserSignInFuncTest
             static a => a.GetBotInfoAsync(It.IsAny<Unit>(), It.IsAny<CancellationToken>()))
         .ReturnsAsync(result);
 
+        return mock;
+    }
+
+    private static Mock<ITelegramWebAppDataValidator> BuildMockTelegramDataValidator(
+        in Result<long, Failure<UserSignInFailureCode>> result)
+    {
+        var mock = new Mock<ITelegramWebAppDataValidator>();
+        _ = mock.Setup(static a => a.Validate(It.IsAny<string>())).Returns(result);
         return mock;
     }
 }

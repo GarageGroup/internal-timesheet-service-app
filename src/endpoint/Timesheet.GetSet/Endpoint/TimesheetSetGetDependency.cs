@@ -9,12 +9,13 @@ namespace GarageGroup.Internal.Timesheet;
 
 public static class TimesheetSetGetDependency
 {
-    public static Dependency<TimesheetSetGetEndpoint> UseTimesheetSetGetEndpoint<TSqlApi>(
+    public static Dependency<ITimesheetSetGetFunc> UseTimesheetSetGetFunc<TSqlApi>(
         this Dependency<TSqlApi> dependency)
         where TSqlApi : ISqlQueryEntitySetSupplier
     {
         ArgumentNullException.ThrowIfNull(dependency);
-        return dependency.Map(CreateFunc).Map(TimesheetSetGetEndpoint.Resolve);
+
+        return dependency.Map<ITimesheetSetGetFunc>(CreateFunc);
 
         static TimesheetSetGetFunc CreateFunc(TSqlApi sqlApi)
         {
@@ -22,5 +23,14 @@ public static class TimesheetSetGetDependency
 
             return new(sqlApi);
         }
+    }
+
+    public static Dependency<TimesheetSetGetEndpoint> UseTimesheetSetGetEndpoint<TSqlApi>(
+        this Dependency<TSqlApi> dependency)
+        where TSqlApi : ISqlQueryEntitySetSupplier
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return dependency.UseTimesheetSetGetFunc().Map(TimesheetSetGetEndpoint.Resolve);
     }
 }

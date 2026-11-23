@@ -1,0 +1,81 @@
+using System;
+using GarageGroup.Infra;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using PrimeFuncPack;
+
+namespace GarageGroup.Internal.Timesheet;
+
+partial class Application
+{
+    [EndpointApplicationExtension]
+    internal static Dependency<AgentActionDecideEndpoint> UseAgentActionDecideEndpoint()
+        =>
+        Pipeline.Pipe(
+            UseSqlApi())
+        .UseAgentUserContextResolver()
+        .With(
+            UseAgentTimesheetCreateConfirmFunc())
+        .With(
+            UseAgentTimesheetCreateCancelFunc())
+        .With(
+            UseAgentTimesheetDeleteConfirmFunc())
+        .With(
+            UseAgentTimesheetDeleteCancelFunc())
+        .With(
+            UseAgentTimesheetUpdateConfirmFunc())
+        .With(
+            UseAgentTimesheetUpdateCancelFunc())
+        .With(
+            UseAgentActionDecideContext())
+        .UseAgentActionDecideEndpoint();
+
+    private static Dependency<AgentActionDecideContext> UseAgentActionDecideContext()
+        =>
+        Pipeline.Pipe(
+            UseAgentTimesheetSetGetFunc())
+        .With(
+            ResolveAgentActionDecideOption)
+        .Fold(
+            static (timesheetSetGetFunc, option) => new AgentActionDecideContext(timesheetSetGetFunc, option));
+
+    private static Dependency<IAgentTimesheetCreateConfirmFunc> UseAgentTimesheetCreateConfirmFunc()
+        =>
+        Pipeline.Pipe(
+            UseAgentActionStore())
+        .With(
+            UseDataverseApi().UseTimesheetCreateFunc())
+        .UseAgentTimesheetCreateConfirmFunc();
+
+    private static Dependency<IAgentTimesheetCreateCancelFunc> UseAgentTimesheetCreateCancelFunc()
+        =>
+        UseAgentActionStore().UseAgentTimesheetCreateCancelFunc();
+
+    private static Dependency<IAgentTimesheetDeleteConfirmFunc> UseAgentTimesheetDeleteConfirmFunc()
+        =>
+        Pipeline.Pipe(
+            UseAgentTimesheetDeleteActionStore())
+        .With(
+            UseDataverseApi().UseTimesheetDeleteFunc())
+        .UseAgentTimesheetDeleteConfirmFunc();
+
+    private static Dependency<IAgentTimesheetDeleteCancelFunc> UseAgentTimesheetDeleteCancelFunc()
+        =>
+        UseAgentTimesheetDeleteActionStore().UseAgentTimesheetDeleteCancelFunc();
+
+    private static Dependency<IAgentTimesheetUpdateConfirmFunc> UseAgentTimesheetUpdateConfirmFunc()
+        =>
+        Pipeline.Pipe(
+            UseAgentTimesheetUpdateActionStore())
+        .With(
+            UseDataverseApi().UseTimesheetUpdateFunc())
+        .UseAgentTimesheetUpdateConfirmFunc();
+
+    private static Dependency<IAgentTimesheetUpdateCancelFunc> UseAgentTimesheetUpdateCancelFunc()
+        =>
+        UseAgentTimesheetUpdateActionStore().UseAgentTimesheetUpdateCancelFunc();
+
+    private static AgentActionDecideOption ResolveAgentActionDecideOption(IServiceProvider serviceProvider)
+        =>
+        new(serviceProvider.GetConfiguration().GetValue<bool>("Agent:WritePreparation:Enabled"));
+}

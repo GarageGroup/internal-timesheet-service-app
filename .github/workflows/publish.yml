@@ -1,0 +1,194 @@
+name: Publish Release
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore
+        run: dotnet restore Internal.Timesheet.Service.slnx
+      - name: Build
+        run: dotnet build Internal.Timesheet.Service.slnx --no-restore --configuration Release
+      - name: Test
+        run: dotnet test Internal.Timesheet.Service.slnx --no-build --no-restore --configuration Release
+      - name: Publish application
+        run: dotnet publish src/app/Application/Application.csproj --configuration Release --runtime linux-x64 --self-contained false --output '${{ github.workspace }}/publish'
+      - name: Resolve release information
+        id: release
+        run: |
+          echo "version=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          echo "datetime=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+      - name: Set artifact version metadata
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          BUILD_DATETIME: ${{ steps.release.outputs.datetime }}
+        run: |
+          jq --arg version "$VERSION" --arg date "$BUILD_DATETIME" \
+            '.Info.ApiVersion = $version | .Info.BuildDateTime = $date' \
+            ./publish/appsettings.json > ./publish/appsettings.tmp.json
+          mv ./publish/appsettings.tmp.json ./publish/appsettings.json
+      - name: Archive publish folder
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          ARTIFACT_NAME: ${{ vars.AZURE_ARTIFACT_NAME }}
+        run: cd ./publish && zip -r "${ARTIFACT_NAME}-${VERSION}.zip" ./
+      - name: Upload artifact to Azure Blob Storage
+        uses: azure/cli@v3
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          ARTIFACT_NAME: ${{ vars.AZURE_ARTIFACT_NAME }}
+          ARTIFACT_CONTAINER: ${{ vars.AZURE_ARTIFACT_CONTAINER_NAME }}
+          ARTIFACT_ACCOUNT: ${{ vars.AZURE_ARTIFACT_ACCOUNT_NAME }}
+          ARTIFACT_ACCOUNT_KEY: ${{ secrets.AZURE_ACCOUNT_KEY_ARTIFACT }}
+        with:
+          inlineScript: |
+            az storage blob upload \
+              --container-name "$ARTIFACT_CONTAINER" \
+              --file "./publish/${ARTIFACT_NAME}-${VERSION}.zip" \
+              --name "${ARTIFACT_NAME}-${VERSION}.zip" \
+              --account-name "$ARTIFACT_ACCOUNT" \
+              --account-key "$ARTIFACT_ACCOUNT_KEY" \
+              --overwrite true \
+              --only-show-errors
+
+  deploy-to-test:
+    needs: publish
+    runs-on: ubuntu-latest
+    environment: Test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Download release artifact from Azure Blob Storage
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+          ARTIFACT_NAME: ${{ vars.AZURE_ARTIFACT_NAME }}
+          ARTIFACT_CONTAINER: ${{ vars.AZURE_ARTIFACT_CONTAINER_NAME }}
+          ARTIFACT_ACCOUNT: ${{ vars.AZURE_ARTIFACT_ACCOUNT_NAME }}
+          ARTIFACT_ACCOUNT_KEY: ${{ secrets.AZURE_ACCOUNT_KEY_ARTIFACT }}
+        run: |
+          mkdir -p ./publish
+          az storage blob download \
+            --name "${ARTIFACT_NAME}-${VERSION}.zip" \
+            --file "./publish/${ARTIFACT_NAME}-${VERSION}.zip" \
+            --account-name "$ARTIFACT_ACCOUNT" \
+            --container-name "$ARTIFACT_CONTAINER" \
+            --account-key "$ARTIFACT_ACCOUNT_KEY" \
+            --only-show-errors
+      - name: Log in to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.DEPLOY_CLIENT_ID }}
+          tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
+          subscription-id: ${{ vars.DEPLOY_SUBSCRIPTION_ID }}
+      - name: Deploy release artifact to Test
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.WEB_APP_NAME }}
+          package: ./publish/${{ vars.AZURE_ARTIFACT_NAME }}-${{ github.event.release.tag_name }}.zip
+      - name: Record deployment time
+        uses: azure/cli@v3
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
+          WEB_APP: ${{ vars.WEB_APP_NAME }}
+        with:
+          inlineScript: az webapp config appsettings set --resource-group "$RESOURCE_GROUP" --name "$WEB_APP" --settings "Info__DeployDateTime=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" --output none --only-show-errors
+      - name: Azure logout
+        if: ${{ always() }}
+        uses: azure/cli@v3
+        with:
+          inlineScript: az logout
+
+  ping-test:
+    needs: deploy-to-test
+    runs-on: ubuntu-latest
+    environment: Test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Log in to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.DEPLOY_CLIENT_ID }}
+          tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
+          subscription-id: ${{ vars.APIM_SUBSCRIPTION_ID }}
+      - name: Resolve health APIM subscription key
+        id: health
+        uses: azure/cli@v3
+        env:
+          APIM_SUBSCRIPTION_ID: ${{ vars.APIM_SUBSCRIPTION_ID }}
+          APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
+          APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
+          APIM_SUBSCRIPTION_NAME: TimesheetHealthSubscription
+        with:
+          inlineScript: bash .infra/scripts/get-apim-subscription-key.sh
+      - name: Ping Test health endpoint
+        uses: GarageGroup/platform-ping-app@v0.1.0
+        with:
+          health_check_url: https://${{ vars.TEST_APIM_DNS }}/health/${{ vars.APIM_HEALTH_NAME }}?subscription-key=${{ steps.health.outputs.key }}
+          contains: ${{ github.event.release.tag_name }}
+          is_end_of_line_match: true
+          retry_delay_in_seconds: 15
+          max_attempts: 30
+
+  update-swagger-test:
+    needs: ping-test
+    runs-on: ubuntu-latest
+    environment: Test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Log in to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.DEPLOY_CLIENT_ID }}
+          tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
+          subscription-id: ${{ vars.APIM_SUBSCRIPTION_ID }}
+      - name: Resolve Swagger APIM subscription key
+        id: swagger
+        uses: azure/cli@v3
+        env:
+          APIM_SUBSCRIPTION_ID: ${{ vars.APIM_SUBSCRIPTION_ID }}
+          APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
+          APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
+          APIM_SUBSCRIPTION_NAME: TimesheetSwaggerSubscription
+        with:
+          inlineScript: bash .infra/scripts/get-apim-subscription-key.sh
+      - name: Update API Management specification
+        env:
+          APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
+          APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
+          APIM_WEB_API_ID: ${{ vars.APIM_WEB_API_ID }}
+          APIM_WEB_API_PATH: ${{ vars.APIM_WEB_API_PATH }}
+          APIM_SWAGGER_NAME: ${{ vars.APIM_SWAGGER_NAME }}
+          TEST_APIM_DNS: ${{ vars.TEST_APIM_DNS }}
+          TEST_APIM_SUBKEY: ${{ steps.swagger.outputs.key }}
+          WEB_APP_NAME: ${{ vars.WEB_APP_NAME }}
+        run: |
+          az apim api import \
+            --resource-group "$APIM_RESOURCE_GROUP" \
+            --service-name "$APIM_SERVICE_NAME" \
+            --api-id "$APIM_WEB_API_ID" \
+            --path "$APIM_WEB_API_PATH" \
+            --service-url "https://${WEB_APP_NAME}.azurewebsites.net/" \
+            --subscription-required false \
+            --specification-format OpenApi \
+            --specification-url "https://${TEST_APIM_DNS}/swagger/${APIM_SWAGGER_NAME}/swagger.json?subscription-key=${TEST_APIM_SUBKEY}" \
+            --only-show-errors
+      - name: Azure logout
+        if: ${{ always() }}
+        uses: azure/cli@v3
+        with:
+          inlineScript: az logout

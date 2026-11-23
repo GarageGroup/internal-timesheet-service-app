@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <NoWarn>$(NoWarn);IDE0130;CA1859</NoWarn>
+    <RootNamespace>GarageGroup.Internal.Timesheet</RootNamespace>
+    <AssemblyName>GarageGroup.Internal.Timesheet.Service.Agent.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Contract\Contract.csproj" />
+    <ProjectReference Include="..\..\Agent.Storage.Table\Contract\Contract.csproj" />
+    <ProjectReference Include="..\..\..\endpoint\Period.GetSet\Contract\Contract.csproj" />
+    <ProjectReference Include="..\..\..\endpoint\Project.GetLastSet\Contract\Contract.csproj" />
+    <ProjectReference Include="..\..\..\endpoint\Project.GetSet\Contract\Contract.csproj" />
+    <ProjectReference Include="..\..\..\endpoint\Project.SearchSet\Contract\Contract.csproj" />
+    <ProjectReference Include="..\..\..\endpoint\Tag.GetSet\Contract\Contract.csproj" />
+    <ProjectReference Include="..\..\..\endpoint\Timesheet.Delete\Contract\Contract.csproj" />
+    <ProjectReference Include="..\..\..\endpoint\Timesheet.GetSet\Contract\Contract.csproj" />
+    <ProjectReference Include="..\..\..\endpoint\Timesheet.Modify\Contract\Contract.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Core" Version="1.63.0" />
+    <PackageReference Include="EarlyFuncPack.Core.AsyncPipeline" Version="0.3.0" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.80.1" />
+    <PackageReference Include="OpenAI" Version="2.14.0" />
+    <PackageReference Include="PrimeFuncPack.Dependency.Core" Version="2.2.0" />
+  </ItemGroup>
+
+</Project>

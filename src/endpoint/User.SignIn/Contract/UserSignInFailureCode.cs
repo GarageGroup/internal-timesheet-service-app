@@ -12,5 +12,8 @@ public enum UserSignInFailureCode
     SystemUserNotFound,
 
     [Problem(FailureStatusCode.BadRequest, FailureCode.InvalidTelegramDataMessage)]
-    InvalidTelegramData
+    InvalidTelegramData,
+
+    [Problem(FailureStatusCode.Conflict, FailureCode.TelegramUserAlreadyLinkedMessage)]
+    TelegramUserAlreadyLinked
 }

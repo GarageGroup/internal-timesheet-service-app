@@ -1,0 +1,14 @@
+using System;
+
+namespace GarageGroup.Internal.Timesheet;
+
+internal sealed class DateProvider(TimeZoneInfo timeZone) : IDateProvider
+{
+    public DateTimeOffset UtcNow
+        =>
+        DateTimeOffset.UtcNow;
+
+    public DateOnly Today
+        =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(UtcNow, timeZone).DateTime);
+}
