@@ -823,3 +823,22 @@ Release publish и ZIP были собраны под `net10.0` / `linux-x64`, �
 Для Test опубликован ZIP из бота `f9406b9` с указанным исправлением и временным возвратом `AgentAccessTokenHandler` к прежней system-assigned MI, пока новый install не выполнен. Перед отправкой проверены структура ZIP с `/` в путях, наличие `.azurefunctions`, `host.json`, `functions.metadata`, `worker.config.json` и отсутствие `local.settings.json`. Временный ZIP: `%TEMP%/timesheet-bot-net10-fixed-deploy.zip`. В `func-internal-gtimesheet-test` через ARM PATCH изменён только `siteConfig.linuxFxVersion` с `DOTNET-ISOLATED|8.0` на `DOTNET-ISOLATED|10.0`; затем выполнен Azure CLI ZIP deployment `5f71ba08-4e7e-42ff-bf7a-9cc4d62640ec` со статусом 4/active и restart. Проверка: Function App `Running`, видны `HandleBotEntity`, `HandleBotHttp`, `HealthCheck`; `/health` с ключом функции вернул HTTP 200 и `Status: Healthy`. Без ключа HTTP 401 ожидаем из-за `authLevel: Function`. Значения секретов в документацию не записывались.
 
 Откат при необходимости: вернуть сохранённый рабочий ZIP `%TEMP%/timesheet-bot-html-safe-09f830ed175a46dd869e007451f4eee5/bot.zip`, установить `DOTNET-ISOLATED|8.0` и перезапустить Function App. Новый формат списка теперь присутствует в развёрнутом коде, но полный Telegram smoke test и новая UAMI-авторизация отдельно не проверялись. Production, API, APIM, identities, app settings и RBAC в этом шаге не изменялись.
+
+## Test: первый API install от 23.11.2026
+
+Запуск [45185929293](https://github.com/GarageGroup/internal-timesheet-service-app/actions/runs/45185929293)
+на `main` остановился на Bicep-развёртывании в подписке
+`73a6f94e-bfb4-4926-a9dd-09228d53a2a5`, RG `rg-garage-timesheet-test`.
+`RoleAssignmentExists` возник на существующих назначениях API Managed Identity роли
+`Storage Table Data Contributor` для `stinternalgtimesheettest` и `Cognitive Services User`
+для `ai-timesheet-test`: Bicep попытался создать те же назначения под новыми GUID.
+`RequestConflict` возник у Foundry project и deployment `gpt-5-mini` из-за одновременных
+операций над родительским Foundry account.
+
+Часть операций ARM завершилась успешно, включая Web App, две таблицы, агентскую UAMI и
+deployment `whisper`; точный diff настроек этих ресурсов не установлен. Настройка Entra,
+Dataverse и APIM, а также публикация кода не запускались. Удалений ресурсов не выполнялось.
+В ветке `feature/fix-api-install` подготовлено исправление: назначения ролей проверяются и
+создаются install-скриптом только при отсутствии, а Foundry project и deployments сериализованы
+в Bicep. Это изменение кода и CI/CD пока не развернуто; повторный запуск install выполняет
+владелец после ревью и переноса исправления в `main`. Production не менялся.

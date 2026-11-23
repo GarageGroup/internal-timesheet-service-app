@@ -222,7 +222,7 @@ echo 'GitHub OIDC, Azure RBAC и Microsoft Graph permissions настроены.
 6. выполняет tenant-wide Admin Consent для этих Microsoft Graph permissions.
 
 Роль `Role Based Access Control Administrator` нужна не для повседневного доступа к данным, а для
-создания Bicep role assignments: доступ Managed Identity API к Storage Tables и Azure AI Foundry.
+назначения Managed Identity API ролей на Storage Account и Azure AI Foundry во время `install.yml`.
 
 Для Prod администратор повторяет ту же команду, заменяя:
 
@@ -361,8 +361,12 @@ az group show --name rg-garage-timesheet-test --query location --output tsv
 account уже существует, install-скрипт сохраняет его фактическую локацию и не требует её совпадения с
 `FOUNDRY_LOCATION`.
 
-RBAC assignments больше не управляются флагом: Bicep всегда назначает Managed Identity API роли
-`Storage Table Data Contributor` и `Cognitive Services User`. Настройки Foundry
+RBAC assignments больше не управляются флагом: после Bicep-развёртывания install-скрипт проверяет
+существующие назначения Managed Identity API на точных scope Storage Account и Foundry account.
+Он создаёт роли `Storage Table Data Contributor` и `Cognitive Services User` только при их отсутствии.
+Это позволяет повторно запускать install в среде, где те же роли уже выданы под другими ID.
+Foundry project и deployments моделей развёртываются последовательно, чтобы Azure не отклонял
+параллельные операции над одним account. Настройки Foundry
 `versionUpgradeOption`, `raiPolicyName` и `disableLocalAuth` закреплены в Bicep соответственно как
 `OnceNewDefaultVersionAvailable`, `Microsoft.DefaultV2` и `false`.
 

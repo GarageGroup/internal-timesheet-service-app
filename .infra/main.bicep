@@ -192,6 +192,9 @@ resource foundryProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-0
 resource chatDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: foundry
   name: chatDeploymentName
+  dependsOn: [
+    foundryProject
+  ]
   sku: {
     name: chatDeploymentSkuName
     capacity: chatDeploymentCapacity
@@ -210,6 +213,9 @@ resource chatDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-1
 resource voiceDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: foundry
   name: voiceDeploymentName
+  dependsOn: [
+    chatDeployment
+  ]
   sku: {
     name: voiceDeploymentSkuName
     capacity: voiceDeploymentCapacity
@@ -222,28 +228,6 @@ resource voiceDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-
     }
     versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
     raiPolicyName: 'Microsoft.DefaultV2'
-  }
-}
-
-var storageTableDataContributorRoleId = '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
-resource storageTableRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: storage
-  name: guid(storage.id, identity.id, storageTableDataContributorRoleId)
-  properties: {
-    principalId: identity.properties.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageTableDataContributorRoleId)
-  }
-}
-
-var cognitiveServicesUserRoleId = 'a97b65f3-24c7-4388-baec-2e87135dc908'
-resource foundryRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: foundry
-  name: guid(foundry.id, identity.id, cognitiveServicesUserRoleId)
-  properties: {
-    principalId: identity.properties.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', cognitiveServicesUserRoleId)
   }
 }
 

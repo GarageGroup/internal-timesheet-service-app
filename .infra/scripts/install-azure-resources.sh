@@ -102,6 +102,43 @@ outputs="$(az deployment group create \
   --output json \
   --only-show-errors)"
 
+principal_id="$(jq -r '.managedIdentityPrincipalId.value' <<< "$outputs")"
+[[ -n "$principal_id" && "$principal_id" != null ]] || {
+  echo 'Managed Identity principal ID was not returned by the deployment' >&2
+  exit 1
+}
+
+ensure_role_assignment() {
+  local scope="$1"
+  local role_id="$2"
+  local existing
+
+  existing="$(az role assignment list \
+    --scope "$scope" \
+    --role "$role_id" \
+    --output json \
+    --only-show-errors | jq -r --arg scope "$scope" --arg principal "$principal_id" \
+      '[.[] | select((.scope | ascii_downcase) == ($scope | ascii_downcase) and (.principalId | ascii_downcase) == ($principal | ascii_downcase))] | length')"
+
+  if [[ "$existing" == 0 ]]; then
+    az role assignment create \
+      --assignee-object-id "$principal_id" \
+      --assignee-principal-type ServicePrincipal \
+      --role "$role_id" \
+      --scope "$scope" \
+      --output none \
+      --only-show-errors
+  fi
+}
+
+resource_group_scope="/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP_NAME"
+ensure_role_assignment \
+  "$resource_group_scope/providers/Microsoft.Storage/storageAccounts/$STORAGE_ACCOUNT_NAME" \
+  '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
+ensure_role_assignment \
+  "$resource_group_scope/providers/Microsoft.CognitiveServices/accounts/$FOUNDRY_ACCOUNT_NAME" \
+  'a97b65f3-24c7-4388-baec-2e87135dc908'
+
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   jq -r '
     "web_app_name=" + .webAppName.value,
