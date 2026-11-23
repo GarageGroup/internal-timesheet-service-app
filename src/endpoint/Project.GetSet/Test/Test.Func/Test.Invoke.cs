@@ -55,11 +55,7 @@ partial class ProjectSetGetFuncTest
                                         Filters =
                                         [
                                             new DbRawFilter("t.ownerid = u.systemuserid"),
-                                            new DbParameterFilter(
-                                                fieldName: "u.azureactivedirectoryobjectid",
-                                                @operator: DbFilterOperator.Equal,
-                                                fieldValue: Guid.Parse("fea3adc6-699e-4847-a3f9-7b93bd45c14f"),
-                                                parameterName: "userId")
+                                            new DbRawFilter("u.azureactivedirectoryobjectid = 'fea3adc6-699e-4847-a3f9-7b93bd45c14f'")
                                         ]
                                     }
                                 }),
@@ -99,11 +95,7 @@ partial class ProjectSetGetFuncTest
                                         Filters =
                                         [
                                             new DbRawFilter("t1.ownerid = u.systemuserid"),
-                                            new DbParameterFilter(
-                                                fieldName: "u.azureactivedirectoryobjectid",
-                                                @operator: DbFilterOperator.Equal,
-                                                fieldValue: Guid.Parse("fea3adc6-699e-4847-a3f9-7b93bd45c14f"),
-                                                parameterName: "userId")
+                                            new DbRawFilter("u.azureactivedirectoryobjectid = 'fea3adc6-699e-4847-a3f9-7b93bd45c14f'")
                                         ]
                                     }
                                 }),
