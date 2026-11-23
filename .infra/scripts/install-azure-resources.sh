@@ -55,15 +55,34 @@ identity_location="$(az identity show \
   --only-show-errors 2>/dev/null || true)"
 identity_location="${identity_location:-$AZURE_LOCATION}"
 
+FOUNDRY_SUBSCRIPTION_ID="${FOUNDRY_SUBSCRIPTION_ID:-$AZURE_SUBSCRIPTION_ID}"
+FOUNDRY_RESOURCE_GROUP="${FOUNDRY_RESOURCE_GROUP:-$AZURE_RESOURCE_GROUP_NAME}"
+foundry_provider_state="$(az provider show --namespace Microsoft.CognitiveServices --subscription "$FOUNDRY_SUBSCRIPTION_ID" --query registrationState --output tsv --only-show-errors)"
+[[ "$foundry_provider_state" == Registered ]] || { echo 'Microsoft.CognitiveServices is not registered in Foundry subscription' >&2; exit 1; }
+az group show --name "$FOUNDRY_RESOURCE_GROUP" --subscription "$FOUNDRY_SUBSCRIPTION_ID" --output none --only-show-errors
+
+resource_locations='{}'
+for entry in "identity:Microsoft.ManagedIdentity/userAssignedIdentities:$MANAGED_IDENTITY_NAME" "botAgentIdentity:Microsoft.ManagedIdentity/userAssignedIdentities:${TELEGRAM_BOT_FUNCTION_APP_NAME}-agent" "workspace:Microsoft.OperationalInsights/workspaces:$LOG_ANALYTICS_WORKSPACE_NAME" "insights:Microsoft.Insights/components:$APPLICATION_INSIGHTS_NAME" "storage:Microsoft.Storage/storageAccounts:$STORAGE_ACCOUNT_NAME" "plan:Microsoft.Web/serverfarms:$APP_SERVICE_PLAN_NAME" "webApp:Microsoft.Web/sites:$WEB_APP_NAME"; do
+  IFS=: read -r key type name <<< "$entry"
+  resources="$(az resource list --resource-group "$AZURE_RESOURCE_GROUP_NAME" --resource-type "$type" --query "[?name=='$name'].location | [0]" --output tsv --only-show-errors)"
+  if [[ -n "$resources" ]]; then
+    resource_locations="$(jq --arg key "$key" --arg value "$resources" '. + {($key): $value}' <<< "$resource_locations")"
+  fi
+done
+
 foundry_location="$(az cognitiveservices account show \
-  --resource-group "$AZURE_RESOURCE_GROUP_NAME" \
+  --resource-group "$FOUNDRY_RESOURCE_GROUP" \
   --name "$FOUNDRY_ACCOUNT_NAME" \
+  --subscription "$FOUNDRY_SUBSCRIPTION_ID" \
   --query location \
   --output tsv \
   --only-show-errors 2>/dev/null || true)"
 foundry_location="${foundry_location:-$FOUNDRY_LOCATION}"
 
 parameters=(
+  "resourceLocations=$resource_locations"
+  "foundrySubscriptionId=$FOUNDRY_SUBSCRIPTION_ID"
+  "foundryResourceGroupName=$FOUNDRY_RESOURCE_GROUP"
   "location=$AZURE_LOCATION"
   "identityLocation=$identity_location"
   "foundryLocation=$foundry_location"
@@ -111,9 +130,11 @@ principal_id="$(jq -r '.managedIdentityPrincipalId.value' <<< "$outputs")"
 ensure_role_assignment() {
   local scope="$1"
   local role_id="$2"
+  local role_subscription="$3"
   local existing
 
   existing="$(az role assignment list \
+    --subscription "$role_subscription" \
     --scope "$scope" \
     --role "$role_id" \
     --output json \
@@ -122,6 +143,7 @@ ensure_role_assignment() {
 
   if [[ "$existing" == 0 ]]; then
     az role assignment create \
+      --subscription "$role_subscription" \
       --assignee-object-id "$principal_id" \
       --assignee-principal-type ServicePrincipal \
       --role "$role_id" \
@@ -134,10 +156,12 @@ ensure_role_assignment() {
 resource_group_scope="/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP_NAME"
 ensure_role_assignment \
   "$resource_group_scope/providers/Microsoft.Storage/storageAccounts/$STORAGE_ACCOUNT_NAME" \
-  '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
+  '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3' \
+  "$AZURE_SUBSCRIPTION_ID"
 ensure_role_assignment \
-  "$resource_group_scope/providers/Microsoft.CognitiveServices/accounts/$FOUNDRY_ACCOUNT_NAME" \
-  'a97b65f3-24c7-4388-baec-2e87135dc908'
+  "/subscriptions/$FOUNDRY_SUBSCRIPTION_ID/resourceGroups/$FOUNDRY_RESOURCE_GROUP/providers/Microsoft.CognitiveServices/accounts/$FOUNDRY_ACCOUNT_NAME" \
+  'a97b65f3-24c7-4388-baec-2e87135dc908' \
+  "$FOUNDRY_SUBSCRIPTION_ID"
 
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   jq -r '

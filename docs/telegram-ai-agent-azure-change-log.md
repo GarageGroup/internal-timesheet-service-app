@@ -842,3 +842,47 @@ Dataverse и APIM, а также публикация кода не запуск
 создаются install-скриптом только при отсутствии, а Foundry project и deployments сериализованы
 в Bicep. Это изменение кода и CI/CD пока не развернуто; повторный запуск install выполняет
 владелец после ревью и переноса исправления в `main`. Production не менялся.
+
+## Test: права ARM deployment для APIM от 23.11.2026
+
+По запросу владельца через его Azure CLI сессию создана custom role `Timesheet ARM Deployment Operator`
+(ID `f1267aad-1e6e-453b-8f07-98ad2f3fff3f`) с Actions `Microsoft.Resources/deployments/*` и
+`Microsoft.Resources/subscriptions/resourceGroups/read`, без DataActions. Assignable scope:
+`/subscriptions/106dd084-8190-453f-87c9-cd2cb714b1d6/resourceGroups/rg-integration-platform-test`.
+Роль назначена deployment service principal API `dc88b746-d00c-4ab8-a419-c2c2b51c607b`
+(client ID `463b55ff-5b41-4eab-99d7-7f4c496bf6ab`) на эту RG; assignment ID
+`016df624-312e-4f08-b5ae-3c6a93d3ec4c`. Причина: install run `45188660245` не имел права
+`Microsoft.Resources/deployments/validate/action` при настройке общего APIM.
+Существующий доступ к самому APIM сохранён. Azure подтвердил создание роли и назначения;
+повторный workflow запускает владелец. Production не менялся.
+Откат: удалить указанное назначение, затем custom role при отсутствии других назначений.
+Для Prod требуется аналогичная роль на production интеграционную RG; Test scope туда не переносить.
+
+## Подготовка GitHub Prod от 23.11.2026
+
+По запросу владельца созданы Environment Prod в API и боте и заполнены подтверждённые
+параметры существующей production RG rg-garage-timesheet-prod, подписка
+106dd084-8190-453f-87c9-cd2cb714b1d6. Deployment client IDs предоставлены владельцем:
+API 2c8c71c5-a285-4769-971e-57c04a60b65c, Directory 669c265b-2d22-47ca-ab3d-27ef56e29ed0,
+бот 087935b6-8295-4bf0-8f53-7085721151ea. Сохранены фактические имена existing MI
+id-garage-timesheet-prod и bot APIM apim-internal-gtimesheet-prod. Записаны URL Dataverse,
+Mini App и welcome image, общие параметры agent route и Storage Tables. Неизвестные
+параметры общего production APIM, Foundry и Dataverse роли не заполнены. Secrets не менялись.
+Production Azure не изменялся, install не запускался. Требуются bootstrap прав/OIDC и
+регистрация Directory deployment Application User в production Dataverse перед install.
+
+
+23.11.2026: по решению владельца подготовлено размещение Foundry в подписке
+12495afb-c46a-4d23-9e80-3a1dae5406ff, rg-integration-platform-prod. Bicep module,
+RBAC и validation поддерживают отдельный scope. Существующие регионы application-ресурсов
+сохраняются. В Prod GitHub записаны Foundry scope/name/location, Telegram Bot ID и Dataverse роль.
+Квота West Europe: gpt-5-mini GlobalStandard 10000 (занято 0), whisper Standard 3 (занято 0).
+В North Europe соответствующие квоты не обнаружены; выбран West Europe. Azure не изменялся.
+Код ожидает ревью и коммита; полный install после изменений не запускался.
+
+23.11.2026: владелец уточнил правило регионов: новые application-ресурсы Prod создаются в
+West Europe, существующие сохраняют фактический регион. AZURE_LOCATION в GitHub Prod обоих
+репозиториев возвращена на westeurope. Foundry остаётся в отдельной интеграционной подписке/RG.
+Определение существующих регионов API сохранено: ранее оно покрывало только MI и Foundry,
+а теперь также Web App, plan, Storage, Insights, Workspace и агентскую MI. Бот уже сохранял
+фактический регион существующей Function App. Azure resources не изменялись.

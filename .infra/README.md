@@ -191,6 +191,52 @@ az role assignment create \
   --output none \
   --only-show-errors
 
+apim_group_scope="/subscriptions/$APIM_SUBSCRIPTION_ID/resourceGroups/$APIM_RESOURCE_GROUP"
+deployment_role_name="Timesheet ARM Deployment Operator ${GITHUB_ENVIRONMENT}"
+if [[ "$GITHUB_ENVIRONMENT" == Test ]]; then
+  deployment_role_name='Timesheet ARM Deployment Operator'
+fi
+deployment_role_id="$(az role definition list \
+  --name "$deployment_role_name" \
+  --subscription "$APIM_SUBSCRIPTION_ID" \
+  --query '[0].name' --output tsv --only-show-errors)"
+
+if [[ -z "$deployment_role_id" ]]; then
+  deployment_role_json="$(jq -n --arg name "$deployment_role_name" --arg scope "$apim_group_scope" '{
+    Name: $name,
+    IsCustom: true,
+    Description: "Manage Timesheet ARM deployments; resource permissions are assigned separately.",
+    Actions: ["Microsoft.Resources/deployments/*", "Microsoft.Resources/subscriptions/resourceGroups/read"],
+    NotActions: [], DataActions: [], NotDataActions: [], AssignableScopes: [$scope]
+  }')"
+  deployment_role_id="$(az role definition create \
+    --role-definition "$deployment_role_json" \
+    --subscription "$APIM_SUBSCRIPTION_ID" \
+    --query name --output tsv --only-show-errors)"
+fi
+
+azure_deploy_principal_id="$(az ad sp show --id "$AZURE_DEPLOY_APP_ID" --query id --output tsv --only-show-errors)"
+deployment_assignment_count="$(az role assignment list \
+  --scope "$apim_group_scope" --role "$deployment_role_id" \
+  --subscription "$APIM_SUBSCRIPTION_ID" --output json --only-show-errors | \
+  jq --arg scope "$apim_group_scope" --arg principal "$azure_deploy_principal_id" \
+    '[.[] | select((.scope | ascii_downcase) == ($scope | ascii_downcase) and (.principalId | ascii_downcase) == ($principal | ascii_downcase))] | length')"
+if [[ "$deployment_assignment_count" == 0 ]]; then
+  az role assignment create \
+    --assignee-object-id "$azure_deploy_principal_id" \
+    --assignee-principal-type ServicePrincipal \
+    --role "$deployment_role_id" --scope "$apim_group_scope" \
+    --subscription "$APIM_SUBSCRIPTION_ID" --output none --only-show-errors
+fi
+
+foundry_subscription_id="${FOUNDRY_SUBSCRIPTION_ID:-$AZURE_SUBSCRIPTION_ID}"
+foundry_resource_group="${FOUNDRY_RESOURCE_GROUP:-$AZURE_RESOURCE_GROUP_NAME}"
+foundry_scope="/subscriptions/$foundry_subscription_id/resourceGroups/$foundry_resource_group"
+for role in 'Contributor' 'Role Based Access Control Administrator'; do
+  az role assignment create --assignee "$AZURE_DEPLOY_APP_ID" --role "$role" \
+    --scope "$foundry_scope" --subscription "$foundry_subscription_id" --output none --only-show-errors
+done
+
 graph_api_id='00000003-0000-0000-c000-000000000000'
 application_read_write_all='1bfefb4e-e0b5-418b-a88f-73c46d2cc8e9'
 app_role_assignment_read_write_all='06b708a9-e830-4db3-a914-8e69da51d44f'
@@ -220,11 +266,19 @@ echo 'GitHub OIDC, Azure RBAC и Microsoft Graph permissions настроены.
 3. выдаёт Azure deployment App Registration роли `Contributor` и
    `Role Based Access Control Administrator` на Resource Group приложения;
 4. выдаёт ей `API Management Service Contributor` на используемый APIM service;
-5. добавляет Directory/Dataverse deployment App Registration application permissions Microsoft Graph:
+5. создаёт отдельную для среды custom role `Timesheet ARM Deployment Operator` для Test
+   или `Timesheet ARM Deployment Operator Prod` для Prod
+   и назначает её Azure deployment App Registration на RG общего APIM; права ограничены
+   ARM deployments и чтением RG, а доступ к ресурсам APIM задаётся предыдущим шагом;
+6. добавляет Directory/Dataverse deployment App Registration application permissions Microsoft Graph:
    - `Application.ReadWrite.All`;
    - `AppRoleAssignment.ReadWrite.All`;
    - `Directory.Read.All`;
-6. выполняет tenant-wide Admin Consent для этих Microsoft Graph permissions.
+7. выполняет tenant-wide Admin Consent для этих Microsoft Graph permissions.
+
+Создание custom role требует `Microsoft.Authorization/roleDefinitions/write`, назначение —
+`Microsoft.Authorization/roleAssignments/write` на соответствующем scope. Повторный запуск
+переиспользует роль с тем же именем и существующее назначение, включая уже созданную вручную роль Test.
 
 Роль `Role Based Access Control Administrator` нужна не для повседневного доступа к данным, а для
 назначения Managed Identity API ролей на Storage Account и Azure AI Foundry во время `install.yml`.
@@ -455,3 +509,13 @@ Workflow сразу создаёт или обновляет ресурсы в �
 
 Перед созданием CI/CD шаблоны были локально проверены через Azure `what-if`: удаления или замены Web
 App, Managed Identity, Storage, Foundry account/project, model deployments и APIM API не обнаружено.
+
+## Размещение Foundry и регионов
+
+FOUNDRY_SUBSCRIPTION_ID и FOUNDRY_RESOURCE_GROUP задают существующую RG Foundry.
+По умолчанию используется подписка и RG приложения. Для Prod перед административным скриптом
+экспортировать FOUNDRY_SUBSCRIPTION_ID=12495afb-c46a-4d23-9e80-3a1dae5406ff и
+FOUNDRY_RESOURCE_GROUP=rg-integration-platform-prod. Deployment-приложение получает Contributor
+и Role Based Access Control Administrator на эту RG; API identity получает Cognitive Services User
+на Foundry account. Регионы существующих ресурсов приложения сохраняются, AZURE_LOCATION задаёт
+регион новых ресурсов. Изменение проверено локально, deployment ещё не выполнялся.

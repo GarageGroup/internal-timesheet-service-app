@@ -9,6 +9,10 @@ param identityLocation string = location
 @description('Azure region used when the Foundry account and project are created.')
 param foundryLocation string = location
 
+param foundrySubscriptionId string = subscription().subscriptionId
+param foundryResourceGroupName string = resourceGroup().name
+param resourceLocations object = {}
+
 param environmentName string
 param applicationName string = 'garage-timesheet'
 
@@ -47,19 +51,19 @@ var tags = {
 
 resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityName
-  location: identityLocation
+  location: resourceLocations.?identity ?? identityLocation
   tags: tags
 }
 
 resource botAgentIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: botAgentIdentityName
-  location: identityLocation
+  location: resourceLocations.?botAgentIdentity ?? identityLocation
   tags: tags
 }
 
 resource workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: logAnalyticsWorkspaceName
-  location: location
+  location: resourceLocations.?workspace ?? location
   tags: tags
   properties: {
     sku: {
@@ -71,7 +75,7 @@ resource workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
 
 resource insights 'Microsoft.Insights/components@2020-02-02' = {
   name: applicationInsightsName
-  location: location
+  location: resourceLocations.?insights ?? location
   kind: 'web'
   tags: tags
   properties: {
@@ -82,7 +86,7 @@ resource insights 'Microsoft.Insights/components@2020-02-02' = {
 
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: storageAccountName
-  location: location
+  location: resourceLocations.?storage ?? location
   kind: 'StorageV2'
   sku: {
     name: 'Standard_LRS'
@@ -113,7 +117,7 @@ resource actionTable 'Microsoft.Storage/storageAccounts/tableServices/tables@202
 
 resource plan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: appServicePlanName
-  location: location
+  location: resourceLocations.?plan ?? location
   kind: 'linux'
   tags: tags
   sku: {
@@ -127,7 +131,7 @@ resource plan 'Microsoft.Web/serverfarms@2024-04-01' = {
 
 resource webApp 'Microsoft.Web/sites@2024-04-01' = {
   name: webAppName
-  location: location
+  location: resourceLocations.?webApp ?? location
   kind: 'app,linux'
   tags: tags
   identity: {
@@ -152,82 +156,26 @@ resource webApp 'Microsoft.Web/sites@2024-04-01' = {
   }
 }
 
-resource foundry 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
-  name: foundryAccountName
-  location: foundryLocation
-  kind: 'AIServices'
-  sku: {
-    name: 'S0'
-  }
-  tags: tags
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    customSubDomainName: foundryAccountName
-    publicNetworkAccess: 'Enabled'
-    disableLocalAuth: false
-    allowProjectManagement: true
-    networkAcls: {
-      defaultAction: 'Allow'
-      ipRules: []
-      virtualNetworkRules: []
-    }
-  }
-}
-
-resource foundryProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
-  parent: foundry
-  name: foundryProjectName
-  location: foundryLocation
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    displayName: foundryProjectName
-    description: '${applicationName} ${environmentName} project'
-  }
-}
-
-resource chatDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  parent: foundry
-  name: chatDeploymentName
-  dependsOn: [
-    foundryProject
-  ]
-  sku: {
-    name: chatDeploymentSkuName
-    capacity: chatDeploymentCapacity
-  }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: chatModelName
-      version: chatModelVersion
-    }
-    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
-    raiPolicyName: 'Microsoft.DefaultV2'
-  }
-}
-
-resource voiceDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  parent: foundry
-  name: voiceDeploymentName
-  dependsOn: [
-    chatDeployment
-  ]
-  sku: {
-    name: voiceDeploymentSkuName
-    capacity: voiceDeploymentCapacity
-  }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: voiceModelName
-      version: voiceModelVersion
-    }
-    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
-    raiPolicyName: 'Microsoft.DefaultV2'
+module foundryModule './foundry.bicep' = {
+  name: 'timesheet-foundry-${environmentName}'
+  scope: resourceGroup(foundrySubscriptionId, foundryResourceGroupName)
+  params: {
+    foundryLocation: foundryLocation
+    foundryAccountName: foundryAccountName
+    foundryProjectName: foundryProjectName
+    applicationName: applicationName
+    environmentName: environmentName
+    tags: tags
+    chatDeploymentName: chatDeploymentName
+    chatModelName: chatModelName
+    chatModelVersion: chatModelVersion
+    chatDeploymentSkuName: chatDeploymentSkuName
+    chatDeploymentCapacity: chatDeploymentCapacity
+    voiceDeploymentName: voiceDeploymentName
+    voiceModelName: voiceModelName
+    voiceModelVersion: voiceModelVersion
+    voiceDeploymentSkuName: voiceDeploymentSkuName
+    voiceDeploymentCapacity: voiceDeploymentCapacity
   }
 }
 

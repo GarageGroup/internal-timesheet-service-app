@@ -18,7 +18,8 @@ done
 
 for deployment_name in "${FOUNDRY_CHAT_DEPLOYMENT_NAME:-gpt-5-mini}" "${FOUNDRY_VOICE_DEPLOYMENT_NAME:-whisper}"; do
   provisioning_state="$(az cognitiveservices account deployment show \
-    --resource-group "$AZURE_RESOURCE_GROUP_NAME" \
+    --resource-group "${FOUNDRY_RESOURCE_GROUP:-$AZURE_RESOURCE_GROUP_NAME}" \
+    --subscription "${FOUNDRY_SUBSCRIPTION_ID:-$AZURE_SUBSCRIPTION_ID}" \
     --name "$FOUNDRY_ACCOUNT_NAME" \
     --deployment-name "$deployment_name" \
     --query properties.provisioningState \
