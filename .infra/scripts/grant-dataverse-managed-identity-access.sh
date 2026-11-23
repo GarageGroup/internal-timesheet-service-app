@@ -16,12 +16,27 @@ headers=(-H "Authorization: Bearer $token" -H 'Accept: application/json' -H 'Con
 
 encoded_role_name="$(jq -rn --arg value "$DATAVERSE_API_ROLE_NAME" '$value|@uri')"
 role_query="roles?%24select=roleid,name,_businessunitid_value&%24filter=name%20eq%20%27${encoded_role_name}%27"
-role="$(curl --fail-with-body --silent --show-error "${headers[@]}" "$api/$role_query" | jq -er '.value[0]')"
-role_id="$(jq -er '.roleid' <<< "$role")"
-business_unit_id="$(jq -er '._businessunitid_value' <<< "$role")"
+roles="$(curl --fail-with-body --silent --show-error "${headers[@]}" "$api/$role_query" | jq -e '.value')"
 
 query="systemusers?%24select=systemuserid,_businessunitid_value,isdisabled&%24filter=applicationid%20eq%20${client_id}"
 users="$(curl --fail-with-body --silent --show-error "${headers[@]}" "$api/$query" | jq '.value')"
+user_count="$(jq length <<< "$users")"
+[[ "$user_count" -le 1 ]] || { echo 'Dataverse Application User is duplicated' >&2; exit 1; }
+if [[ "$user_count" == 1 ]]; then
+  business_unit_id="$(jq -er '.[0]._businessunitid_value' <<< "$users")"
+else
+  root_units="$(curl --fail-with-body --silent --show-error "${headers[@]}" "$api/businessunits?%24select=businessunitid&%24filter=_parentbusinessunitid_value%20eq%20null" | jq -e '.value')"
+  [[ "$(jq length <<< "$root_units")" == 1 ]] || { echo 'Cannot uniquely resolve root Business Unit' >&2; exit 1; }
+  business_unit_id="$(jq -er '.[0].businessunitid' <<< "$root_units")"
+fi
+
+matching_roles="$(jq --arg unit "$business_unit_id" '[.[] | select((._businessunitid_value | ascii_downcase) == ($unit | ascii_downcase))]' <<< "$roles")"
+[[ "$(jq length <<< "$matching_roles")" == 1 ]] || {
+  echo "Cannot uniquely resolve role '$DATAVERSE_API_ROLE_NAME' in Business Unit $business_unit_id" >&2
+  exit 1
+}
+role_id="$(jq -er '.[0].roleid' <<< "$matching_roles")"
+
 if [[ "$(jq length <<< "$users")" == 0 ]]; then
   curl --fail-with-body --silent --show-error -X POST "${headers[@]}" "$api/systemusers" \
     --data "{\"applicationid\":\"$client_id\",\"azureactivedirectoryobjectid\":\"$API_MANAGED_IDENTITY_PRINCIPAL_ID\",\"businessunitid@odata.bind\":\"/businessunits($business_unit_id)\"}" >/dev/null
