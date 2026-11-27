@@ -9,6 +9,22 @@ on:
         type: choice
         default: Test
         options: [Test, Prod]
+      infrastructure:
+        description: Deploy Azure resources and grant the API identity access to Dataverse
+        type: boolean
+        default: true
+      settings:
+        description: Configure Web App settings
+        type: boolean
+        default: true
+      apim:
+        description: Configure Timesheet routes and policies in APIM
+        type: boolean
+        default: true
+      code:
+        description: Build and deploy a bootstrap build from this branch and import its Swagger. Leave it off when a release is already deployed
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -32,10 +48,11 @@ jobs:
           client-id: ${{ vars.DEPLOY_CLIENT_ID }}
           tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
           subscription-id: ${{ vars.DEPLOY_SUBSCRIPTION_ID }}
-      - name: Install infrastructure resources
+      - name: Install or resolve infrastructure resources
         id: install
         uses: azure/cli@v3
         env:
+          DEPLOY_INFRASTRUCTURE: ${{ inputs.infrastructure }}
           AZURE_SUBSCRIPTION_ID: ${{ vars.DEPLOY_SUBSCRIPTION_ID }}
           AZURE_RESOURCE_GROUP_NAME: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
@@ -63,12 +80,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
       - name: Log in for Entra ID and Dataverse with OIDC
+        if: ${{ inputs.infrastructure }}
         uses: azure/login@v3
         with:
           client-id: ${{ vars.DIRECTORY_DEPLOY_CLIENT_ID }}
           tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
           allow-no-subscriptions: true
       - name: Grant Dataverse access to API identity
+        if: ${{ inputs.infrastructure }}
         uses: azure/cli@v3
         env:
           DATAVERSE_SERVICE_URL: ${{ vars.DATAVERSE_SERVICE_URL }}
@@ -77,6 +96,7 @@ jobs:
         with:
           inlineScript: bash .infra/scripts/grant-dataverse-managed-identity-access.sh
       - name: Directory logout
+        if: ${{ inputs.infrastructure }}
         uses: azure/cli@v3
         with:
           inlineScript: az logout
@@ -87,6 +107,7 @@ jobs:
           tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
           subscription-id: ${{ vars.DEPLOY_SUBSCRIPTION_ID }}
       - name: Configure Web App settings
+        if: ${{ inputs.settings }}
         uses: azure/cli@v3
         env:
           AZURE_SUBSCRIPTION_ID: ${{ vars.DEPLOY_SUBSCRIPTION_ID }}
@@ -99,6 +120,7 @@ jobs:
         with:
           inlineScript: bash .infra/scripts/set-web-app-settings.sh
       - name: Configure Timesheet APIM
+        if: ${{ inputs.apim }}
         uses: azure/cli@v3
         env:
           ENVIRONMENT_NAME: ${{ vars.AZURE_NAME_POSTFIX }}
@@ -119,6 +141,7 @@ jobs:
         with:
           inlineScript: bash .infra/scripts/configure-apim.sh
       - name: Validate Azure deployment
+        if: ${{ inputs.infrastructure }}
         uses: azure/cli@v3
         env:
           AZURE_SUBSCRIPTION_ID: ${{ vars.DEPLOY_SUBSCRIPTION_ID }}
@@ -127,6 +150,7 @@ jobs:
         with:
           inlineScript: bash .infra/scripts/validate-deployment.sh
       - name: Ensure release container
+        if: ${{ inputs.code }}
         uses: azure/cli@v3
         env:
           ARTIFACT_ACCOUNT: ${{ vars.AZURE_ARTIFACT_ACCOUNT_NAME }}
@@ -135,15 +159,18 @@ jobs:
         with:
           inlineScript: az storage container create --name "$ARTIFACT_CONTAINER" --account-name "$ARTIFACT_ACCOUNT" --account-key "$ARTIFACT_ACCOUNT_KEY" --output none --only-show-errors
       - name: Setup .NET
+        if: ${{ inputs.code }}
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
       - name: Build and test
+        if: ${{ inputs.code }}
         run: |
           dotnet restore Internal.Timesheet.Service.slnx
           dotnet build Internal.Timesheet.Service.slnx --no-restore --configuration Release
           dotnet test Internal.Timesheet.Service.slnx --no-build --no-restore --configuration Release
       - name: Publish bootstrap artifact
+        if: ${{ inputs.code }}
         id: bootstrap
         env:
           ARTIFACT_NAME: ${{ vars.AZURE_ARTIFACT_NAME }}
@@ -156,6 +183,7 @@ jobs:
           (cd ./publish && zip -r "${ARTIFACT_NAME}-${version}.zip" ./)
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Upload bootstrap artifact to Blob Storage
+        if: ${{ inputs.code }}
         uses: azure/cli@v3
         env:
           VERSION: ${{ steps.bootstrap.outputs.version }}
@@ -166,11 +194,13 @@ jobs:
         with:
           inlineScript: az storage blob upload --container-name "$ARTIFACT_CONTAINER" --file "./publish/${ARTIFACT_NAME}-${VERSION}.zip" --name "${ARTIFACT_NAME}-${VERSION}.zip" --account-name "$ARTIFACT_ACCOUNT" --account-key "$ARTIFACT_ACCOUNT_KEY" --overwrite true --output none --only-show-errors
       - name: Deploy bootstrap artifact
+        if: ${{ inputs.code }}
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ needs.infrastructure.outputs.web_app_name }}
           package: ./publish/${{ vars.AZURE_ARTIFACT_NAME }}-${{ steps.bootstrap.outputs.version }}.zip
       - name: Record deployment time
+        if: ${{ inputs.code }}
         uses: azure/cli@v3
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
@@ -178,6 +208,7 @@ jobs:
         with:
           inlineScript: az webapp config appsettings set --resource-group "$RESOURCE_GROUP" --name "$WEB_APP" --settings "Info__DeployDateTime=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" --output none --only-show-errors
       - name: Resolve health APIM subscription key
+        if: ${{ inputs.code }}
         id: health
         uses: azure/cli@v3
         env:
@@ -188,6 +219,7 @@ jobs:
         with:
           inlineScript: bash .infra/scripts/get-apim-subscription-key.sh
       - name: Check bootstrap health
+        if: ${{ inputs.code }}
         uses: GarageGroup/platform-ping-app@v0.1.0
         with:
           health_check_url: https://${{ vars.APIM_DNS }}/health/${{ vars.APIM_HEALTH_NAME }}?subscription-key=${{ steps.health.outputs.key }}
@@ -196,6 +228,7 @@ jobs:
           retry_delay_in_seconds: 15
           max_attempts: 30
       - name: Resolve Swagger APIM subscription key
+        if: ${{ inputs.code }}
         id: swagger
         uses: azure/cli@v3
         env:
@@ -206,6 +239,7 @@ jobs:
         with:
           inlineScript: bash .infra/scripts/get-apim-subscription-key.sh
       - name: Import API Swagger into APIM
+        if: ${{ inputs.code }}
         uses: azure/cli@v3
         env:
           APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
