@@ -35,7 +35,7 @@ resource webApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-05-01'
   name: 'policy'
   properties: {
     format: 'rawxml'
-    value: '<policies><inbound><base /><validate-azure-ad-token tenant-id="{{GarageTenantId}}" output-token-variable-name="jwt"><client-application-ids><application-id>{{TimesheetCertificateClientId}}</application-id></client-application-ids><required-claims><claim name="systemUserId" /></required-claims></validate-azure-ad-token><set-backend-service base-url="${backendServiceUrl}" /><authentication-certificate certificate-id="${backendCertificateId}" /></inbound><backend><base /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>'
+    value: '<policies><inbound><base /><validate-azure-ad-token tenant-id="{{GarageTenantId}}" output-token-variable-name="jwt"><client-application-ids><application-id>{{TimesheetCertificateClientId}}</application-id><application-id>{{TimesheetBotSignInClientId}}</application-id></client-application-ids><required-claims><claim name="systemUserId" /></required-claims></validate-azure-ad-token><set-backend-service base-url="${backendServiceUrl}" /><authentication-certificate certificate-id="${backendCertificateId}" /></inbound><backend><base /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>'
   }
 }
 
