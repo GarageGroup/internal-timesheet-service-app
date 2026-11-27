@@ -10,11 +10,6 @@
     <Project Path="src/app/Application/Application.csproj" />
   </Folder>
   <Folder Name="/endpoint/" />
-  <Folder Name="/endpoint/Agent.Message.Send/">
-    <Project Path="src/endpoint/Agent.Message.Send/Contract/Contract.csproj" />
-    <Project Path="src/endpoint/Agent.Message.Send/Endpoint/Endpoint.csproj" />
-    <Project Path="src/endpoint/Agent.Message.Send/Test/Test.csproj" />
-  </Folder>
   <Folder Name="/endpoint/Notification.Subscribe/">
     <Project Path="src/endpoint/Notification.Subscribe/Contract/Contract.csproj" />
     <Project Path="src/endpoint/Notification.Subscribe/Endpoint/Endpoint.csproj" />
@@ -86,26 +81,6 @@
     <Project Path="src/endpoint/User.SignOut/Test/Test.csproj" />
   </Folder>
   <Folder Name="/service/" />
-  <Folder Name="/service/Agent/">
-    <Project Path="src/service/Agent/Contract/Contract.csproj" />
-    <Project Path="src/service/Agent/Core/Core.csproj" />
-    <Project Path="src/service/Agent/Test/Test.csproj" />
-  </Folder>
-  <Folder Name="/service/Agent.Audio/">
-    <Project Path="src/service/Agent.Audio/Contract/Contract.csproj" />
-    <Project Path="src/service/Agent.Audio/Core/Core.csproj" />
-    <Project Path="src/service/Agent.Audio/Test/Test.csproj" />
-  </Folder>
-  <Folder Name="/service/Agent.Identity/">
-    <Project Path="src/service/Agent.Identity/Contract/Contract.csproj" />
-    <Project Path="src/service/Agent.Identity/Core/Core.csproj" />
-    <Project Path="src/service/Agent.Identity/Test/Test.csproj" />
-  </Folder>
-  <Folder Name="/service/Agent.Storage.Table/">
-    <Project Path="src/service/Agent.Storage.Table/Contract/Contract.csproj" />
-    <Project Path="src/service/Agent.Storage.Table/Api/Api.csproj" />
-    <Project Path="src/service/Agent.Storage.Table/Test/Test.csproj" />
-  </Folder>
   <Folder Name="/service/BotApi/">
     <Project Path="src/service/BotApi/Api/Api.csproj" />
     <Project Path="src/service/BotApi/Contract/Contract.csproj" />
@@ -115,14 +90,4 @@
     <Project Path="src/shared/ProjectType/ProjectType.csproj" />
     <Project Path="src/shared/StateCode/StateCode.csproj" />
   </Folder>
-  <Folder Name="/src/" />
-  <Folder Name="/src/endpoint/" />
-  <Folder Name="/src/endpoint/Agent.Action.Decide/">
-    <Project Path="src/endpoint/Agent.Action.Decide/Contract/Contract.csproj" />
-    <Project Path="src/endpoint/Agent.Action.Decide/Endpoint/Endpoint.csproj" />
-    <Project Path="src/endpoint/Agent.Action.Decide/Test/Test.csproj" />
-  </Folder>
-  <Folder Name="/src/service/" />
-  <Folder Name="/src/service/Agent.Identity/" />
-  <Folder Name="/src/service/Agent/" />
 </Solution>

@@ -22,12 +22,7 @@ jobs:
       web_app_name: ${{ steps.install.outputs.web_app_name }}
       managed_identity_client_id: ${{ steps.install.outputs.managed_identity_client_id }}
       managed_identity_principal_id: ${{ steps.install.outputs.managed_identity_principal_id }}
-      storage_table_endpoint: ${{ steps.install.outputs.storage_table_endpoint }}
-      foundry_project_endpoint: ${{ steps.install.outputs.foundry_project_endpoint }}
-      foundry_openai_endpoint: ${{ steps.install.outputs.foundry_openai_endpoint }}
       application_insights_connection_string: ${{ steps.install.outputs.application_insights_connection_string }}
-      bot_agent_identity_principal_id: ${{ steps.install.outputs.bot_agent_identity_principal_id }}
-      bot_agent_identity_client_id: ${{ steps.install.outputs.bot_agent_identity_client_id }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -44,32 +39,14 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ vars.DEPLOY_SUBSCRIPTION_ID }}
           AZURE_RESOURCE_GROUP_NAME: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-          FOUNDRY_LOCATION: ${{ vars.FOUNDRY_LOCATION }}
           ENVIRONMENT_NAME: ${{ vars.AZURE_NAME_POSTFIX }}
           APP_SERVICE_PLAN_NAME: ${{ vars.APP_SERVICE_PLAN_NAME }}
           APP_SERVICE_PLAN_SKU_NAME: ${{ vars.APP_SERVICE_PLAN_SKU_NAME }}
           WEB_APP_NAME: ${{ vars.WEB_APP_NAME }}
           MANAGED_IDENTITY_NAME: ${{ vars.MANAGED_IDENTITY_NAME }}
-          TELEGRAM_BOT_FUNCTION_APP_NAME: ${{ vars.TELEGRAM_BOT_FUNCTION_APP_NAME }}
           STORAGE_ACCOUNT_NAME: ${{ vars.STORAGE_ACCOUNT_NAME }}
           LOG_ANALYTICS_WORKSPACE_NAME: ${{ vars.LOG_ANALYTICS_WORKSPACE_NAME }}
           APPLICATION_INSIGHTS_NAME: ${{ vars.APPLICATION_INSIGHTS_NAME }}
-          FOUNDRY_SUBSCRIPTION_ID: ${{ vars.FOUNDRY_SUBSCRIPTION_ID }}
-          FOUNDRY_RESOURCE_GROUP: ${{ vars.FOUNDRY_RESOURCE_GROUP }}
-          FOUNDRY_ACCOUNT_NAME: ${{ vars.FOUNDRY_ACCOUNT_NAME }}
-          FOUNDRY_PROJECT_NAME: ${{ vars.FOUNDRY_PROJECT_NAME }}
-          FOUNDRY_CHAT_DEPLOYMENT_NAME: ${{ vars.FOUNDRY_CHAT_DEPLOYMENT_NAME }}
-          FOUNDRY_CHAT_MODEL_NAME: ${{ vars.FOUNDRY_CHAT_MODEL_NAME }}
-          FOUNDRY_CHAT_MODEL_VERSION: ${{ vars.FOUNDRY_CHAT_MODEL_VERSION }}
-          FOUNDRY_CHAT_SKU_NAME: ${{ vars.FOUNDRY_CHAT_SKU_NAME }}
-          FOUNDRY_CHAT_CAPACITY: ${{ vars.FOUNDRY_CHAT_CAPACITY }}
-          FOUNDRY_VOICE_DEPLOYMENT_NAME: ${{ vars.FOUNDRY_VOICE_DEPLOYMENT_NAME }}
-          FOUNDRY_VOICE_MODEL_NAME: ${{ vars.FOUNDRY_VOICE_MODEL_NAME }}
-          FOUNDRY_VOICE_MODEL_VERSION: ${{ vars.FOUNDRY_VOICE_MODEL_VERSION }}
-          FOUNDRY_VOICE_SKU_NAME: ${{ vars.FOUNDRY_VOICE_SKU_NAME }}
-          FOUNDRY_VOICE_CAPACITY: ${{ vars.FOUNDRY_VOICE_CAPACITY }}
-          AGENT_CONVERSATION_TABLE_NAME: ${{ vars.AGENT_CONVERSATION_TABLE_NAME }}
-          AGENT_ACTION_TABLE_NAME: ${{ vars.AGENT_ACTION_TABLE_NAME }}
         with:
           inlineScript: bash .infra/scripts/install-azure-resources.sh
       - name: Azure logout
@@ -91,16 +68,6 @@ jobs:
           client-id: ${{ vars.DIRECTORY_DEPLOY_CLIENT_ID }}
           tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
           allow-no-subscriptions: true
-      - name: Configure agent App Registration
-        id: entra
-        uses: azure/cli@v3
-        env:
-          AGENT_APP_DISPLAY_NAME: ${{ vars.AGENT_APP_DISPLAY_NAME }}
-          AGENT_APP_IDENTIFIER_URI: ${{ vars.AGENT_APP_IDENTIFIER_URI }}
-          AGENT_REQUIRED_ROLE: Timesheet.Agent.Invoke
-          BOT_AGENT_MANAGED_IDENTITY_PRINCIPAL_ID: ${{ needs.infrastructure.outputs.bot_agent_identity_principal_id }}
-        with:
-          inlineScript: bash .infra/scripts/configure-entra-agent-api.sh
       - name: Grant Dataverse access to API identity
         uses: azure/cli@v3
         env:
@@ -129,43 +96,25 @@ jobs:
           APPLICATION_INSIGHTS_CONNECTION_STRING: ${{ needs.infrastructure.outputs.application_insights_connection_string }}
           DATAVERSE_SERVICE_URL: ${{ vars.DATAVERSE_SERVICE_URL }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_BOT_ID: ${{ vars.TELEGRAM_BOT_ID }}
-          AGENT_TENANT_ID: ${{ vars.DEPLOY_TENANT_ID }}
-          AGENT_AUDIENCE: ${{ steps.entra.outputs.audience }}
-          AGENT_CLIENT_ID: ${{ needs.infrastructure.outputs.bot_agent_identity_client_id }}
-          AGENT_ENABLED: ${{ vars.AGENT_ENABLED }}
-          AGENT_WRITE_PREPARATION_ENABLED: ${{ vars.AGENT_WRITE_PREPARATION_ENABLED }}
-          AGENT_VOICE_ENABLED: ${{ vars.AGENT_VOICE_ENABLED }}
-          FOUNDRY_PROJECT_ENDPOINT: ${{ needs.infrastructure.outputs.foundry_project_endpoint }}
-          FOUNDRY_OPENAI_ENDPOINT: ${{ needs.infrastructure.outputs.foundry_openai_endpoint }}
-          FOUNDRY_CHAT_DEPLOYMENT_NAME: ${{ vars.FOUNDRY_CHAT_DEPLOYMENT_NAME }}
-          FOUNDRY_VOICE_DEPLOYMENT_NAME: ${{ vars.FOUNDRY_VOICE_DEPLOYMENT_NAME }}
-          FOUNDRY_VOICE_MODEL_NAME: ${{ vars.FOUNDRY_VOICE_MODEL_NAME }}
-          STORAGE_TABLE_ENDPOINT: ${{ needs.infrastructure.outputs.storage_table_endpoint }}
-          AGENT_CONVERSATION_TABLE_NAME: ${{ vars.AGENT_CONVERSATION_TABLE_NAME }}
-          AGENT_ACTION_TABLE_NAME: ${{ vars.AGENT_ACTION_TABLE_NAME }}
         with:
           inlineScript: bash .infra/scripts/set-web-app-settings.sh
-      - name: Configure agent APIM
+      - name: Configure Timesheet APIM
         uses: azure/cli@v3
         env:
           ENVIRONMENT_NAME: ${{ vars.AZURE_NAME_POSTFIX }}
           APIM_SUBSCRIPTION_ID: ${{ vars.APIM_SUBSCRIPTION_ID }}
           APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
           APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
-          APIM_AGENT_API_ID: ${{ vars.APIM_AGENT_API_ID }}
-          APIM_AGENT_API_PATH: ${{ vars.APIM_AGENT_API_PATH }}
           APIM_WEB_API_ID: ${{ vars.APIM_WEB_API_ID }}
           APIM_WEB_API_PATH: ${{ vars.APIM_WEB_API_PATH }}
           APIM_HEALTH_NAME: ${{ vars.APIM_HEALTH_NAME }}
           APIM_SWAGGER_NAME: ${{ vars.APIM_SWAGGER_NAME }}
-          AGENT_TENANT_ID: ${{ vars.DEPLOY_TENANT_ID }}
+          ENTRA_TENANT_ID: ${{ vars.DEPLOY_TENANT_ID }}
           APIM_CERTIFICATE_CLIENT_ID: ${{ vars.APIM_CERTIFICATE_CLIENT_ID }}
           APIM_BOT_SIGN_IN_CLIENT_ID: ${{ vars.APIM_BOT_SIGN_IN_CLIENT_ID }}
           APIM_BACKEND_CERTIFICATE_ID: ${{ vars.APIM_BACKEND_CERTIFICATE_ID }}
           APIM_BACKEND_CERTIFICATE_PFX_BASE64: ${{ secrets.APIM_BACKEND_CERTIFICATE_PFX_BASE64 }}
           APIM_BACKEND_CERTIFICATE_PASSWORD: ${{ secrets.APIM_BACKEND_CERTIFICATE_PASSWORD }}
-          APIM_AGENT_MESSAGE_TIMEOUT_SECONDS: ${{ vars.APIM_AGENT_MESSAGE_TIMEOUT_SECONDS }}
           WEB_APP_NAME: ${{ needs.infrastructure.outputs.web_app_name }}
         with:
           inlineScript: bash .infra/scripts/configure-apim.sh
@@ -175,14 +124,6 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ vars.DEPLOY_SUBSCRIPTION_ID }}
           AZURE_RESOURCE_GROUP_NAME: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
           WEB_APP_NAME: ${{ needs.infrastructure.outputs.web_app_name }}
-          STORAGE_ACCOUNT_NAME: ${{ vars.STORAGE_ACCOUNT_NAME }}
-          FOUNDRY_SUBSCRIPTION_ID: ${{ vars.FOUNDRY_SUBSCRIPTION_ID }}
-          FOUNDRY_RESOURCE_GROUP: ${{ vars.FOUNDRY_RESOURCE_GROUP }}
-          FOUNDRY_ACCOUNT_NAME: ${{ vars.FOUNDRY_ACCOUNT_NAME }}
-          FOUNDRY_CHAT_DEPLOYMENT_NAME: ${{ vars.FOUNDRY_CHAT_DEPLOYMENT_NAME }}
-          FOUNDRY_VOICE_DEPLOYMENT_NAME: ${{ vars.FOUNDRY_VOICE_DEPLOYMENT_NAME }}
-          AGENT_CONVERSATION_TABLE_NAME: ${{ vars.AGENT_CONVERSATION_TABLE_NAME }}
-          AGENT_ACTION_TABLE_NAME: ${{ vars.AGENT_ACTION_TABLE_NAME }}
         with:
           inlineScript: bash .infra/scripts/validate-deployment.sh
       - name: Ensure release container
