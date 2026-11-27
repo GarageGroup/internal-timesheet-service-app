@@ -62,6 +62,7 @@ ensure_named_value() {
 
 ensure_named_value GarageTenantId "$AGENT_TENANT_ID"
 ensure_named_value TimesheetCertificateClientId "${APIM_CERTIFICATE_CLIENT_ID:-}"
+ensure_named_value TimesheetBotSignInClientId "${APIM_BOT_SIGN_IN_CLIENT_ID:-}"
 
 for api in health-check-api swagger-api; do
   path=swagger

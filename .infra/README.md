@@ -383,6 +383,7 @@ API `install.yml` всегда выполняет настройку App Registr
 | `APIM_SERVICE_NAME` | Имя APIM service |
 | `APIM_BACKEND_CERTIFICATE_ID` | ID backend-сертификата; Test использует `timesheet-certificate` |
 | `APIM_CERTIFICATE_CLIENT_ID` | Client ID разрешённого клиента основного API; обязателен, если в APIM ещё нет named value `TimesheetCertificateClientId` |
+| `APIM_BOT_SIGN_IN_CLIENT_ID` | Client ID App Registration, через которую Telegram-бот получает токены пользователей; обязателен, если в APIM ещё нет named value `TimesheetBotSignInClientId` |
 | `APIM_AGENT_API_ID` | Test использует `garage-timesheet-agent-api` |
 | `APIM_AGENT_API_PATH` | Test использует `timesheet-agent` |
 | `APIM_AGENT_MESSAGE_TIMEOUT_SECONDS` | `60` |
@@ -397,6 +398,10 @@ API `install.yml` всегда выполняет настройку App Registr
 проверку JWT в политике основного Timesheet API. Если named value уже есть, `install.yml`
 использует её и проверяет совпадение с заданной переменной; чужое значение общего APIM
 скрипт автоматически не перезаписывает.
+
+`APIM_BOT_SIGN_IN_CLIENT_ID` — второй клиент, которому политика основного Timesheet API разрешает
+вызовы от имени пользователя: App Registration `bot-internal-gtimesheet-signin-<среда>`. Правила для
+named value те же, что и для `APIM_CERTIFICATE_CLIENT_ID`.
 
 ### Пояснение неоднозначных переменных
 
