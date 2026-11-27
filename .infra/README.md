@@ -3,9 +3,11 @@
 ## Назначение workflow
 
 - `build.yml` проверяет Bicep и shell-скрипты, собирает решение и запускает тесты.
-- `install.yml` создаёт или обновляет инфраструктуру выбранной среды `Test` или `Prod`,
-  настраивает Timesheet-маршруты общего APIM, публикует bootstrap ZIP через Blob Storage,
-  разворачивает код API, проверяет health и импортирует Swagger.
+- `install.yml` создаёт или обновляет инфраструктуру выбранной среды `Test` или `Prod`, настраивает
+  Web App и Timesheet-маршруты общего APIM. Шаги выбираются при запуске: `infrastructure` (ресурсы Azure
+  и доступ identity API к Dataverse), `settings`, `apim` и `code`. Шаг `code` по умолчанию выключен: он
+  собирает bootstrap-сборку из выбранной ветки, разворачивает её вместо установленной версии, проверяет
+  health и импортирует Swagger. Он нужен только при первой установке среды; обычный код выкатывают релизы.
 - `publish.yml` собирает GitHub Release, публикует ZIP в Blob Storage, скачивает этот же ZIP,
   разворачивает его на Test, проверяет health endpoint и выполняет `update-swagger-test`.
 - `deploy.yml` скачивает из Blob Storage уже существующую версию и разворачивает её на Test или Prod
@@ -317,8 +319,8 @@ echo 'GitHub OIDC, Azure RBAC и Microsoft Graph permissions настроены.
 | `DATAVERSE_SERVICE_URL` | URL среды без завершающего `/` |
 | `DATAVERSE_API_ROLE_NAME` | Согласованная Dataverse-роль для UAMI API |
 
-API `install.yml` всегда выполняет настройку Dataverse и APIM: успешный запуск не оставляет
-обязательные интеграции пропущенными.
+API `install.yml` по умолчанию выполняет настройку Dataverse и APIM. Пропустить их можно только явно,
+сняв галочки `infrastructure` или `apim` при запуске.
 
 ### APIM
 
@@ -425,8 +427,8 @@ az apim api show \
 2. Добавить Directory deployment App Registration API в Dataverse как Application User.
 3. Заполнить repository variables/secrets и GitHub Environment `Test`.
 4. Сверить имена существующих Test-ресурсов со значениями переменных.
-5. Запустить API `install.yml`, выбрав `Test`: он создаст общие ресурсы, маршруты общего APIM
-   и опубликует код API.
+5. Запустить API `install.yml`, выбрав `Test` и включив `code`: он создаст общие ресурсы, маршруты
+   общего APIM и опубликует код API.
 6. Запустить bot `install.yml` один раз: он создаст Function App, APIM бота, агентскую UAMI и Foundry,
    опубликует код бота и установит Telegram webhook.
 7. Проверить пользовательский сценарий в боте. Отдельный Release для первого запуска не требуется.

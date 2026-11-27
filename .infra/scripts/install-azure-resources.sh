@@ -39,6 +39,44 @@ if [[ "$(az group exists --name "$AZURE_RESOURCE_GROUP_NAME" --output tsv --only
     --only-show-errors
 fi
 
+if [[ "${DEPLOY_INFRASTRUCTURE:-true}" != 'true' ]]; then
+  # The deployment is skipped: the values the next steps need are read from the existing resources.
+  web_app_host_name="$(az webapp show \
+    --resource-group "$AZURE_RESOURCE_GROUP_NAME" \
+    --name "$WEB_APP_NAME" \
+    --query defaultHostName \
+    --output tsv \
+    --only-show-errors 2>/dev/null || true)"
+  [[ -n "$web_app_host_name" ]] || { echo "Web App '$WEB_APP_NAME' does not exist: run the installation with infrastructure" >&2; exit 1; }
+
+  identity="$(az identity show \
+    --resource-group "$AZURE_RESOURCE_GROUP_NAME" \
+    --name "$MANAGED_IDENTITY_NAME" \
+    --query '{clientId: clientId, principalId: principalId}' \
+    --output json \
+    --only-show-errors)"
+  insights_connection_string="$(az resource show \
+    --resource-group "$AZURE_RESOURCE_GROUP_NAME" \
+    --resource-type Microsoft.Insights/components \
+    --name "$APPLICATION_INSIGHTS_NAME" \
+    --query properties.ConnectionString \
+    --output tsv \
+    --only-show-errors)"
+
+  if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+    {
+      echo "web_app_name=$WEB_APP_NAME"
+      echo "web_app_host_name=$web_app_host_name"
+      echo "managed_identity_client_id=$(jq -r '.clientId' <<< "$identity")"
+      echo "managed_identity_principal_id=$(jq -r '.principalId' <<< "$identity")"
+      echo "application_insights_connection_string=$insights_connection_string"
+    } >> "$GITHUB_OUTPUT"
+  fi
+
+  echo 'Infrastructure deployment skipped: existing resources resolved.'
+  exit 0
+fi
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 template="$script_dir/../main.bicep"
 deployment_name="timesheet-service-${ENVIRONMENT_NAME}"
