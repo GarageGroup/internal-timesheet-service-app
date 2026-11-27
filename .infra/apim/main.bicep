@@ -1,12 +1,8 @@
 targetScope = 'resourceGroup'
 
 param apimServiceName string
-param agentApiId string
-param agentApiDisplayName string = 'Garage Timesheet Agent API'
-param agentApiPath string
 param backendServiceUrl string
 param backendCertificateId string
-param messageTimeoutSeconds int = 60
 param webApiId string
 param webApiPath string
 param healthName string
@@ -90,67 +86,3 @@ resource swaggerPolicy 'Microsoft.ApiManagement/service/apis/operations/policies
     value: '<policies><inbound><base /><set-backend-service base-url="${backendServiceUrl}" /><authentication-certificate certificate-id="${backendCertificateId}" /><rewrite-uri template="/swagger/swagger.json" /></inbound><backend><base /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>'
   }
 }
-
-resource agentApi 'Microsoft.ApiManagement/service/apis@2024-05-01' = {
-  parent: apim
-  name: agentApiId
-  properties: {
-    displayName: agentApiDisplayName
-    path: agentApiPath
-    protocols: [
-      'https'
-    ]
-    serviceUrl: backendServiceUrl
-    subscriptionRequired: false
-  }
-}
-
-resource agentApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-05-01' = {
-  parent: agentApi
-  name: 'policy'
-  properties: {
-    format: 'rawxml'
-    value: '<policies><inbound><base /><set-backend-service base-url="${backendServiceUrl}" /><authentication-certificate certificate-id="${backendCertificateId}" /></inbound><backend><base /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>'
-  }
-}
-
-resource messageOperation 'Microsoft.ApiManagement/service/apis/operations@2024-05-01' = {
-  parent: agentApi
-  name: 'post-agent-message'
-  properties: {
-    displayName: 'Post agent message'
-    method: 'POST'
-    urlTemplate: '/internal/agent/messages'
-    templateParameters: []
-    responses: []
-  }
-}
-
-resource messagePolicy 'Microsoft.ApiManagement/service/apis/operations/policies@2024-05-01' = {
-  parent: messageOperation
-  name: 'policy'
-  properties: {
-    format: 'rawxml'
-    value: '<policies><inbound><base /></inbound><backend><forward-request timeout="${messageTimeoutSeconds}" /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>'
-  }
-}
-
-resource decisionOperation 'Microsoft.ApiManagement/service/apis/operations@2024-05-01' = {
-  parent: agentApi
-  name: 'post-agent-action-decision'
-  properties: {
-    displayName: 'Decide agent action'
-    method: 'POST'
-    urlTemplate: '/internal/agent/actions/{actionId}/decision'
-    templateParameters: [
-      {
-        name: 'actionId'
-        type: 'string'
-        required: true
-      }
-    ]
-    responses: []
-  }
-}
-
-output agentApiResourceId string = agentApi.id

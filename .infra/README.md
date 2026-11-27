@@ -32,11 +32,6 @@ Dataverse, Telegram Function App, Storage Account релизов и сущест
 Secret не требуется: GitHub авторизуется через OIDC. Federated Credential создаёт приведённый ниже
 bootstrap-скрипт.
 
-App Registration `api-timesheet-agent-test`/`api-timesheet-agent-prod` заранее создавать не нужно.
-Её создаёт или находит `install.yml`, после чего объявляет в ней application role
-`Timesheet.Agent.Invoke` и назначает роль отдельной User Assigned MI бота для вызова Agent API.
-Эту MI API создаёт вместе с общими ресурсами; Function App бота при запуске API `install.yml` не требуется.
-
 ### Общие ресурсы, которыми проект не владеет
 
 До запуска должны существовать:
@@ -50,8 +45,8 @@ App Registration `api-timesheet-agent-test`/`api-timesheet-agent-prod` зара�
 - GitHub Environments с точными именами `Test` и `Prod`.
 
 Resource Group приложения может отсутствовать: bootstrap-скрипт создаст её. App Service Plan, Web App,
-User Assigned Managed Identity API и агента бота, Storage Tables, Application Insights, Log Analytics, Foundry
-account/project и deployments моделей создаёт или обновляет `install.yml`.
+User Assigned Managed Identity API, Storage Account, Application Insights и Log Analytics создаёт или
+обновляет `install.yml`.
 
 ### Dataverse-доступ deployment-приложения
 
@@ -229,14 +224,6 @@ if [[ "$deployment_assignment_count" == 0 ]]; then
     --subscription "$APIM_SUBSCRIPTION_ID" --output none --only-show-errors
 fi
 
-foundry_subscription_id="${FOUNDRY_SUBSCRIPTION_ID:-$AZURE_SUBSCRIPTION_ID}"
-foundry_resource_group="${FOUNDRY_RESOURCE_GROUP:-$AZURE_RESOURCE_GROUP_NAME}"
-foundry_scope="/subscriptions/$foundry_subscription_id/resourceGroups/$foundry_resource_group"
-for role in 'Contributor' 'Role Based Access Control Administrator'; do
-  az role assignment create --assignee "$AZURE_DEPLOY_APP_ID" --role "$role" \
-    --scope "$foundry_scope" --subscription "$foundry_subscription_id" --output none --only-show-errors
-done
-
 graph_api_id='00000003-0000-0000-c000-000000000000'
 application_read_write_all='1bfefb4e-e0b5-418b-a88f-73c46d2cc8e9'
 app_role_assignment_read_write_all='06b708a9-e830-4db3-a914-8e69da51d44f'
@@ -280,9 +267,6 @@ echo 'GitHub OIDC, Azure RBAC и Microsoft Graph permissions настроены.
 `Microsoft.Authorization/roleAssignments/write` на соответствующем scope. Повторный запуск
 переиспользует роль с тем же именем и существующее назначение, включая уже созданную вручную роль Test.
 
-Роль `Role Based Access Control Administrator` нужна не для повседневного доступа к данным, а для
-назначения Managed Identity API ролей на Storage Account и Azure AI Foundry во время `install.yml`.
-
 Для Prod администратор повторяет ту же команду, заменяя:
 
 - `GITHUB_ENVIRONMENT` на `Prod`;
@@ -324,55 +308,15 @@ echo 'GitHub OIDC, Azure RBAC и Microsoft Graph permissions настроены.
 | `LOG_ANALYTICS_WORKSPACE_NAME` | `log-internal-gtimesheet-test` |
 | `APPLICATION_INSIGHTS_NAME` | `appi-internal-gtimesheet-test` |
 
-### Foundry и Storage Tables
-
-| Имя | Пример для Test |
-| --- | --- |
-| `FOUNDRY_LOCATION` | Регион создания Foundry account/project: `westeurope` |
-| `FOUNDRY_ACCOUNT_NAME` | `ai-timesheet-test` |
-| `FOUNDRY_PROJECT_NAME` | `ai-timesheet-test` |
-| `FOUNDRY_CHAT_DEPLOYMENT_NAME` | `gpt-5-mini` |
-| `FOUNDRY_CHAT_MODEL_NAME` | `gpt-5-mini` |
-| `FOUNDRY_CHAT_MODEL_VERSION` | `2025-08-07` |
-| `FOUNDRY_CHAT_SKU_NAME` | `GlobalStandard` |
-| `FOUNDRY_CHAT_CAPACITY` | `500` |
-| `FOUNDRY_VOICE_DEPLOYMENT_NAME` | `whisper` |
-| `FOUNDRY_VOICE_MODEL_NAME` | `whisper` |
-| `FOUNDRY_VOICE_MODEL_VERSION` | `001` |
-| `FOUNDRY_VOICE_SKU_NAME` | `Standard` |
-| `FOUNDRY_VOICE_CAPACITY` | `3` |
-| `AGENT_CONVERSATION_TABLE_NAME` | `TimesheetAgentConversation` |
-| `AGENT_ACTION_TABLE_NAME` | `TimesheetAgentAction` |
-
-До установки нужно проверить доступность моделей, квоты и требования к размещению данных в регионе.
-Значения capacity из Test нельзя автоматически переносить в Prod без отдельной проверки квоты.
-
 ### Entra ID и Dataverse
 
 | Имя | Назначение |
 | --- | --- |
-| `AGENT_APP_DISPLAY_NAME` | `api-timesheet-agent-test` для Test |
-| `AGENT_APP_IDENTIFIER_URI` | URI существующей регистрации; для новой можно оставить пустым, будет `api://<client-id>` |
-| `TELEGRAM_BOT_FUNCTION_APP_NAME` | `func-internal-gtimesheet-test`; используется для имени агентской UAMI `<имя Function App>-agent`, сама Function App пока не нужна |
-| `TELEGRAM_BOT_ID` | Числовой Telegram Bot ID, не token |
 | `DATAVERSE_SERVICE_URL` | URL среды без завершающего `/` |
 | `DATAVERSE_API_ROLE_NAME` | Согласованная Dataverse-роль для UAMI API |
 
-Client ID агентской UAMI записывается в настройки API: по нему API проверяет, какой клиент получил токен.
-API `install.yml` всегда выполняет настройку App Registration, Dataverse и APIM: успешный запуск
-не оставляет обязательные интеграции пропущенными.
-
-### Feature flags агента
-
-| Имя | Рекомендуемое начальное значение |
-| --- | --- |
-| `AGENT_ENABLED` | `true` |
-| `AGENT_WRITE_PREPARATION_ENABLED` | `true` |
-| `AGENT_VOICE_ENABLED` | `true` |
-
-При создании новой среды агент включается во время установки. Если любой из трёх флагов
-задан как `false`, `install.yml` завершится ошибкой: успешная установка должна включать
-текстовые и голосовые запросы и подготовку операций со временем.
+API `install.yml` всегда выполняет настройку Dataverse и APIM: успешный запуск не оставляет
+обязательные интеграции пропущенными.
 
 ### APIM
 
@@ -384,9 +328,6 @@ API `install.yml` всегда выполняет настройку App Registr
 | `APIM_BACKEND_CERTIFICATE_ID` | ID backend-сертификата; Test использует `timesheet-certificate` |
 | `APIM_CERTIFICATE_CLIENT_ID` | Client ID разрешённого клиента основного API; обязателен, если в APIM ещё нет named value `TimesheetCertificateClientId` |
 | `APIM_BOT_SIGN_IN_CLIENT_ID` | Client ID App Registration, через которую Telegram-бот получает токены пользователей; обязателен, если в APIM ещё нет named value `TimesheetBotSignInClientId` |
-| `APIM_AGENT_API_ID` | Test использует `garage-timesheet-agent-api` |
-| `APIM_AGENT_API_PATH` | Test использует `timesheet-agent` |
-| `APIM_AGENT_MESSAGE_TIMEOUT_SECONDS` | `60` |
 | `APIM_WEB_API_ID` | ID Mini App API; создаётся или обновляется при установке |
 | `APIM_WEB_API_PATH` | URL suffix основного API; Test использует `timesheet` |
 | `APIM_SWAGGER_NAME` | Сегмент Swagger route; Test использует `timesheet` |
@@ -417,22 +358,6 @@ Identity: её фактическая локация определяется а
 ```shell
 az group show --name rg-garage-timesheet-test --query location --output tsv
 ```
-
-#### `FOUNDRY_LOCATION`
-
-Регион создания Foundry account и Foundry project. Для Test используется `westeurope`. Переменная
-вынесена отдельно, потому что доступность моделей и квоты Foundry зависят от региона. Если Foundry
-account уже существует, install-скрипт сохраняет его фактическую локацию и не требует её совпадения с
-`FOUNDRY_LOCATION`.
-
-RBAC assignments больше не управляются флагом: после Bicep-развёртывания install-скрипт проверяет
-существующие назначения Managed Identity API на точных scope Storage Account и Foundry account.
-Он создаёт роли `Storage Table Data Contributor` и `Cognitive Services User` только при их отсутствии.
-Это позволяет повторно запускать install в среде, где те же роли уже выданы под другими ID.
-Foundry project и deployments моделей развёртываются последовательно, чтобы Azure не отклонял
-параллельные операции над одним account. Настройки Foundry
-`versionUpgradeOption`, `raiPolicyName` и `disableLocalAuth` закреплены в Bicep соответственно как
-`OnceNewDefaultVersionAvailable`, `Microsoft.DefaultV2` и `false`.
 
 #### `APIM_DNS` и `TEST_APIM_DNS`
 
@@ -498,29 +423,35 @@ az apim api show \
 2. Добавить Directory deployment App Registration API в Dataverse как Application User.
 3. Заполнить repository variables/secrets и GitHub Environment `Test`.
 4. Сверить имена существующих Test-ресурсов со значениями переменных.
-5. Запустить API `install.yml`, выбрав `Test`: он создаст общие ресурсы, агентскую UAMI бота,
-   App Registration, маршруты общего APIM и опубликует код API.
-6. Запустить bot `install.yml` один раз: он создаст Function App и APIM бота, подключит UAMI,
+5. Запустить API `install.yml`, выбрав `Test`: он создаст общие ресурсы, маршруты общего APIM
+   и опубликует код API.
+6. Запустить bot `install.yml` один раз: он создаст Function App, APIM бота, агентскую UAMI и Foundry,
    опубликует код бота и установит Telegram webhook.
 7. Проверить пользовательский сценарий в боте. Отдельный Release для первого запуска не требуется.
 
 Workflow сразу создаёт или обновляет ресурсы в режиме `Incremental`. Для существующего Test шаблон
 предусматривает следующие нормализации конфигурации:
 
-- создаёт новую агентскую UAMI бота и назначает ей `Timesheet.Agent.Invoke`;
 - запрещает публичный доступ к Blob Storage;
 - отключает FTPS и включает HTTP/2 для Web App;
 - связывает Application Insights с управляемым Log Analytics Workspace.
 
 Перед созданием CI/CD шаблоны были локально проверены через Azure `what-if`: удаления или замены Web
-App, Managed Identity, Storage, Foundry account/project, model deployments и APIM API не обнаружено.
+App, Managed Identity, Storage и APIM API не обнаружено.
 
-## Размещение Foundry и регионов
+## Агент перенесён в Telegram-бота
 
-FOUNDRY_SUBSCRIPTION_ID и FOUNDRY_RESOURCE_GROUP задают существующую RG Foundry.
-По умолчанию используется подписка и RG приложения. Для Prod перед административным скриптом
-экспортировать FOUNDRY_SUBSCRIPTION_ID=12495afb-c46a-4d23-9e80-3a1dae5406ff и
-FOUNDRY_RESOURCE_GROUP=rg-integration-platform-prod. Deployment-приложение получает Contributor
-и Role Based Access Control Administrator на эту RG; API identity получает Cognitive Services User
-на Foundry account. Регионы существующих ресурсов приложения сохраняются, AZURE_LOCATION задаёт
-регион новых ресурсов. Изменение проверено локально, deployment ещё не выполнялся.
+AI-агент больше не входит в Timesheet API: бот сам обращается к модели и вызывает обычные операции API
+от имени пользователя. Из проекта удалены endpoint `/internal/agent/*`, отдельная схема авторизации,
+Foundry, таблицы истории и агентская UAMI бота. Foundry и UAMI теперь создаёт `install.yml` бота.
+
+Развёртывание в режиме `Incremental` не удаляет ресурсы, исчезнувшие из шаблонов. После того как бот
+в среде переведён на собственного агента, вручную можно удалить:
+
+- API `garage-timesheet-agent-api` (path `timesheet-agent`) в общем APIM;
+- App Registration `api-timesheet-agent-<среда>` и роль `Timesheet.Agent.Invoke`;
+- таблицы `TimesheetAgentConversation` и `TimesheetAgentAction` в Storage Account;
+- назначения ролей `Storage Table Data Contributor` и `Cognitive Services User` для UAMI API.
+
+Настройки `Agent__*` из Web App удаляет сам `install.yml`. Foundry account и UAMI `<Function App>-agent`
+удалять нельзя: ими пользуется бот.

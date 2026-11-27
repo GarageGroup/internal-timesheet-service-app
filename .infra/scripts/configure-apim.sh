@@ -5,13 +5,11 @@ required=(
   APIM_SUBSCRIPTION_ID
   APIM_RESOURCE_GROUP
   APIM_SERVICE_NAME
-  APIM_AGENT_API_ID
-  APIM_AGENT_API_PATH
   APIM_WEB_API_ID
   APIM_WEB_API_PATH
   APIM_HEALTH_NAME
   APIM_SWAGGER_NAME
-  AGENT_TENANT_ID
+  ENTRA_TENANT_ID
   APIM_BACKEND_CERTIFICATE_ID
   WEB_APP_NAME
 )
@@ -60,7 +58,7 @@ ensure_named_value() {
   az rest --method PUT --url "$url" --headers 'Content-Type=application/json' --body "$body" --output none --only-show-errors
 }
 
-ensure_named_value GarageTenantId "$AGENT_TENANT_ID"
+ensure_named_value GarageTenantId "$ENTRA_TENANT_ID"
 ensure_named_value TimesheetCertificateClientId "${APIM_CERTIFICATE_CLIENT_ID:-}"
 ensure_named_value TimesheetBotSignInClientId "${APIM_BOT_SIGN_IN_CLIENT_ID:-}"
 
@@ -102,16 +100,13 @@ done
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 az deployment group create \
   --resource-group "$APIM_RESOURCE_GROUP" \
-  --name "timesheet-agent-api-${ENVIRONMENT_NAME:-environment}" \
+  --name "timesheet-api-${ENVIRONMENT_NAME:-environment}" \
   --mode Incremental \
   --template-file "$script_dir/../apim/main.bicep" \
   --parameters \
     apimServiceName="$APIM_SERVICE_NAME" \
-    agentApiId="$APIM_AGENT_API_ID" \
-    agentApiPath="$APIM_AGENT_API_PATH" \
     backendServiceUrl="https://${WEB_APP_NAME}.azurewebsites.net/" \
     backendCertificateId="$APIM_BACKEND_CERTIFICATE_ID" \
-    messageTimeoutSeconds="${APIM_AGENT_MESSAGE_TIMEOUT_SECONDS:-60}" \
     webApiId="$APIM_WEB_API_ID" \
     webApiPath="$APIM_WEB_API_PATH" \
     healthName="$APIM_HEALTH_NAME" \
@@ -119,4 +114,4 @@ az deployment group create \
   --output none \
   --only-show-errors
 
-echo "APIM agent API '$APIM_AGENT_API_ID' configured."
+echo "APIM API '$APIM_WEB_API_ID' configured."
