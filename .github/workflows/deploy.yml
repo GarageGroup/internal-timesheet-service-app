@@ -10,8 +10,8 @@ on:
         default: Test
         options: [Test, Prod]
       version:
-        description: Existing release tag, for example v1.2.3
-        required: true
+        description: Release tag, for example v1.2.3. Empty means the latest release tag of the selected branch or the selected tag itself
+        required: false
         type: string
       update_swagger:
         description: Update Mini App API specification after health check
@@ -26,17 +26,38 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-      - name: Validate version
+        with:
+          # The whole history with tags is needed to find the latest release tag of the selected branch
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Resolve version
+        id: version
         env:
           VERSION: ${{ inputs.version }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]
+          if [[ -z "$VERSION" ]]; then
+            if [[ "$REF_TYPE" == 'tag' ]]; then
+              VERSION="$REF_NAME"
+            else
+              VERSION="$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD)" || { echo "No release tag is reachable from '$REF_NAME'" >&2; exit 1; }
+              if [[ "$(git rev-parse "$VERSION^{commit}")" != "$(git rev-parse HEAD)" ]]; then
+                echo "::notice::'$REF_NAME' has commits after $VERSION. They are not released and will not be deployed."
+              fi
+            fi
+          fi
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || { echo "Unexpected version: $VERSION" >&2; exit 1; }
+          echo "Deploying $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
       - name: Download release artifact from Azure Blob Storage
         env:
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
           ARTIFACT_NAME: ${{ vars.AZURE_ARTIFACT_NAME }}
           ARTIFACT_CONTAINER: ${{ vars.AZURE_ARTIFACT_CONTAINER_NAME }}
           ARTIFACT_ACCOUNT: ${{ vars.AZURE_ARTIFACT_ACCOUNT_NAME }}
@@ -60,7 +81,7 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ vars.WEB_APP_NAME }}
-          package: ./publish/${{ vars.AZURE_ARTIFACT_NAME }}-${{ inputs.version }}.zip
+          package: ./publish/${{ vars.AZURE_ARTIFACT_NAME }}-${{ steps.version.outputs.version }}.zip
       - name: Record deployment time
         uses: azure/cli@v3
         env:
@@ -101,57 +122,16 @@ jobs:
         uses: GarageGroup/platform-ping-app@v0.1.0
         with:
           health_check_url: https://${{ vars.APIM_DNS }}/health/${{ vars.APIM_HEALTH_NAME }}?subscription-key=${{ steps.health_key.outputs.key }}
-          contains: ${{ inputs.version }}
+          contains: ${{ needs.deploy.outputs.version }}
           is_end_of_line_match: true
           retry_delay_in_seconds: 15
           max_attempts: 30
 
-  update-swagger-test:
-    if: ${{ inputs.environment == 'Test' && inputs.update_swagger }}
+  update-swagger:
+    if: ${{ inputs.update_swagger }}
     needs: health
     runs-on: ubuntu-latest
-    environment: Test
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-      - name: Log in to Azure with OIDC
-        uses: azure/login@v3
-        with:
-          client-id: ${{ vars.DEPLOY_CLIENT_ID }}
-          tenant-id: ${{ vars.DEPLOY_TENANT_ID }}
-          subscription-id: ${{ vars.APIM_SUBSCRIPTION_ID }}
-      - name: Resolve Swagger APIM subscription key
-        id: swagger_key
-        uses: azure/cli@v3
-        env:
-          APIM_SUBSCRIPTION_ID: ${{ vars.APIM_SUBSCRIPTION_ID }}
-          APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
-          APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
-          APIM_SUBSCRIPTION_NAME: TimesheetSwaggerSubscription
-        with:
-          inlineScript: bash .infra/scripts/get-apim-subscription-key.sh
-      - name: Update API Management specification
-        env:
-          APIM_RESOURCE_GROUP: ${{ vars.APIM_RESOURCE_GROUP }}
-          APIM_SERVICE_NAME: ${{ vars.APIM_SERVICE_NAME }}
-          APIM_WEB_API_ID: ${{ vars.APIM_WEB_API_ID }}
-          APIM_WEB_API_PATH: ${{ vars.APIM_WEB_API_PATH }}
-          APIM_SWAGGER_NAME: ${{ vars.APIM_SWAGGER_NAME }}
-          APIM_DNS: ${{ vars.APIM_DNS }}
-          APIM_SUBKEY: ${{ steps.swagger_key.outputs.key }}
-          WEB_APP_NAME: ${{ vars.WEB_APP_NAME }}
-        run: bash .infra/scripts/update-swagger.sh
-      - name: Azure logout
-        if: ${{ always() }}
-        uses: azure/cli@v3
-        with:
-          inlineScript: az logout
-
-  update-swagger-prod:
-    if: ${{ inputs.environment == 'Prod' && inputs.update_swagger }}
-    needs: health
-    runs-on: ubuntu-latest
-    environment: Prod
+    environment: ${{ inputs.environment }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
