@@ -15,7 +15,7 @@ partial class TimesheetDeleteFuncTest
         TimesheetDeleteIn input, DataverseEntityDeleteIn expectedInput)
     {
         var mockDataverseApi = BuildMockDataverseDeleteApi(Result.Success<Unit>(default));
-        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object, NoClosedPeriodApi);
 
         _ = await func.InvokeAsync(input, TestContext.Current.CancellationToken);
 
@@ -42,7 +42,7 @@ partial class TimesheetDeleteFuncTest
         var dataverseFailure = sourceException.ToFailure(sourceFailureCode, "Some failure message");
 
         var mockDataverseApi = BuildMockDataverseDeleteApi(dataverseFailure);
-        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object, NoClosedPeriodApi);
 
         var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(expectFailureCode, "Some failure message", sourceException);
@@ -57,7 +57,7 @@ partial class TimesheetDeleteFuncTest
         var dataverseFailure = sourceException.ToFailure(DataverseFailureCode.RecordNotFound, "Some failure message");
 
         var mockDataverseApi = BuildMockDataverseDeleteApi(dataverseFailure);
-        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object, NoClosedPeriodApi);
 
         var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Result.Success<Unit>(default);
@@ -69,7 +69,7 @@ partial class TimesheetDeleteFuncTest
     public static async Task InvokeAsync_DataverseResultIsSuccess_ExpectSuccess()
     {
         var mockDataverseApi = BuildMockDataverseDeleteApi(Result.Success<Unit>(default));
-        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object, NoClosedPeriodApi);
 
         var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Result.Success<Unit>(default);

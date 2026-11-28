@@ -319,6 +319,20 @@ echo 'GitHub OIDC, Azure RBAC и Microsoft Graph permissions настроены.
 | `DATAVERSE_SERVICE_URL` | URL среды без завершающего `/` |
 | `DATAVERSE_API_ROLE_NAME` | Согласованная Dataverse-роль для UAMI API |
 
+### Производственный календарь
+
+Временное правило открытых периодов: списания можно создавать, менять и удалять только в текущем месяце
+и в предыдущем — в течение трёх рабочих дней после его окончания. Рабочие дни API берёт из сервиса
+`Production Calendar` в APIM. Переменные необязательны: без адреса, а также при недоступности сервиса
+или отсутствии дня в календаре рабочими считаются дни с понедельника по пятницу.
+
+| Имя | Назначение |
+| --- | --- |
+| `WORK_CALENDAR_BASE_URL` | Адрес API календаря в APIM, например `https://<apim>.azure-api.net/production-calendar-prod` |
+| `WORK_CALENDAR_COUNTRY` | Код страны календаря; по умолчанию `RU` |
+
+Ключ подписки APIM задаётся секретом `WORK_CALENDAR_SUBSCRIPTION_KEY`. Значения применяются шагом `settings`.
+
 API `install.yml` по умолчанию выполняет настройку Dataverse и APIM. Пропустить их можно только явно,
 сняв галочки `infrastructure` или `apim` при запуске.
 
@@ -415,6 +429,7 @@ az apim api show \
 | Имя | Назначение |
 | --- | --- |
 | `TELEGRAM_BOT_TOKEN` | Runtime token Telegram-бота; не выводится в лог и не хранится в Git |
+| `WORK_CALENDAR_SUBSCRIPTION_KEY` | Ключ подписки APIM для API `Production Calendar`; нужен, если задан `WORK_CALENDAR_BASE_URL` |
 | `APIM_BACKEND_CERTIFICATE_PFX_BASE64` | PFX backend-сертификата в Base64, если сертификата ещё нет в общем APIM |
 | `APIM_BACKEND_CERTIFICATE_PASSWORD` | Пароль указанного PFX, если сертификата ещё нет в общем APIM |
 

@@ -8,5 +8,5 @@ partial class Application
     [EndpointSetApplicationExtension]
     internal static Dependency<TimesheetModifyEndpointSet> UseTimesheetModifyEndpointSet()
         =>
-        UseDataverseApi().UseTimesheetModifyEndpointSet();
+        UseDataverseApi().With(UseOpenPeriodApi()).UseTimesheetModifyEndpointSet();
 }

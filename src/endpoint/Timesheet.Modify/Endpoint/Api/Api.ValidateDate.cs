@@ -27,6 +27,16 @@ partial class TimesheetModifyApi
             return value;
         }
 
+        // The temporary rule: only the current period is open, and the previous one for some working days after its end
+        foreach (var date in dates)
+        {
+            var closedPeriod = await openPeriodApi.FindClosedPeriodAsync(date, cancellationToken).ConfigureAwait(false);
+            if (closedPeriod is not null)
+            {
+                return CreatePeriodClosedFailure(closedPeriod.Name, closedPeriod.From, closedPeriod.To, date);
+            }
+        }
+
         var periods = await dataverseApi.GetEntitySetAsync<PeriodJson>(
             PeriodJson.BuildClosedPeriodSetGetInput(dates), cancellationToken).ConfigureAwait(false);
 
@@ -41,13 +51,16 @@ partial class TimesheetModifyApi
         }
 
         var period = periods.SuccessOrThrow().Value[0];
-        var date = dates.FirstOrDefault(date => date >= period.From && date <= period.To, dates[0]);
-
-        return Failure.Create(
-            DateFailureCode.PeriodClosed,
-            $"The period {period.Name} ({period.From.ToString(DateFormat)} - {period.To.ToString(DateFormat)}) is closed: " +
-            $"time entries of {date.ToString(DateFormat)} cannot be created or changed.");
+        return CreatePeriodClosedFailure(
+            period.Name, period.From, period.To, dates.FirstOrDefault(date => date >= period.From && date <= period.To, dates[0]));
     }
+
+    private static Failure<DateFailureCode> CreatePeriodClosedFailure(string? name, DateOnly from, DateOnly to, DateOnly date)
+        =>
+        Failure.Create(
+            DateFailureCode.PeriodClosed,
+            $"The period {name} ({from.ToString(DateFormat)} - {to.ToString(DateFormat)}) is closed: " +
+            $"time entries of {date.ToString(DateFormat)} cannot be created or changed.");
 
     private enum DateFailureCode
     {

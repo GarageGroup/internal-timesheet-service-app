@@ -28,7 +28,7 @@ partial class TimesheetModifyApiTest
         int year, int month, int day)
     {
         var mockDataverseApi = BuildMockDataverseApi(NoPeriodJsonOut, SomeTimesheetDateJsonOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object, BuildTodayProvider(new(2026, 11, 28)));
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, NoClosedPeriodApi, BuildTodayProvider(new(2026, 11, 28)));
 
         var actual = await api.CreateAsync(BuildCreateInput(new(year, month, day)), TestContext.Current.CancellationToken);
 
@@ -47,7 +47,7 @@ partial class TimesheetModifyApiTest
         int year, int month, int day)
     {
         var mockDataverseApi = BuildMockDataverseApi(NoPeriodJsonOut, SomeTimesheetDateJsonOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object, BuildTodayProvider(new(2026, 11, 28)));
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, NoClosedPeriodApi, BuildTodayProvider(new(2026, 11, 28)));
 
         var actual = await api.CreateAsync(BuildCreateInput(new(year, month, day)), TestContext.Current.CancellationToken);
 
@@ -61,7 +61,7 @@ partial class TimesheetModifyApiTest
     public static async Task CreateAsync_InputDateIsNotInTheFuture_ExpectClosedPeriodOfTheDateIsRequestedOnce()
     {
         var mockDataverseApi = BuildMockDataverseApi(NoPeriodJsonOut, SomeTimesheetDateJsonOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, NoClosedPeriodApi, SomeTodayProvider);
 
         _ = await api.CreateAsync(BuildCreateInput(new(2024, 05, 17)), TestContext.Current.CancellationToken);
 
@@ -78,7 +78,7 @@ partial class TimesheetModifyApiTest
     public static async Task CreateAsync_PeriodOfTheDateIsClosed_ExpectPeriodClosedFailureAndTimesheetIsNotCreated()
     {
         var mockDataverseApi = BuildMockDataverseApi(ClosedPeriodJsonOut, SomeTimesheetDateJsonOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, NoClosedPeriodApi, SomeTodayProvider);
 
         var actual = await api.CreateAsync(BuildCreateInput(new(2024, 05, 17)), TestContext.Current.CancellationToken);
 
@@ -108,7 +108,7 @@ partial class TimesheetModifyApiTest
         var dataverseFailure = sourceException.ToFailure(sourceFailureCode, "Some failure message");
 
         var mockDataverseApi = BuildMockDataverseApi(dataverseFailure, SomeTimesheetDateJsonOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, NoClosedPeriodApi, SomeTodayProvider);
 
         var actual = await api.CreateAsync(BuildCreateInput(new(2024, 05, 17)), TestContext.Current.CancellationToken);
         var expected = Failure.Create(TimesheetCreateFailureCode.Unknown, "Some failure message", sourceException);

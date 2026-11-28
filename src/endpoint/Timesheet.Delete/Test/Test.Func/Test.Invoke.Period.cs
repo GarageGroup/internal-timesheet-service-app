@@ -13,7 +13,7 @@ partial class TimesheetDeleteFuncTest
     public static async Task InvokeAsync_ExpectTimesheetDateIsRequestedOnceOnBehalfOfTheUser()
     {
         var mockDataverseApi = BuildMockDataverseDeleteApi(Result.Success<Unit>(default));
-        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object, NoClosedPeriodApi);
 
         _ = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
 
@@ -41,7 +41,7 @@ partial class TimesheetDeleteFuncTest
         var dataverseFailure = sourceException.ToFailure(sourceFailureCode, "Some failure message");
 
         var mockDataverseApi = BuildMockDataverseApi(Result.Success<Unit>(default), dataverseFailure, NoPeriodJsonOut);
-        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object, NoClosedPeriodApi);
 
         var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(expectedFailureCode, "Some failure message", sourceException);
@@ -58,7 +58,7 @@ partial class TimesheetDeleteFuncTest
         var dataverseFailure = Failure.Create(DataverseFailureCode.RecordNotFound, "Some failure message");
 
         var mockDataverseApi = BuildMockDataverseApi(dataverseFailure, dataverseFailure, ClosedPeriodJsonOut);
-        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object, NoClosedPeriodApi);
 
         var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
 
@@ -77,7 +77,7 @@ partial class TimesheetDeleteFuncTest
         var mockDataverseApi = BuildMockDataverseApi(
             Result.Success<Unit>(default), BuildTimesheetJsonOut(new(year, month, day)), NoPeriodJsonOut);
 
-        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object, NoClosedPeriodApi);
 
         _ = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
 
@@ -94,7 +94,7 @@ partial class TimesheetDeleteFuncTest
     public static async Task InvokeAsync_TimesheetHasNoDate_ExpectPeriodIsNotRequestedAndTimesheetIsDeleted()
     {
         var mockDataverseApi = BuildMockDataverseApi(Result.Success<Unit>(default), BuildTimesheetJsonOut(null), ClosedPeriodJsonOut);
-        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object, NoClosedPeriodApi);
 
         var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
 
@@ -113,7 +113,7 @@ partial class TimesheetDeleteFuncTest
         var mockDataverseApi = BuildMockDataverseApi(
             Result.Success<Unit>(default), BuildTimesheetJsonOut(new(2024, 05, 20)), ClosedPeriodJsonOut);
 
-        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object, NoClosedPeriodApi);
 
         var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
 
@@ -140,7 +140,7 @@ partial class TimesheetDeleteFuncTest
         var dataverseFailure = sourceException.ToFailure(sourceFailureCode, "Some failure message");
 
         var mockDataverseApi = BuildMockDataverseApi(Result.Success<Unit>(default), SomeTimesheetJsonOut, dataverseFailure);
-        var func = new TimesheetDeleteFunc(mockDataverseApi.Object);
+        var func = new TimesheetDeleteFunc(mockDataverseApi.Object, NoClosedPeriodApi);
 
         var actual = await func.InvokeAsync(SomeInput, TestContext.Current.CancellationToken);
         var expected = Failure.Create(TimesheetDeleteFailureCode.Unknown, "Some failure message", sourceException);

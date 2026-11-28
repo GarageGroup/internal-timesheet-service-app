@@ -43,6 +43,13 @@ partial class TimesheetDeleteFunc
             return input;
         }
 
+        // The temporary rule: only the current period is open, and the previous one for some working days after its end
+        var closedPeriod = await openPeriodApi.FindClosedPeriodAsync(date.Value, cancellationToken).ConfigureAwait(false);
+        if (closedPeriod is not null)
+        {
+            return CreatePeriodClosedFailure(closedPeriod.Name, closedPeriod.From, closedPeriod.To, date.Value);
+        }
+
         var periods = await dataverseApi.GetEntitySetAsync<PeriodJson>(
             PeriodJson.BuildClosedPeriodSetGetInput(date.Value), cancellationToken).ConfigureAwait(false);
 
@@ -57,12 +64,15 @@ partial class TimesheetDeleteFunc
         }
 
         var period = periods.SuccessOrThrow().Value[0];
-
-        return Failure.Create(
-            TimesheetDeleteFailureCode.PeriodClosed,
-            $"The period {period.Name} ({period.From.ToString(DateFormat)} - {period.To.ToString(DateFormat)}) is closed: " +
-            $"time entries of {date.Value.ToString(DateFormat)} cannot be deleted.");
+        return CreatePeriodClosedFailure(period.Name, period.From, period.To, date.Value);
     }
+
+    private static Failure<TimesheetDeleteFailureCode> CreatePeriodClosedFailure(string? name, DateOnly from, DateOnly to, DateOnly date)
+        =>
+        Failure.Create(
+            TimesheetDeleteFailureCode.PeriodClosed,
+            $"The period {name} ({from.ToString(DateFormat)} - {to.ToString(DateFormat)}) is closed: " +
+            $"time entries of {date.ToString(DateFormat)} cannot be deleted.");
 
     private ValueTask<Result<Unit, Failure<TimesheetDeleteFailureCode>>> DeleteAsync(
         DataverseEntityDeleteIn input, CancellationToken cancellationToken)

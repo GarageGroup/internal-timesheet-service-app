@@ -13,6 +13,7 @@
   
   <ItemGroup>
     <ProjectReference Include="..\Contract\Contract.csproj" />
+    <ProjectReference Include="..\..\..\service\OpenPeriod\Contract\Contract.csproj" />
   </ItemGroup>
 
   <ItemGroup>

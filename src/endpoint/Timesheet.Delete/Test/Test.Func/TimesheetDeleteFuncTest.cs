@@ -13,6 +13,29 @@ public static partial class TimesheetDeleteFuncTest
             systemUserId: new("d290f1ee-6c54-4b01-90e6-d701748f0851"),
             timesheetId: new("84de1ab3-e0a6-4666-a90c-4165c61522b8"));
 
+    // The temporary rule closes no period
+    private static readonly IOpenPeriodApi NoClosedPeriodApi
+        =
+        BuildMockOpenPeriodApi().Object;
+
+    // The temporary rule closes every period before the first open date
+    private static Mock<IOpenPeriodApi> BuildMockOpenPeriodApi(DateOnly? firstOpenDate = null)
+    {
+        var mock = new Mock<IOpenPeriodApi>();
+
+        _ = mock
+            .Setup(static a => a.FindClosedPeriodAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                (DateOnly date, CancellationToken _) => date < firstOpenDate
+                    ? new ClosedPeriod(
+                        Name: date.ToString("yy_MM"),
+                        From: new(date.Year, date.Month, 1),
+                        To: new DateOnly(date.Year, date.Month, 1).AddMonths(1).AddDays(-1))
+                    : null);
+
+        return mock;
+    }
+
     private static readonly DataverseEntityGetOut<TimesheetJson> SomeTimesheetJsonOut
         =
         BuildTimesheetJsonOut(new(2024, 06, 05));
