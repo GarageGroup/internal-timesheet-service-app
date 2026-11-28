@@ -8,5 +8,5 @@ partial class Application
     [EndpointApplicationExtension]
     internal static Dependency<TimesheetDeleteEndpoint> UseTimesheetDeleteEndpoint()
         =>
-        UseDataverseApi().UseTimesheetDeleteEndpoint();
+        UseDataverseApi().With(UseOpenPeriodApi()).UseTimesheetDeleteEndpoint();
 }

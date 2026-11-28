@@ -27,6 +27,16 @@ settings=(
 
 settings+=("TelegramBot__Token=$TELEGRAM_BOT_TOKEN")
 
+# The production calendar is optional: without its address Monday - Friday are working days.
+settings+=(
+  "WorkCalendar__BaseAddressUrl=${WORK_CALENDAR_BASE_URL:-}"
+  "WorkCalendar__Country=${WORK_CALENDAR_COUNTRY:-RU}"
+  "WorkCalendar__SubscriptionKey=${WORK_CALENDAR_SUBSCRIPTION_KEY:-}"
+)
+if [[ -n "${WORK_CALENDAR_BASE_URL:-}" && -z "${WORK_CALENDAR_SUBSCRIPTION_KEY:-}" ]]; then
+  echo "WORK_CALENDAR_BASE_URL is set without WORK_CALENDAR_SUBSCRIPTION_KEY: the calendar will reject requests." >&2
+fi
+
 az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 az webapp config appsettings set \
   --resource-group "$AZURE_RESOURCE_GROUP_NAME" \

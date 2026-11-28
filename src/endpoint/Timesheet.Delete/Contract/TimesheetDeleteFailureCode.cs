@@ -7,5 +7,8 @@ public enum TimesheetDeleteFailureCode
     Unknown,
 
     [Problem(FailureStatusCode.BadRequest, true)]
-    BadRequest
+    BadRequest,
+
+    [Problem(FailureStatusCode.BadRequest, true)]
+    PeriodClosed
 }

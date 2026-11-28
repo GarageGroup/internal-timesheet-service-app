@@ -1,5 +1,6 @@
 using GarageGroup.Infra;
 using System;
+using System.Text.Json.Serialization;
 
 namespace GarageGroup.Internal.Timesheet;
 
@@ -9,6 +10,20 @@ internal sealed record class TimesheetJson
         =
         "gg_timesheetactivities";
 
+    private const string DateFieldName
+        =
+        "gg_date";
+
+    internal static DataverseEntityGetIn BuildDataverseGetInput(Guid timesheetId, Guid callerObjectId)
+        =>
+        new(
+            entityPluralName: EntityPluralName,
+            entityKey: new DataversePrimaryKey(timesheetId),
+            selectFields: [DateFieldName])
+        {
+            CallerObjectId = callerObjectId
+        };
+
     internal static DataverseEntityDeleteIn BuildDataverseDeleteInput(Guid timesheetId, Guid callerObjectId)
         =>
         new(
@@ -17,4 +32,7 @@ internal sealed record class TimesheetJson
         {
             CallerObjectId = callerObjectId
         };
+
+    [JsonPropertyName(DateFieldName)]
+    public DateOnly? Date { get; init; }
 }

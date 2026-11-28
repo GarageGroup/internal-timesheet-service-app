@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace GarageGroup.Internal.Timesheet;
 
-internal sealed partial class TimesheetModifyApi(IDataverseApiClient dataverseApi, ITodayProvider todayProvider) : ITimesheetModifyApi
+internal sealed partial class TimesheetModifyApi(IDataverseApiClient dataverseApi, IOpenPeriodApi openPeriodApi, ITodayProvider todayProvider) : ITimesheetModifyApi
 {
     private const int TelegramChannelCode = 140120000;
 

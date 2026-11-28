@@ -32,6 +32,30 @@ internal static partial class Application
         .UseTelegramBotApi()
         .UseBotApi();
 
+    private static Dependency<IOpenPeriodApi> UseOpenPeriodApi()
+        =>
+        PrimaryHandler.UseStandardSocketsHttpHandler()
+        .UseLogging(
+            "WorkCalendarApi")
+        .UsePollyStandard()
+        .With(
+            ResolveWorkCalendarOption)
+        .UseOpenPeriodApi();
+
+    // Without the address the calendar is not requested, and Monday - Friday are working days
+    private static WorkCalendarOption ResolveWorkCalendarOption(IServiceProvider serviceProvider)
+    {
+        var section = serviceProvider.GetConfiguration().GetSection("WorkCalendar");
+        var country = section["Country"];
+
+        return new()
+        {
+            BaseAddress = Uri.TryCreate(section["BaseAddressUrl"], UriKind.Absolute, out var baseAddress) ? baseAddress : null,
+            SubscriptionKey = section["SubscriptionKey"],
+            Country = string.IsNullOrWhiteSpace(country) ? "RU" : country
+        };
+    }
+
     private static HttpApiOption ResolveHttpBotApiOption(IServiceProvider serviceProvider)
         =>
         new()
