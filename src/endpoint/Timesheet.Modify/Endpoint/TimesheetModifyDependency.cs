@@ -4,6 +4,7 @@ using GarageGroup.Infra;
 using PrimeFuncPack;
 
 [assembly: InternalsVisibleTo("GarageGroup.Internal.Timesheet.Endpoint.Timesheet.Modify.Test")]
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 
 namespace GarageGroup.Internal.Timesheet;
 
@@ -20,7 +21,7 @@ public static class TimesheetModifyDependency
         {
             ArgumentNullException.ThrowIfNull(dataverseApi);
 
-            return new(dataverseApi);
+            return new(dataverseApi, TodayProvider.Instance);
         }
     }
 
@@ -35,7 +36,7 @@ public static class TimesheetModifyDependency
         {
             ArgumentNullException.ThrowIfNull(dataverseApi);
 
-            return new(dataverseApi);
+            return new(dataverseApi, TodayProvider.Instance);
         }
     }
 
@@ -48,7 +49,7 @@ public static class TimesheetModifyDependency
         static TimesheetModifyApi CreateApi(IDataverseApiClient dataverseApi)
         {
             ArgumentNullException.ThrowIfNull(dataverseApi);
-            return new(dataverseApi);
+            return new(dataverseApi, TodayProvider.Instance);
         }
     }
 }

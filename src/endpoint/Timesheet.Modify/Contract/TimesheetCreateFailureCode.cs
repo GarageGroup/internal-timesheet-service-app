@@ -22,4 +22,12 @@ public enum TimesheetCreateFailureCode
 
     [Problem(FailureStatusCode.BadRequest, FailureCode.EmptyDescriptionMessage)]
     EmptyDescription,
+
+    // The detail names the rejected date
+    [Problem(FailureStatusCode.BadRequest, true)]
+    FutureDate,
+
+    // The detail names the closed period and the date
+    [Problem(FailureStatusCode.BadRequest, true)]
+    PeriodClosed
 }

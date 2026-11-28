@@ -14,7 +14,7 @@ internal static class TimesheetModifyMetadata
 
         public const string DescriptionCreate
             =
-            "Creates a new timesheet entry.";
+            "Creates a new timesheet entry. The date must not be in the future or in a closed period.";
 
         public const string RouteUpdate = "/updateTimesheet";
 
@@ -24,7 +24,8 @@ internal static class TimesheetModifyMetadata
 
         public const string DescriptionUpdate
             =
-            "Updates an existing timesheet entry.";
+            "Updates an existing timesheet entry. Neither its current date nor the new one may be in a closed period, " +
+            "and the new date must not be in the future.";
     }
 
     public static class In

@@ -13,7 +13,7 @@ partial class TimesheetModifyApiTest
     public static async Task UpdateAsync_InputProjectTypeIsProject_ExpectDataverseGetCalledOnce()
     {
         var mockDataverseApi = BuildMockDataverseApi<ProjectJson>(Result.Success<Unit>(default), SomeProjectJsonOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
 
         var input = new TimesheetUpdateIn(
             systemUserId: new("f4597142-5400-4776-8d71-8b50842978af"),
@@ -42,7 +42,7 @@ partial class TimesheetModifyApiTest
     public static async Task UpdateAsync_InputProjectTypeIsIncident_ExpectDataverseGetCalledOnce()
     {
         var mockDataverseApi = BuildMockDataverseApi<IncidentJson>(Result.Success<Unit>(default), SomeIncidentJsonOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
 
         var input = new TimesheetUpdateIn(
             systemUserId: new("f4597142-5400-4776-8d71-8b50842978af"),
@@ -71,7 +71,7 @@ partial class TimesheetModifyApiTest
     public static async Task UpdateAsync_InputProjectTypeIsOpportunity_ExpectDataverseGetCalledOnce()
     {
         var mockDataverseApi = BuildMockDataverseApi<OpportunityJson>(Result.Success<Unit>(default), SomeOpportunityJsonOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
 
         var input = new TimesheetUpdateIn(
             systemUserId: new("f4597142-5400-4776-8d71-8b50842978af"),
@@ -100,7 +100,7 @@ partial class TimesheetModifyApiTest
     public static async Task UpdateAsync_InputProjectTypeIsLead_ExpectDataverseGetCalledOnce()
     {
         var mockDataverseApi = BuildMockDataverseApi<LeadJson>(Result.Success<Unit>(default), SomeLeadJsonOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
 
         var input = new TimesheetUpdateIn(
             systemUserId: new("f4597142-5400-4776-8d71-8b50842978af"),
@@ -140,7 +140,7 @@ partial class TimesheetModifyApiTest
 
         var mockDataverseApi = BuildMockDataverseApi<OpportunityJson>(Result.Success<Unit>(default), SomeOpportunityJsonOut);
 
-        var api = new TimesheetModifyApi(mockDataverseApi.Object);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
 
         var actual = await api.UpdateAsync(input, TestContext.Current.CancellationToken);
         var expected = Failure.Create(TimesheetUpdateFailureCode.UnexpectedProjectType, "An unexpected project type: -5");
@@ -167,7 +167,7 @@ partial class TimesheetModifyApiTest
         var dataverseFailure = sourceException.ToFailure(dataverseFailureCode, "Some failure text");
 
         var mockDataverseApi = BuildMockDataverseApi<ProjectJson>(Result.Success<Unit>(default), dataverseFailure);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
 
         var input = new TimesheetUpdateIn(
             systemUserId: new("f4597142-5400-4776-8d71-8b50842978af"),
@@ -191,7 +191,7 @@ partial class TimesheetModifyApiTest
         TimesheetUpdateIn input, DataverseEntityGetOut<ProjectJson> dataverseOut, DataverseEntityUpdateIn<TimesheetJson> expected)
     {
         var mockDataverseApi = BuildMockDataverseApi<ProjectJson>(Result.Success<Unit>(default), dataverseOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
 
         _ = await api.UpdateAsync(input, TestContext.Current.CancellationToken);
         var expectedInput = expected with { CallerObjectId = input.SystemUserId };
@@ -208,7 +208,7 @@ partial class TimesheetModifyApiTest
         TimesheetUpdateIn input, DataverseEntityGetOut<IncidentJson> dataverseOut, DataverseEntityUpdateIn<TimesheetJson> expected)
     {
         var mockDataverseApi = BuildMockDataverseApi<IncidentJson>(Result.Success<Unit>(default), dataverseOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
 
         _ = await api.UpdateAsync(input, TestContext.Current.CancellationToken);
         var expectedInput = expected with { CallerObjectId = input.SystemUserId };
@@ -225,7 +225,7 @@ partial class TimesheetModifyApiTest
         TimesheetUpdateIn input, DataverseEntityGetOut<OpportunityJson> dataverseOut, DataverseEntityUpdateIn<TimesheetJson> expected)
     {
         var mockDataverseApi = BuildMockDataverseApi<OpportunityJson>(Result.Success<Unit>(default), dataverseOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
 
         _ = await api.UpdateAsync(input, TestContext.Current.CancellationToken);
         var expectedInput = expected with { CallerObjectId = input.SystemUserId };
@@ -242,7 +242,7 @@ partial class TimesheetModifyApiTest
         TimesheetUpdateIn input, DataverseEntityGetOut<LeadJson> dataverseOut, DataverseEntityUpdateIn<TimesheetJson> expected)
     {
         var mockDataverseApi = BuildMockDataverseApi<LeadJson>(Result.Success<Unit>(default), dataverseOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
 
         _ = await api.UpdateAsync(input, TestContext.Current.CancellationToken);
         var expectedInput = expected with { CallerObjectId = input.SystemUserId };
@@ -274,7 +274,7 @@ partial class TimesheetModifyApiTest
         var dataverseFailure = sourceException.ToFailure(sourceFailureCode, "Some failure message");
 
         var mockDataverseApi = BuildMockDataverseApi<ProjectJson>(dataverseFailure, SomeProjectJsonOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
 
         var input = new TimesheetUpdateIn(
             systemUserId: new("f4597142-5400-4776-8d71-8b50842978af"),
@@ -296,7 +296,7 @@ partial class TimesheetModifyApiTest
     public static async Task UpdateAsync_DataverseResultIsSuccess_ExpectSuccess()
     {
         var mockDataverseApi = BuildMockDataverseApi<IncidentJson>(Result.Success<Unit>(default), SomeIncidentJsonOut);
-        var api = new TimesheetModifyApi(mockDataverseApi.Object);
+        var api = new TimesheetModifyApi(mockDataverseApi.Object, SomeTodayProvider);
 
         var input = new TimesheetUpdateIn(
             systemUserId: new("f4597142-5400-4776-8d71-8b50842978af"),
