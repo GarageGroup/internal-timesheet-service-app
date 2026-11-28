@@ -18,9 +18,9 @@ partial class ProjectSetGetFunc
             GetOpportunitiesAsync,
             GetLeadsAsync)
         .MapSuccess(
-            static @out => new ProjectSetGetOut
+            @out => new ProjectSetGetOut
             {
-                Projects = ConcatProjects(@out.Item1, @out.Item2, @out.Item3, @out.Item4)
+                Projects = ConcatProjects(@out.Item1, @out.Item2, @out.Item3, @out.Item4, input.Top)
             });
 
     private ValueTask<Result<FlatArray<DbProject>, Failure<Unit>>> GetProjectsAsync(
@@ -65,7 +65,8 @@ partial class ProjectSetGetFunc
         FlatArray<DbProject> projects,
         FlatArray<DbIncident> incidents,
         FlatArray<DbOpportunity> opportunities,
-        FlatArray<DbLead> leads)
+        FlatArray<DbLead> leads,
+        int? top)
         =>
         Pipeline.Pipe(
             projects.CastArray<IDbProject>().AsEnumerable())
@@ -82,6 +83,8 @@ partial class ProjectSetGetFunc
             GetLastTimesheetDate)
         .ThenBy(
             GetProjectName)
+        .Take(
+            top > 0 ? top.Value : int.MaxValue)
         .Select(
             MapProject)
         .ToFlatArray();

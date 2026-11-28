@@ -14,7 +14,17 @@ internal static class ProjectSetGetMetadata
 
         public const string Description
             =
-            "Retrieves all projects, leads, opportunities, and incidents.";
+            "Retrieves projects, leads, opportunities, and incidents: the ones the user has logged time to recently come first. " +
+            "All of them are returned unless the 'top' parameter limits the number.";
+    }
+
+    public static class In
+    {
+        public const string TopDescription
+            =
+            "Maximum number of items to return. All items are returned if it is not specified.";
+
+        public const int TopExample = 20;
     }
 
     public static class Out
