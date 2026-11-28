@@ -13,6 +13,8 @@ partial class TimesheetModifyApi
         AsyncPipeline.Pipe(
             input, cancellationToken)
         .PipeValue(
+            ValidateDateAsync)
+        .ForwardValue(
             BuildTimesheetJsonOrFailureAsync)
         .MapSuccess(
             timesheet => TimesheetJson.BuildDataverseUpdateInput(
@@ -22,6 +24,24 @@ partial class TimesheetModifyApi
         .ForwardValue(
             dataverseApi.UpdateEntityAsync,
             static failure => failure.MapFailureCode(ToTimesheetUpdateFailureCode));
+
+    // The entry is read first: its current date may be in a closed period even if the date is not changed
+    private async ValueTask<Result<TimesheetUpdateIn, Failure<TimesheetUpdateFailureCode>>> ValidateDateAsync(
+        TimesheetUpdateIn input, CancellationToken cancellationToken)
+    {
+        var timesheet = await dataverseApi.GetEntityAsync<TimesheetDateJson>(
+            TimesheetDateJson.BuildDataverseGetInput(input.TimesheetId, input.SystemUserId), cancellationToken).ConfigureAwait(false);
+
+        if (timesheet.IsFailure)
+        {
+            return timesheet.FailureOrThrow().MapFailureCode(ToTimesheetUpdateFailureCode);
+        }
+
+        var result = await ValidateDateAsync(
+            input, newDate: input.Date, existingDate: timesheet.SuccessOrThrow().Value?.Date, cancellationToken).ConfigureAwait(false);
+
+        return result.MapFailure(static failure => failure.MapFailureCode(ToTimesheetUpdateFailureCode));
+    }
 
     private async ValueTask<Result<TimesheetJson, Failure<TimesheetUpdateFailureCode>>> BuildTimesheetJsonOrFailureAsync(
         TimesheetUpdateIn input, CancellationToken cancellationToken)
@@ -60,6 +80,15 @@ partial class TimesheetModifyApi
             DataverseFailureCode.RecordNotFound => TimesheetUpdateFailureCode.TimesheetNotFound,
             DataverseFailureCode.CannotUpdateBecauseItIsReadOnly => TimesheetUpdateFailureCode.BadRequest,
             DataverseFailureCode.IsvAborted => TimesheetUpdateFailureCode.BadRequest,
+            _ => default
+        };
+
+    private static TimesheetUpdateFailureCode ToTimesheetUpdateFailureCode(DateFailureCode failureCode)
+        =>
+        failureCode switch
+        {
+            DateFailureCode.FutureDate => TimesheetUpdateFailureCode.FutureDate,
+            DateFailureCode.PeriodClosed => TimesheetUpdateFailureCode.PeriodClosed,
             _ => default
         };
 

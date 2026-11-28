@@ -15,6 +15,9 @@ partial class TimesheetModifyApi
         .Pipe(
             ValidateDescription)
         .ForwardValue(
+            (@in, token) => ValidateDateAsync(@in, newDate: @in.Date, existingDate: null, token),
+            static failure => failure.MapFailureCode(ToTimesheetCreateFailureCode))
+        .ForwardValue(
             (@in, token) => GetProjectAsync(@in.Project, @in.SystemUserId, token),
             static failure => failure.MapFailureCode(ToTimesheetCreateFailureCode))
         .MapSuccess(
@@ -49,6 +52,15 @@ partial class TimesheetModifyApi
             DataverseFailureCode.PrivilegeDenied => TimesheetCreateFailureCode.Forbidden,
             DataverseFailureCode.CannotUpdateBecauseItIsReadOnly => TimesheetCreateFailureCode.BadRequest,
             DataverseFailureCode.IsvAborted => TimesheetCreateFailureCode.BadRequest,
+            _ => default
+        };
+
+    private static TimesheetCreateFailureCode ToTimesheetCreateFailureCode(DateFailureCode failureCode)
+        =>
+        failureCode switch
+        {
+            DateFailureCode.FutureDate => TimesheetCreateFailureCode.FutureDate,
+            DateFailureCode.PeriodClosed => TimesheetCreateFailureCode.PeriodClosed,
             _ => default
         };
 
