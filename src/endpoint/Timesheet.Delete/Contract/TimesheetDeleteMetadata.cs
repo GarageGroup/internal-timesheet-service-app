@@ -14,7 +14,7 @@ internal static class TimesheetDeleteMetadata
 
         public const string Description
             =
-            "Deletes the specified timesheet.";
+            "Deletes the specified timesheet. A timesheet of a closed period cannot be deleted.";
     }
 
     public static class In
